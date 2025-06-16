@@ -1,0 +1,10 @@
+name = "goose"
+version = "0.1.0"
+defaultTargets = ["goose"]
+
+[[lean_lib]]
+name = "Goose"
+
+[[lean_exe]]
+name = "goose"
+root = "Main"
