@@ -1,4 +1,4 @@
 
-import Anoma.Resource
+import Anoma
 
 def hello := "world"
