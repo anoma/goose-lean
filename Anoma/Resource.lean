@@ -7,7 +7,7 @@ abbrev Nonce := Nat
 abbrev NullifierKeyCommitment := String
 
 structure Resource where
-  Val : Type
+  Val : Type u
   [rawVal : Raw Val]
   label : String
   quantity : Nat
@@ -16,14 +16,15 @@ structure Resource where
   nonce : Nonce
   nullifierKeyCommitment : NullifierKeyCommitment
 
-structure Logic.Args (Data : Type) where
+structure Logic.Args (Data : Type u) where
   self : Resource
   isConsumed : Bool
   consumed : List Resource
   created : List Resource
+  -- data is the action's appData for self
   data : Data
 
-structure ResourceWithLogic (Data : Type) where
+structure ResourceWithLogic (Data : Type u) where
   val : Resource
   logic : Logic.Args Data
 

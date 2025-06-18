@@ -28,4 +28,10 @@ structure Object.Method where
   extraLogic : Object → Args → Bool
   created : Object → Args → List Object
 
+-- TODO: change this to a structure
+-- The appData associated with an object in a method call consists of object's
+-- public data and the method arguments.
+def Object.Method.AppData (method : Object.Method) : Type 1 :=
+  (α : Type) × α × method.Args
+
 end Goose
