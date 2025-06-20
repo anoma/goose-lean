@@ -12,21 +12,30 @@ inductive Tag where
   | Consumed : Nullifier → Tag
   deriving Inhabited, Repr, BEq, Hashable
 
+abbrev RawTag := String
+
+def Tag.toRaw (tag : Tag) : RawTag := match tag with
+ | (Created m) => m
+ | (Consumed m) => m
+
 def Tag.fromResource (isConsumed : Bool) (res : Resource) : Tag :=
   if isConsumed then
     Tag.Consumed res.nullifier
   else
     Tag.Created res.commitment
 
+def RawTag.fromResource (isConsumed : Bool) (res : Resource) : RawTag :=
+  Tag.toRaw (Tag.fromResource isConsumed res)
+
 abbrev DeltaProof := String
-abbrev CommitmentRoot := String
 
 structure Action where
   Data : Type
   [rawData : Raw Data]
   consumed : List RootedNullifiableResource
   created : List Resource
-  appData : Std.HashMap Tag Data
+  -- TODO clarify wether the key should be RawTag or Tag
+  appData : Std.HashMap RawTag Data
 
 structure Transaction where
   roots : List CommitmentRoot
