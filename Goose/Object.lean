@@ -28,12 +28,18 @@ structure Object.Method where
   extraLogic : Object → Args → Bool
   created : Object → Args → List Object
 
--- The appData associated with an object in a method call consists of object's
--- public data and the method arguments.
-structure Object.Method.AppData (method : Object.Method) where
+-- The appData associated with an object in a method or constructor call
+-- consists of object's public data and the method arguments.
+structure Object.AppData (Args : Type u) where
   PublicData : Type
   [rawPublicData : Anoma.Raw PublicData]
   publicData : PublicData
-  args : method.Args
+  args : Args
+
+def Object.Method.AppData (method : Object.Method) :=
+  Object.AppData method.Args
+
+instance Object.AppData.RawInstance {Args} [Anoma.Raw Args] : Anoma.Raw (Object.AppData Args) where
+  raw appData := appData.rawPublicData.raw appData.publicData ++ ":::" ++ Anoma.Raw.raw appData.args
 
 end Goose

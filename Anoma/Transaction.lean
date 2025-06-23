@@ -21,7 +21,7 @@ def Tag.fromResource (isConsumed : Bool) (res : Resource) : Tag :=
 abbrev DeltaProof := String
 
 structure Action where
-  Data : Type
+  Data : Type u
   [rawData : Raw Data]
   consumed : List RootedNullifiableResource
   created : List Resource

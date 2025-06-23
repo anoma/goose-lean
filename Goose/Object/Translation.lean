@@ -4,65 +4,81 @@ import Anoma
 
 namespace Goose
 
-def Object.toResource (obj : Object) (ephemeral := false) (nonce := 0) (nkCommitment := "") : Anoma.Resource :=
-  { Val := obj.PrivateData
-    rawVal := obj.rawPrivateData
-    label := obj.classLabel
-    quantity := obj.quantity
-    value := obj.privateData
-    ephemeral := ephemeral
-    nonce := nonce
-    nullifierKeyCommitment := nkCommitment }
+def Object.toResource (obj : Object) (ephemeral := false) (nonce := 0) (nullifierKeyCommitment := "") : Anoma.Resource :=
+  { Val := obj.PrivateData,
+    rawVal := obj.rawPrivateData,
+    label := obj.classLabel,
+    quantity := obj.quantity,
+    value := obj.privateData,
+    ephemeral := ephemeral,
+    nonce,
+    nullifierKeyCommitment }
 
 def Object.fromResource {Data} [Anoma.Raw Data] (publicData : Data) (res : Anoma.Resource) : Object :=
-  { PrivateData := res.Val
-    PublicData := Data
-    rawPrivateData := res.rawVal
-    quantity := res.quantity
-    privateData := res.value
-    publicData := publicData
+  { PrivateData := res.Val,
+    PublicData := Data,
+    rawPrivateData := res.rawVal,
+    quantity := res.quantity,
+    privateData := res.value,
+    publicData := publicData,
     classLabel := res.label }
 
-def constructorAction (constr : Object.Constructor) (args : constr.Args) : Anoma.Action :=
+def Object.appData {Args} (self : Object) (args : Args) : Object.AppData Args :=
+  { PublicData := self.PublicData,
+    rawPublicData := self.rawPublicData,
+    publicData := self.publicData,
+    args }
+
+def Action.create {Args} [Anoma.Raw Args] (args : Args)
+  (consumedObjects createdObjects : List Object)
+  (consumedResources createdResources : List Anoma.Resource) : Anoma.Action :=
+  -- appData for each resource consists of:
+  -- 1. the public data of the object
+  -- 2. the method arguments
+  let appData : Std.HashMap Anoma.Tag (Object.AppData Args) :=
+    Std.HashMap.emptyWithCapacity
+    |>.insertMany (List.zipWith (fun obj res => (Anoma.Tag.fromResource (isConsumed := true) res, obj.appData args)) consumedObjects consumedResources)
+    |>.insertMany (List.zipWith (fun obj res => (Anoma.Tag.fromResource (isConsumed := false) res, obj.appData args)) createdObjects createdResources)
+  { Data := (Object.AppData Args),
+    consumed := List.map Anoma.RootedNullifiableResource.Transparent.fromResource consumedResources,
+    created := createdResources,
+    appData }
+
+def Object.Constructor.action (constr : Object.Constructor) (args : constr.Args) : Anoma.Action :=
+  -- TODO: set nonce and nullifierKeyCommitment properly
   let newObj : Object := constr.created args
   let ephRes : Anoma.Resource := Object.toResource (ephemeral := true) newObj
   let newRes : Anoma.Resource := Object.toResource (ephemeral := false) newObj
-  -- TODO: appData is not complete
-  let appData : Std.HashMap Anoma.Tag newObj.PublicData :=
-    Std.HashMap.emptyWithCapacity.insert (Anoma.Tag.fromResource (isConsumed := false) newRes) newObj.publicData
-  {
-    Data := newObj.PublicData,
-    rawData := newObj.rawPublicData,
-    consumed := [Anoma.RootedNullifiableResource.Transparent.fromResource ephRes],
-    created := [newRes],
-    appData }
+  @Action.create _ constr.rawArgs args [newObj] [newObj] [ephRes] [newRes]
 
-def methodLogic (method : Object.Method) (args : Anoma.Logic.Args method.AppData) : Bool :=
-  -- TODO: this is wrong, we should use publicData instead of argsData
+def Object.Method.logic (method : Object.Method) (args : Anoma.Logic.Args method.AppData) : Bool :=
+  let publicData : args.data.PublicData := args.data.publicData
   let argsData : method.Args := args.data.args
-  let self := @Object.fromResource _ method.rawArgs argsData args.self
-  let createdObjects := method.created self argsData
+  let selfObj := @Object.fromResource _ args.data.rawPublicData publicData args.self
+  let createdObjects := method.created selfObj argsData
   createdObjects.length == args.created.length
     && List.and (List.zipWith resourceDataEq createdObjects args.created)
-    && method.extraLogic self argsData
+    && method.extraLogic selfObj argsData
   where
     resourceDataEq (obj : Object) (res : Anoma.Resource) : Bool :=
       @Anoma.rawEq _ _ res.rawVal obj.rawPrivateData res.value obj.privateData
         && res.label == obj.classLabel
 
-def methodAction (method : Object.Method) (self : Object) (args : method.Args) : Anoma.Action :=
-  let selfResource := Object.toResource self
-  let createdResources := List.map Object.toResource (method.created self args)
-  let appData : Std.HashMap Anoma.Tag self.PublicData :=
-    Std.HashMap.emptyWithCapacity.insert (Anoma.Tag.fromResource (isConsumed := true) selfResource) self.publicData
-    --  |>.insertMany (List.map (fun res => Anoma.Tag.fromResource false res) createdResources)
-  { Data := self.PublicData,
-    rawData := self.rawPublicData,
-    consumed := [Anoma.RootedNullifiableResource.Transparent.fromResource selfResource],
-    created := createdResources,
-    appData }
+def Object.Method.action (method : Object.Method) (self : Object) (args : method.Args) : Anoma.Action :=
+  -- TODO: set nonce and nullifierKeyCommitment properly
+  let consumedObjects := [self]
+  let consumedResources := List.map Object.toResource consumedObjects
+  let createdObjects := method.created self args
+  let createdResources := List.map Object.toResource createdObjects
+  @Action.create _ method.rawArgs args
+    consumedObjects createdObjects
+    consumedResources createdResources
 
-def methodTransaction (method : Object.Method) (self : Object) (args : method.Args) : Anoma.Transaction :=
-  sorry
+def Object.Method.transaction (method : Object.Method) (self : Object) (args : method.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
+  let action := method.action self args
+  { roots := [currentRoot],
+    actions := [action],
+    -- TODO: set deltaProof properly
+    deltaProof := "" }
 
 end Goose
