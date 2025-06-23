@@ -23,9 +23,23 @@ def Object.fromResource {Data} [Anoma.Raw Data] (publicData : Data) (res : Anoma
     publicData := publicData
     classLabel := res.label }
 
+def constructorAction (constr : Object.Constructor) (args : constr.Args) : Anoma.Action :=
+  let newObj : Object := constr.created args
+  let ephRes : Anoma.Resource := Object.toResource (ephemeral := true) newObj
+  let newRes : Anoma.Resource := Object.toResource (ephemeral := false) newObj
+  -- TODO: appData is not complete
+  let appData : Std.HashMap Anoma.Tag newObj.PublicData :=
+    Std.HashMap.emptyWithCapacity.insert (Anoma.Tag.fromResource (isConsumed := false) newRes) newObj.publicData
+  {
+    Data := newObj.PublicData,
+    rawData := newObj.rawPublicData,
+    consumed := [Anoma.RootedNullifiableResource.Transparent.fromResource ephRes],
+    created := [newRes],
+    appData }
+
 def methodLogic (method : Object.Method) (args : Anoma.Logic.Args method.AppData) : Bool :=
   -- TODO: this is wrong, we should use publicData instead of argsData
-  let argsData : method.Args := args.data.snd.snd
+  let argsData : method.Args := args.data.args
   let self := @Object.fromResource _ method.rawArgs argsData args.self
   let createdObjects := method.created self argsData
   createdObjects.length == args.created.length
@@ -40,11 +54,11 @@ def methodAction (method : Object.Method) (self : Object) (args : method.Args) :
   let selfResource := Object.toResource self
   let createdResources := List.map Object.toResource (method.created self args)
   let appData : Std.HashMap Anoma.Tag self.PublicData :=
-    Std.HashMap.emptyWithCapacity.insert (Anoma.Tag.fromResource true selfResource) self.publicData
+    Std.HashMap.emptyWithCapacity.insert (Anoma.Tag.fromResource (isConsumed := true) selfResource) self.publicData
     --  |>.insertMany (List.map (fun res => Anoma.Tag.fromResource false res) createdResources)
   { Data := self.PublicData,
     rawData := self.rawPublicData,
-    consumed := [selfResource],
+    consumed := [Anoma.RootedNullifiableResource.Transparent.fromResource selfResource],
     created := createdResources,
     appData }
 
