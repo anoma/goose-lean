@@ -19,7 +19,6 @@ def Tag.fromResource (isConsumed : Bool) (res : Resource) : Tag :=
     Tag.Created res.commitment
 
 abbrev DeltaProof := String
-abbrev CommitmentRoot := String
 
 structure Action where
   Data : Type

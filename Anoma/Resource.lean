@@ -8,6 +8,10 @@ abbrev CommitmentRoot := Nat
 abbrev NullifierKeyCommitment := String
 abbrev NullifierKey := String
 
+def NullifierKey.Universal : NullifierKey := "universal"
+
+def CommitmentRoot.placeholder : CommitmentRoot := 0
+
 structure Resource where
   Val : Type u
   [rawVal : Raw Val]
@@ -34,6 +38,11 @@ structure RootedNullifiableResource where
 structure ResourceWithLogic (Data : Type u) where
   val : Resource
   logic : Logic.Args Data
+
+def RootedNullifiableResource.Transparent.fromResource (res : Resource) : RootedNullifiableResource  :=
+ { key := NullifierKey.Universal,
+   resource := res,
+   root := CommitmentRoot.placeholder }
 
 def Resource.commitment (res : Resource) : String :=
   -- whatever
