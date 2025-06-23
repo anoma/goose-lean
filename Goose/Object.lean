@@ -32,6 +32,7 @@ structure Object.Method where
 -- public data and the method arguments.
 structure Object.Method.AppData (method : Object.Method) where
   PublicData : Type
+  [rawPublicData : Anoma.Raw PublicData]
   publicData : PublicData
   args : method.Args
 
