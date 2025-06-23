@@ -25,42 +25,26 @@ def Object.fromResource {Data} [Anoma.Raw Data] (publicData : Data) (res : Anoma
 
 def methodLogic (method : Object.Method) (args : Anoma.Logic.Args method.AppData) : Bool :=
   -- TODO: this is wrong, we should use publicData instead of argsData
-  let argsData : method.Args := args.data.args
-  let self : Object := @Object.fromResource _ method.rawArgs argsData args.self
-  let result := method.run self argsData
-  let createdObjects := result.created
+  let argsData : method.Args := args.data.snd.snd
+  let self := @Object.fromResource _ method.rawArgs argsData args.self
+  let createdObjects := method.created self argsData
   createdObjects.length == args.created.length
     && List.and (List.zipWith resourceDataEq createdObjects args.created)
-    && result.extraLogic
+    && method.extraLogic self argsData
   where
     resourceDataEq (obj : Object) (res : Anoma.Resource) : Bool :=
       @Anoma.rawEq _ _ res.rawVal obj.rawPrivateData res.value obj.privateData
         && res.label == obj.classLabel
 
-def constructorAction (constr : Object.Constructor) (args : constr.Args) : Anoma.Action :=
-  let res := constr.run args
-  let eph : Anoma.Resource := Object.toResource (ephemeral := true) res.created
-  let new : Object := res.created
-  let newRes : Anoma.Resource := Object.toResource res.created
-  -- TODO I don't fully understand appData
-  let appData : Std.HashMap Anoma.RawTag new.PublicData :=
-    Std.HashMap.emptyWithCapacity.insert (Anoma.RawTag.fromResource (isConsumed := false) newRes) new.publicData
-  {
-    Data := new.PublicData,
-    rawData := new.rawPublicData,
-    consumed := [Anoma.RootedNullifiableResource.Transparent.fromResource eph],
-    created := [Object.toResource res.created],
-    appData }
-
 def methodAction (method : Object.Method) (self : Object) (args : method.Args) : Anoma.Action :=
   let selfResource := Object.toResource self
-  let createdResources := List.map Object.toResource (method.run self args).created
-  let appData : Std.HashMap Anoma.RawTag self.PublicData :=
-    Std.HashMap.emptyWithCapacity.insert (Anoma.RawTag.fromResource (isConsumed := true) selfResource) self.publicData
+  let createdResources := List.map Object.toResource (method.created self args)
+  let appData : Std.HashMap Anoma.Tag self.PublicData :=
+    Std.HashMap.emptyWithCapacity.insert (Anoma.Tag.fromResource true selfResource) self.publicData
     --  |>.insertMany (List.map (fun res => Anoma.Tag.fromResource false res) createdResources)
   { Data := self.PublicData,
     rawData := self.rawPublicData,
-    consumed := [Anoma.RootedNullifiableResource.Transparent.fromResource selfResource],
+    consumed := [selfResource],
     created := createdResources,
     appData }
 
