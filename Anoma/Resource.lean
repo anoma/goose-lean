@@ -26,7 +26,7 @@ structure Logic.Args (Data : Type u) where
 
 structure ResourceWithLogic (Data : Type u) where
   val : Resource
-  logic : Logic.Args Data
+  logic : Logic.Args Data → Bool
 
 def Resource.commitment (res : Resource) : String :=
   -- whatever
