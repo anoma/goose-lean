@@ -12,6 +12,7 @@ def NullifierKey.Universal : NullifierKey := "universal"
 
 def CommitmentRoot.placeholder : CommitmentRoot := 0
 
+/-- Representation of Anoma Resource data, without the resource logic. -/
 structure Resource where
   Val : Type u
   [rawVal : Raw Val]
@@ -30,18 +31,20 @@ structure Logic.Args (Data : Type u) where
   /-- `data` is the action's appData for self -/
   data : Data
 
+/-- Corresponds to Anoma Resource (with resource logic). -/
+structure ResourceWithLogic (Data : Type u) where
+  val : Resource
+  logic : Logic.Args Data → Bool
+
 structure RootedNullifiableResource where
   key : NullifierKey
   resource : Resource
   root : CommitmentRoot
 
-structure ResourceWithLogic (Data : Type u) where
-  val : Resource
-  logic : Logic.Args Data → Bool
-
 def RootedNullifiableResource.Transparent.fromResource (res : Resource) : RootedNullifiableResource  :=
  { key := NullifierKey.Universal,
    resource := res,
+   -- TODO: shouldn't we use a real commitment root?
    root := CommitmentRoot.placeholder }
 
 def Resource.commitment (res : Resource) : String :=

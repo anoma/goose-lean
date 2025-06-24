@@ -4,11 +4,15 @@ import Anoma.Resource
 
 namespace Goose
 
+/-- Syntax-level object description (fields + constructors + methods) should
+  desugar to the `Class` structure. -/
 structure Class where
   PrivateData : Type
   PublicData : Type
   [rawPrivateData : Anoma.Raw PrivateData]
   [rawPublicData : Anoma.Raw PublicData]
+  /-- The `label` goes into the `classLabel` field of each object in the class.
+    -/
   label : String
   constructors : List Object.Constructor
   methods : List Object.Method

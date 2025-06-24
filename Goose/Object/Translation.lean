@@ -29,6 +29,9 @@ def Object.appData {Args} (self : Object) (args : Args) : Object.AppData Args :=
     publicData := self.publicData,
     args }
 
+/-- Checks that the number of objects and resources match, and that the
+      resources' private data and labels match the objects' private data and
+      labels. This check is used in the constructor and method logics. -/
 def Logic.checkResourceData (objects : List Object) (resources : List Anoma.Resource) : Bool :=
   objects.length == resources.length
     && List.and (List.zipWith resourceDataEq objects resources)
@@ -37,6 +40,7 @@ def Logic.checkResourceData (objects : List Object) (resources : List Anoma.Reso
       @Anoma.rawEq _ _ res.rawVal obj.rawPrivateData res.value obj.privateData
         && res.label == obj.classLabel
 
+/-- Helper function to create an Action. -/
 def Action.create {Args} [Anoma.Raw Args] (args : Args)
   (consumedObjects createdObjects : List Object)
   (consumedResources createdResources : List Anoma.Resource) : Anoma.Action :=
@@ -52,6 +56,9 @@ def Action.create {Args} [Anoma.Raw Args] (args : Args)
     created := createdResources,
     appData }
 
+/-- Creates a logic for a given constructor. This logic is combined with other
+      method and constructor logics to create the complete resource logic for an
+      object. See `Goose.Class` and `Goose.Class.Translation`. -/
 def Object.Constructor.logic (constr : Object.Constructor) (args : Anoma.Logic.Args constr.AppData) : Bool :=
   let argsData : constr.Args := args.data.args
   let newObj := constr.created argsData
@@ -66,6 +73,7 @@ def Object.Constructor.action (constr : Object.Constructor) (args : constr.Args)
   let newRes : Anoma.Resource := Object.toResource (ephemeral := false) newObj
   @Action.create _ constr.rawArgs args [newObj] [newObj] [ephRes] [newRes]
 
+/-- Creates an Anoma Transaction for a given object construtor. -/
 def Object.Constructor.transaction (constr : Object.Constructor) (args : constr.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
   let action := constr.action args
   { roots := [currentRoot],
@@ -73,6 +81,9 @@ def Object.Constructor.transaction (constr : Object.Constructor) (args : constr.
     -- TODO: set deltaProof properly
     deltaProof := "" }
 
+/-- Creates a logic for a given method. This logic is combined with other method
+    and constructor logics to create the complete resource logic for an object.
+    See `Goose.Class` and `Goose.Class.Translation`. -/
 def Object.Method.logic (method : Object.Method) (args : Anoma.Logic.Args method.AppData) : Bool :=
   let publicData : args.data.PublicData := args.data.publicData
   let argsData : method.Args := args.data.args
@@ -92,6 +103,7 @@ def Object.Method.action (method : Object.Method) (self : Object) (args : method
     consumedObjects createdObjects
     consumedResources createdResources
 
+/-- Creates an Anoma Transaction for a given object method. -/
 def Object.Method.transaction (method : Object.Method) (self : Object) (args : method.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
   let action := method.action self args
   { roots := [currentRoot],

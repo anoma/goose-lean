@@ -1,6 +1,10 @@
 
 namespace Anoma
 
+/-- Typeclass for types that can be serialized to a unique "raw" representation.
+    Equality on representations should imply equality of the corresponding
+    values, regardless of their types – we can compare values of different
+    types via their representations. -/
 class Raw (α : Type u) where
   raw : α → String
 

@@ -3,6 +3,8 @@ import Anoma.Raw
 
 namespace Goose
 
+/-- Represents a concrete object, translated into a resource. For class
+    represetation (object description), see `Goose.Class`. -/
 structure Object where
   PrivateData : Type
   PublicData : Type
@@ -10,26 +12,34 @@ structure Object where
   [rawPublicData : Anoma.Raw PublicData]
   classLabel : String
   quantity : Nat
-  /-- privateData goes into the value field of the resource -/
+  /-- `privateData` goes into the `value` field of the resource -/
   privateData : PrivateData
-  /-- publicData goes into the appData field of the action -/
+  /-- `publicData` goes into the `appData` field of the action -/
   publicData : PublicData
 
 structure Object.Constructor where
+  /-- The type of constructor arguments. -/
   Args : Type
   [rawArgs : Anoma.Raw Args]
+  /-- Extra constructor logic. It is combined with auto-generated constructor
+      logic to create the complete constructor logic. -/
   extraLogic : Args → Bool
+  /-- Objects created in the constructor call. -/
   created : Args → Object
 
 structure Object.Method where
+  /-- The type of method arguments (excluding `self`). -/
   Args : Type
   [rawArgs : Anoma.Raw Args]
   classLabel : String
-  extraLogic : Object → Args → Bool
-  created : Object → Args → List Object
+  /-- Extra method logic. It is combined with auto-generated method logic to
+      create the complete method logic. -/
+  extraLogic : (self : Object) → Args → Bool
+  /-- Objects created in the method call. -/
+  created : (self : Object) → Args → List Object
 
 /-- The appData associated with an object in a method or constructor call
-   consists of object's public data and the method arguments. -/
+     consists of the object's public data and the method arguments. -/
 structure Object.AppData (Args : Type u) where
   PublicData : Type
   [rawPublicData : Anoma.Raw PublicData]
