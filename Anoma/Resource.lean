@@ -27,7 +27,7 @@ structure Logic.Args (Data : Type u) where
   isConsumed : Bool
   consumed : List Resource
   created : List Resource
-  -- data is the action's appData for self
+  /-- `data` is the action's appData for self -/
   data : Data
 
 structure RootedNullifiableResource where
