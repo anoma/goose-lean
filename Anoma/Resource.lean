@@ -12,7 +12,9 @@ def NullifierKey.Universal : NullifierKey := "universal"
 
 def CommitmentRoot.placeholder : CommitmentRoot := 0
 
-/-- Representation of Anoma Resource data, without the resource logic. -/
+/-- Representation of Anoma Resource data, without the resource logic. In the
+    GOOSE model, the resource logic is determined by the `label` field (which
+    contains the unique label of the class). -/
 structure Resource where
   Val : Type u
   [rawVal : Raw Val]

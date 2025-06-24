@@ -1,5 +1,6 @@
 
 import Goose.Object
+import Goose.Class
 import Anoma
 
 namespace Goose
@@ -42,19 +43,27 @@ def Logic.checkResourceData (objects : List Object) (resources : List Anoma.Reso
 
 /-- Helper function to create an Action. -/
 def Action.create {Args} [Anoma.Raw Args] (args : Args)
+  (actionLogic : Anoma.Logic.Args (Object.AppData Args) → Bool)
   (consumedObjects createdObjects : List Object)
   (consumedResources createdResources : List Anoma.Resource) : Anoma.Action :=
   -- appData for each resource consists of:
   -- 1. the public data of the object
   -- 2. the method arguments
-  let appData : Std.HashMap Anoma.Tag (Object.AppData Args) :=
+  let appData : Std.HashMap Anoma.Tag Class.AppData :=
     Std.HashMap.emptyWithCapacity
-    |>.insertMany (List.zipWith (fun obj res => (Anoma.Tag.fromResource (isConsumed := true) res, obj.appData args)) consumedObjects consumedResources)
-    |>.insertMany (List.zipWith (fun obj res => (Anoma.Tag.fromResource (isConsumed := false) res, obj.appData args)) createdObjects createdResources)
-  { Data := (Object.AppData Args),
+    |>.insertMany (List.zipWith (mkTagDataPair (isConsumed := true)) consumedObjects consumedResources)
+    |>.insertMany (List.zipWith (mkTagDataPair (isConsumed := false)) createdObjects createdResources)
+  { Data := Class.AppData,
     consumed := List.map Anoma.RootedNullifiableResource.Transparent.fromResource consumedResources,
     created := createdResources,
     appData }
+  where
+    mkTagDataPair (isConsumed : Bool) (obj : Object) (res : Anoma.Resource) : Anoma.Tag × Class.AppData :=
+      (Anoma.Tag.fromResource isConsumed res,
+        { Args := Args,
+          objectAppData := obj.appData args,
+          actionLogic
+        })
 
 /-- Creates a logic for a given constructor. This logic is combined with other
       method and constructor logics to create the complete resource logic for an
@@ -71,7 +80,7 @@ def Object.Constructor.action (constr : Object.Constructor) (args : constr.Args)
   let newObj : Object := constr.created args
   let ephRes : Anoma.Resource := Object.toResource (ephemeral := true) newObj
   let newRes : Anoma.Resource := Object.toResource (ephemeral := false) newObj
-  @Action.create _ constr.rawArgs args [newObj] [newObj] [ephRes] [newRes]
+  @Action.create _ constr.rawArgs args constr.logic [newObj] [newObj] [ephRes] [newRes]
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Object.Constructor.transaction (constr : Object.Constructor) (args : constr.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
@@ -100,6 +109,7 @@ def Object.Method.action (method : Object.Method) (self : Object) (args : method
   let createdObjects := method.created self args
   let createdResources := List.map Object.toResource createdObjects
   @Action.create _ method.rawArgs args
+    method.logic
     consumedObjects createdObjects
     consumedResources createdResources
 
