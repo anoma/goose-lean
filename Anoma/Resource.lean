@@ -50,11 +50,13 @@ def RootedNullifiableResource.Transparent.fromResource (res : Resource) : Rooted
    root := CommitmentRoot.placeholder }
 
 def Resource.commitment (res : Resource) : String :=
-  -- whatever
+  -- The exact way to compute the commitment doesn't matter for the model (for
+  -- now)
   res.label ++ "-" ++ toString res.nonce
 
 def Resource.nullifier (res : Resource) : String :=
-  -- whatever
+  -- The exact way to compute the nullifier doesn't matter for the model (for
+  -- now)
   res.label ++ "-" ++ toString res.nonce
 
 end Anoma
