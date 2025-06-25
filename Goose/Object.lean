@@ -1,58 +1,40 @@
 
 import Anoma.Raw
+import Anoma.Resource
 
 namespace Goose
 
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `Goose.Class`. -/
 structure Object where
-  PrivateData : Type
-  PublicData : Type
-  [rawPrivateData : Anoma.Raw PrivateData]
-  [rawPublicData : Anoma.Raw PublicData]
+  PrivateFields : Type
+  PublicFields : Type
+  [rawPrivateFields : Anoma.Raw PrivateFields]
+  [rawPublicFields : Anoma.Raw PublicFields]
   classLabel : String
   quantity : Nat
-  /-- `privateData` goes into the `value` field of the resource -/
-  privateData : PrivateData
-  /-- `publicData` goes into the `appData` field of the action -/
-  publicData : PublicData
+  /-- `privateFields` go into the `value` field of the resource -/
+  privateFields : PrivateFields
+  /-- `publicFields` go into the `appData` field of the action -/
+  publicFields : PublicFields
 
-structure Object.Constructor where
-  /-- The type of constructor arguments. -/
-  Args : Type
-  [rawArgs : Anoma.Raw Args]
-  /-- Extra constructor logic. It is combined with auto-generated constructor
-      logic to create the complete constructor logic. -/
-  extraLogic : Args → Bool
-  /-- Objects created in the constructor call. -/
-  created : Args → Object
+def Object.toResource (obj : Object) (ephemeral := false) (nonce := 0) (nullifierKeyCommitment := "") : Anoma.Resource :=
+  { Val := obj.PrivateFields,
+    rawVal := obj.rawPrivateFields,
+    label := obj.classLabel,
+    quantity := obj.quantity,
+    value := obj.privateFields,
+    ephemeral := ephemeral,
+    nonce,
+    nullifierKeyCommitment }
 
-structure Object.Method where
-  /-- The type of method arguments (excluding `self`). -/
-  Args : Type
-  [rawArgs : Anoma.Raw Args]
-  classLabel : String
-  /-- Extra method logic. It is combined with auto-generated method logic to
-      create the complete method logic. -/
-  extraLogic : (self : Object) → Args → Bool
-  /-- Objects created in the method call. -/
-  created : (self : Object) → Args → List Object
-
-/-- The appData associated with an object in a method or constructor call
-     consists of the object's public data and the method arguments. -/
-structure Object.AppData (Args : Type u) where
-  PublicData : Type
-  [rawPublicData : Anoma.Raw PublicData]
-  publicData : PublicData
-  args : Args
-
-def Object.Method.AppData (method : Object.Method) :=
-  Object.AppData method.Args
-
-def Object.Constructor.AppData (constr : Object.Constructor) :=
-  Object.AppData constr.Args
-
-instance Object.AppData.RawInstance {Args} [Anoma.Raw Args] : Anoma.Raw (Object.AppData Args) where
-  raw appData := appData.rawPublicData.raw appData.publicData ++ ":::" ++ Anoma.Raw.raw appData.args
+def Object.fromResource {PublicFields} [Anoma.Raw PublicFields] (publicFields : PublicFields) (res : Anoma.Resource) : Object :=
+  { PrivateFields := res.Val,
+    PublicFields := PublicFields,
+    rawPrivateFields := res.rawVal,
+    quantity := res.quantity,
+    privateFields := res.value,
+    publicFields := publicFields,
+    classLabel := res.label }
 
 end Goose
