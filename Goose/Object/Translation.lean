@@ -50,7 +50,7 @@ def Action.create {Args} [Anoma.Raw Args] (args : Args)
   -- appData for each resource consists of:
   -- 1. action logic (indicator)
   -- 2. the public data of the object
-  -- 3. the method arguments
+  -- 3. the action (method/constructor) arguments
   let appData : Std.HashMap Anoma.Tag Class.AppData :=
     Std.HashMap.emptyWithCapacity
     |>.insertMany (List.zipWith (Function.uncurry (mkTagDataPair (isConsumed := true))) (List.zip consumedActionLogics consumedObjects) consumedResources)
