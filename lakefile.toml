@@ -1,9 +1,12 @@
 name = "goose"
 version = "0.1.0"
-defaultTargets = ["Anoma", "Goose"]
+defaultTargets = ["Utils", "Anoma", "Goose"]
 
 [[lean_lib]]
 name = "Goose"
 
 [[lean_lib]]
 name = "Anoma"
+
+[[lean_lib]]
+name = "Utils"

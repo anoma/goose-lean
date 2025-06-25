@@ -1,4 +1,5 @@
 
+import Utils
 import Anoma
 import Goose.Class
 import Goose.Class.Member
@@ -17,8 +18,8 @@ def Action.create {Args} [rawArgs : Anoma.Raw Args] (args : Args)
   -- 3. the action (method/constructor) arguments
   let appData : Std.HashMap Anoma.Tag Class.AppData :=
     Std.HashMap.emptyWithCapacity
-    |>.insertMany (List.zipWith (Function.uncurry (mkTagDataPair (isConsumed := true))) (List.zip consumedLogics consumedObjects) consumedResources)
-    |>.insertMany (List.zipWith (Function.uncurry (mkTagDataPair (isConsumed := false))) (List.zip createdLogics createdObjects) createdResources)
+    |>.insertMany (List.zipWith3Exact (mkTagDataPair (isConsumed := true)) consumedLogics consumedObjects consumedResources)
+    |>.insertMany (List.zipWith3Exact (mkTagDataPair (isConsumed := false)) createdLogics createdObjects createdResources)
   { Data := Class.AppData,
     consumed := List.map Anoma.RootedNullifiableResource.Transparent.fromResource consumedResources,
     created := createdResources,
