@@ -45,7 +45,7 @@ def Class.Constructor.AppData (constr : Class.Constructor) :=
 
 instance Class.Member.AppData.RawInstance {Args} [Anoma.Raw Args] : Anoma.Raw (Class.Member.AppData Args) where
   raw appData := appData.rawPublicFields.raw appData.publicFields ++ ":::" ++ Anoma.Raw.raw appData.args
-  cooked := sorry
+  cooked (_ : String) : Option (Class.Member.AppData Args) :=  none
 
 def Class.Member.appData {Args} (self : Object) (args : Args) : Class.Member.AppData Args :=
   { PublicFields := self.PublicFields,
