@@ -75,7 +75,6 @@ def Class.Constructor.transaction (sig : Signature) (constr : Class.Constructor 
 def Class.Method.logic (sig : Signature) (method : Class.Method sig) (args : Anoma.Logic.Args method.AppData) : Bool :=
   let publicFields : Public.PublicFields sig.pub := args.data.publicFields
   let argsData : method.Args := args.data.args
-  -- let selfObj := @Object.fromResource _ args.data.rawPublicFields publicFields args.self
   let mselfObj : Option (Object sig) := Object.fromResource publicFields args.self
   match mselfObj with
     | none => False
