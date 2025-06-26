@@ -19,7 +19,7 @@ def Class.Member.Logic.checkResourceData {sig : Signature} (objects : List (Obje
     && List.and (List.zipWith resourceDataEq objects resources)
   where
     resourceDataEq (obj : Object sig) (res : Anoma.Resource) : Bool :=
-      @Anoma.rawEq _ _ res.rawVal (Private.rawPrivateFields sig.priv) res.value obj.privateFields
+      @Anoma.rawEq _ _ res.rawVal sig.priv.rawPrivateFields res.value obj.privateFields
         && res.label == sig.classLabel
 
 end Goose

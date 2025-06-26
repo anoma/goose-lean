@@ -19,8 +19,8 @@ abbrev SomeObject : Type _ := @Sigma Signature Object
 def Object.toResource {sig : Signature} (obj : Object sig)
     (ephemeral := false) (nonce := 0) (nullifierKeyCommitment := "")
     : Anoma.Resource :=
-  { Val := Private.PrivateFields sig.priv,
-    rawVal := Private.rawPrivateFields sig.priv,
+  { Val := sig.priv.PrivateFields,
+    rawVal :=  sig.priv.rawPrivateFields,
     label := sig.classLabel,
     quantity := obj.quantity,
     value := obj.privateFields,
@@ -30,13 +30,13 @@ def Object.toResource {sig : Signature} (obj : Object sig)
 
 def Object.fromResource
   {sig : Signature}
-  (publicFields : Public.PublicFields sig.pub)
+  (publicFields : sig.pub.PublicFields )
   (res : Anoma.Resource)
   : Option (Object sig) :=
   let _ : Anoma.Raw res.Val := res.rawVal
-  let _ : Anoma.Raw (Private.PrivateFields sig.priv) := Private.rawPrivateFields sig.priv
+  let _ : Anoma.Raw sig.priv.PrivateFields := sig.priv.rawPrivateFields
   do
-  let privateFields : sig.priv.PrivateFields <- Anoma.Raw.cooked (Anoma.Raw.raw res.value)
+  let privateFields : sig.priv.PrivateFields <- Anoma.Raw.cooked (Anoma.Raw.raw res.value) -- TODO this cast should be done safely
   pure { quantity := res.quantity,
          privateFields := privateFields,
          publicFields := publicFields }
