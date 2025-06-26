@@ -17,7 +17,7 @@ structure ConsumedObject (sig : Signature) : Type 1 where
   resource : Anoma.Resource
 
 /-- Helper function to create an Action. -/
-def Action.create {sig : Signature} (memberId : MemberId sig.pub) (args : memberId.Args)
+private def Action.create {sig : Signature} (memberId : MemberId sig.pub) (args : memberId.Args)
   (consumed : ConsumedObject sig)
   (created : List CreatedObject) -- no appdata/logic
   : Anoma.Action :=
