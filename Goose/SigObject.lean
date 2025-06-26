@@ -34,7 +34,7 @@ def Object.fromResource
   let _ : Anoma.Raw res.Val := res.rawVal
   let _ : Anoma.Raw (Private.PrivateFields sig.priv) := Private.rawPrivateFields sig.priv
   do
-  let privateFields <- Anoma.Raw.cooked (Anoma.Raw.raw res.value) -- TODO look at this
+  let privateFields : sig.priv.PrivateFields <- Anoma.Raw.cooked (Anoma.Raw.raw res.value)
   pure { quantity := res.quantity,
          privateFields := privateFields,
          publicFields := publicFields }
