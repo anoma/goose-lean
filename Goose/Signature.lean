@@ -1,7 +1,7 @@
 import Anoma.Raw
 import Anoma.Resource
 
-namespace SigGoose
+namespace Goose
 
 structure Private where
   PrivateFields : Type

@@ -1,9 +1,9 @@
-import SigGoose
+import Goose
 import Anoma.Raw
 
 namespace Counter
 
-open SigGoose
+open Goose
 
 axiom error {A : Type u} (msg : String) : A
 
