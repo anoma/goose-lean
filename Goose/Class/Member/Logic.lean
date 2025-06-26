@@ -3,12 +3,12 @@ import Goose.Class.Member
 
 namespace Goose
 
-abbrev Class.Member.Logic (Args : Type u) := Anoma.Logic.Args (Class.Member.AppData Args) → Bool
+abbrev Class.Member.Logic (Args : Type) := Anoma.Logic.Args (Class.Member.AppData Args) → Bool
 
-def trueLogic {Args : Type u} : Class.Member.Logic Args :=
+def trueLogic {Args : Type} : Class.Member.Logic Args :=
   fun _ => True
 
-def falseLogic {Args : Type u} : Class.Member.Logic Args :=
+def falseLogic {Args : Type} : Class.Member.Logic Args :=
   fun _ => False
 
 /-- Checks that the number of objects and resources match, and that the

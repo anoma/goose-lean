@@ -31,7 +31,7 @@ inductive Class.Member where
 
 /-- The appData associated with a member call consists of the
     self object's public fields and the member arguments. -/
-structure Class.Member.AppData (Args : Type u) where
+structure Class.Member.AppData (Args : Type) where
   PublicFields : Type
   [rawPublicFields : Anoma.Raw PublicFields]
   publicFields : PublicFields
@@ -45,6 +45,7 @@ def Class.Constructor.AppData (constr : Class.Constructor) :=
 
 instance Class.Member.AppData.RawInstance {Args} [Anoma.Raw Args] : Anoma.Raw (Class.Member.AppData Args) where
   raw appData := appData.rawPublicFields.raw appData.publicFields ++ ":::" ++ Anoma.Raw.raw appData.args
+  cooked := sorry
 
 def Class.Member.appData {Args} (self : Object) (args : Args) : Class.Member.AppData Args :=
   { PublicFields := self.PublicFields,

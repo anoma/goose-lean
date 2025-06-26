@@ -35,5 +35,6 @@ structure Class.AppData where
 instance Class.AppData.RawInstance : Anoma.Raw Class.AppData where
   -- NOTE: this should also include a raw representation of the action logic
   raw appData := (@Member.AppData.RawInstance _ appData.rawArgs).raw appData.memberAppData
+  cooked := sorry
 
 end Goose
