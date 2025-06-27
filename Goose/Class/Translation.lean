@@ -71,7 +71,7 @@ def Action.create.old {sig : Signature} {Args : Type} [rawArgs : Anoma.Raw Args]
 def Class.Constructor.logic (sig : Signature) (constr : Class.Constructor sig) (args : Anoma.Logic.Args (constr.AppData sig.pub)) : Bool :=
   let argsData : constr.Args := args.data.args
   let newObj := constr.created argsData
-  if args.isConsumed.isConsumed then
+  if args.isConsumed then
     Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.consumed
       && Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.created
       && constr.extraLogic argsData
@@ -111,7 +111,7 @@ def Class.Method.logic (sig : Signature) (method : Class.Method sig) (args : Ano
     | none => False
     | (some selfObj) =>
       let createdObjects := method.created selfObj argsData
-      if args.isConsumed.isConsumed then
+      if args.isConsumed then
         Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
           && Class.Member.Logic.checkResourceData createdObjects args.created
           && method.extraLogic selfObj argsData
