@@ -47,8 +47,8 @@ def Class.Member.AppData.toSomeAppData {pub : Public} {Args : Type u}
 def Class.Method.AppData (sig : Signature) (method : Class.Method sig) :=
   Member.AppData sig.pub method.Args
 
-def Class.Constructor.AppData (pub : Public) (constr : Class.Constructor sig) :=
-  Member.AppData pub constr.Args
+def Class.Constructor.AppData {sig : Signature} (constr : Class.Constructor sig) :=
+  Member.AppData sig.pub constr.Args
 
 instance Class.Member.AppData.RawInstance (pub : Public) {Args : Type u} [Anoma.Raw Args]
    : Anoma.Raw (Class.Member.AppData pub Args) where
