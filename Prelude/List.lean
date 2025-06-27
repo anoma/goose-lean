@@ -1,4 +1,6 @@
 
+universe u v w z
+
 variable {A : Type u} {B : Type v} {C : Type w} {D : Type z}
 
 def List.zipWithExact (f : A → B → C) (l1 : List A) (l2 : List B) : List C :=

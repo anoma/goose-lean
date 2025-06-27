@@ -1,6 +1,6 @@
 
 import Lean
-import Utils.List
+import Prelude.List
 
 mutual
   inductive Rep where

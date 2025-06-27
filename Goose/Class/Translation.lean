@@ -31,39 +31,13 @@ def Action.create {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
     created := List.map ActionItem.resource created,
     appData }
   where
-    mkTagDataPair {c : ConsumedCreated} (i : ActionItem c Args)
+    mkTagDataPair {status : ConsumedCreated} (item : ActionItem status Args)
      : Anoma.Tag × Class.SomeAppData :=
-      (Anoma.Tag.fromResource (c.isConsumed ) i.resource,
+      (Anoma.Tag.fromResource (status.isConsumed ) item.resource,
         { appData :=
          { Args := Args,
-           memberAppData := Class.Member.appData i.sig i.object args,
-           memberLogic := i.logic }})
-
-def Action.create.old {sig : Signature} {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
-  (consumedLogics createdLogics : List (Class.Member.Logic sig.pub Args))
-  (consumedObjects createdObjects : List (Object sig))
-  (consumedResources createdResources : List Anoma.Resource)
-  : Anoma.Action :=
-  -- appData for each resource consists of:
-  -- 1. action logic (indicator)
-  -- 2. the public data of the object
-  -- 3. the action (method/constructor) arguments
-  let appData : Std.HashMap Anoma.Tag (Class.AppData sig.pub) :=
-    Std.HashMap.emptyWithCapacity
-    |>.insertMany (List.zipWith3Exact (mkTagDataPair (isConsumed := true)) consumedLogics consumedObjects consumedResources)
-    |>.insertMany (List.zipWith3Exact (mkTagDataPair (isConsumed := false)) createdLogics createdObjects createdResources)
-  { Data := Class.AppData sig.pub,
-    consumed := List.map Anoma.RootedNullifiableResource.Transparent.fromResource consumedResources,
-    created := createdResources,
-    appData }
-  where
-    mkTagDataPair (isConsumed : Bool) (memberLogic : Class.Member.Logic sig.pub Args) (obj : Object sig) (res : Anoma.Resource)
-     : Anoma.Tag × Class.AppData sig.pub :=
-      (Anoma.Tag.fromResource isConsumed res,
-        { Args := Args,
-          memberAppData := Class.Member.appData sig obj args,
-          memberLogic
-        })
+           memberAppData := Class.Member.appData item.sig item.object args,
+           memberLogic := item.logic }})
 
 /-- Creates a logic for a given constructor. This logic is combined with other
     method and constructor logics to create the complete resource logic for an
