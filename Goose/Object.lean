@@ -1,40 +1,68 @@
 
 import Anoma.Raw
 import Anoma.Resource
+import Goose.Signature
 
 namespace Goose
 
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `Goose.Class`. -/
-structure Object where
-  PrivateFields : Type
-  PublicFields : Type
-  [rawPrivateFields : Anoma.Raw PrivateFields]
-  [rawPublicFields : Anoma.Raw PublicFields]
-  classLabel : String
+structure Object (sig : Signature) where
   quantity : Nat
   /-- `privateFields` go into the `value` field of the resource -/
-  privateFields : PrivateFields
+  privateFields : Private.PrivateFields sig.priv
   /-- `publicFields` go into the `appData` field of the action -/
-  publicFields : PublicFields
+  publicFields : Public.PublicFields sig.pub
 
-def Object.toResource (obj : Object) (ephemeral := false) (nonce := 0) (nullifierKeyCommitment := "") : Anoma.Resource :=
-  { Val := obj.PrivateFields,
-    rawVal := obj.rawPrivateFields,
-    label := obj.classLabel,
+structure SomeObject where
+  {sig : Signature}
+  object : Object sig
+
+def Object.toSomeObject {sig : Signature} (object : Object sig) : SomeObject := {object}
+
+def SomeObject.toResource (sobj : SomeObject)
+    (ephemeral := false) (nonce := 0) (nullifierKeyCommitment := "")
+    : Anoma.Resource :=
+    let sig := sobj.sig
+    let obj := sobj.object
+  { Val := sig.priv.PrivateFields,
+    rawVal :=  sig.priv.rawPrivateFields,
+    label := sig.classLabel,
     quantity := obj.quantity,
     value := obj.privateFields,
     ephemeral := ephemeral,
     nonce,
     nullifierKeyCommitment }
 
-def Object.fromResource {PublicFields} [Anoma.Raw PublicFields] (publicFields : PublicFields) (res : Anoma.Resource) : Object :=
-  { PrivateFields := res.Val,
-    PublicFields := PublicFields,
-    rawPrivateFields := res.rawVal,
-    quantity := res.quantity,
-    privateFields := res.value,
-    publicFields := publicFields,
-    classLabel := res.label }
+def Object.fromResource
+  {sig : Signature}
+  (publicFields : sig.pub.PublicFields )
+  (res : Anoma.Resource)
+  : Option (Object sig) :=
+  let _ : Anoma.Raw res.Val := res.rawVal
+  let _ : Anoma.Raw sig.priv.PrivateFields := sig.priv.rawPrivateFields
+  do
+  let privateFields : sig.priv.PrivateFields <- Anoma.Raw.cooked (Anoma.Raw.raw res.value) -- TODO this cast should be done safely
+  pure { quantity := res.quantity,
+         privateFields := privateFields,
+         publicFields := publicFields }
+
+def SomeObject.fromResource
+  (pub : Public)
+  (pubVals : pub.PublicFields)
+  (res : Anoma.Resource)
+  : SomeObject where
+    sig := {
+      priv := { PrivateFields := res.Val
+                rawPrivateFields := res.rawVal
+               }
+      pub := pub
+      classLabel := res.label
+     }
+    object := {
+      quantity := res.quantity
+      privateFields := res.value
+      publicFields := pubVals
+     }
 
 end Goose

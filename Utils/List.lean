@@ -1,5 +1,9 @@
 
-def List.zipWith3Exact {A B C D : Type u} (f : A → B → C → D) (l1 : List A) (l2 : List B) (l3 : List C) : List D :=
+universe u v w
+
+variable {A : Type u} {B : Type v} {C : Type w}
+
+def List.zipWith3Exact (f : A → B → C → D) (l1 : List A) (l2 : List B) (l3 : List C) : List D :=
   match l1, l2, l3 with
   | [], [], [] => []
   | a :: as, b :: bs, c :: cs => f a b c :: List.zipWith3Exact f as bs cs
