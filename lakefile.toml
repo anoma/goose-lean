@@ -2,6 +2,9 @@ name = "goose"
 version = "0.1.0"
 defaultTargets = ["Utils", "Anoma", "Goose"]
 
+[leanOptions]
+relaxedAutoImplicit = false
+
 [[lean_lib]]
 name = "Goose"
 

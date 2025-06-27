@@ -68,7 +68,7 @@ def Action.create.old {sig : Signature} {Args : Type} [rawArgs : Anoma.Raw Args]
 /-- Creates a logic for a given constructor. This logic is combined with other
     method and constructor logics to create the complete resource logic for an
     object. -/
-def Class.Constructor.logic (sig : Signature) (constr : Class.Constructor sig) (args : Anoma.Logic.Args (constr.AppData sig.pub)) : Bool :=
+def Class.Constructor.logic (sig : Signature) (constr : Class.Constructor sig) (args : Anoma.Logic.Args constr.AppData) : Bool :=
   let argsData : constr.Args := args.data.args
   let newObj := constr.created argsData
   if args.isConsumed then
