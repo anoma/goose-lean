@@ -13,13 +13,10 @@ structure ActionItem (c : ConsumedCreated) (Args : Type) : Type 1 where
   object : Object sig
   resource : Anoma.Resource
 
-structure SomeActionItems (Args : Type) (c : ConsumedCreated) where
-  items : List (ActionItem c Args)
-
 /-- Helper function to create an Action. -/
 def Action.create {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
-  (consumed : SomeActionItems Args Consumed)
-  (created : SomeActionItems Args Created)
+  (consumed : List (ActionItem Consumed Args))
+  (created : List (ActionItem Created Args))
   : Anoma.Action :=
   -- appData for each resource consists of:
   -- 1. action logic (indicator)
@@ -30,13 +27,13 @@ def Action.create {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
     |>.insertMany (mkTagDataPairs consumed)
     |>.insertMany (mkTagDataPairs created)
   { Data := Class.SomeAppData,
-    consumed := List.map (Anoma.RootedNullifiableResource.Transparent.fromResource ∘ ActionItem.resource) consumed.items,
-    created := List.map ActionItem.resource created.items,
+    consumed := List.map (Anoma.RootedNullifiableResource.Transparent.fromResource ∘ ActionItem.resource) consumed,
+    created := List.map ActionItem.resource created,
     appData }
   where
-    mkTagDataPairs {c : ConsumedCreated} (i : SomeActionItems Args c)
+    mkTagDataPairs {c : ConsumedCreated} (i : List (ActionItem c Args))
       : List (Anoma.Tag × Class.SomeAppData) :=
-        List.map mkTagDataPair i.items
+        List.map mkTagDataPair i
 
     mkTagDataPair {c : ConsumedCreated} (i : ActionItem c Args)
      : Anoma.Tag × Class.SomeAppData :=
@@ -90,18 +87,14 @@ def Class.Constructor.action (sig : Signature) (constr : Class.Constructor sig) 
   let newObj : Object sig := constr.created args
   let ephRes : Anoma.Resource := SomeObject.toResource (ephemeral := true) newObj.toSomeObject
   let newRes : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
-  let consumed : SomeActionItems constr.Args Consumed :=
-     { items := [
-        { logic := constr.logic
-          object := newObj
-          resource := ephRes }
-        ] }
-  let created : SomeActionItems constr.Args Created :=
-     { items := [
-        { logic := trueLogic
-          object := newObj
-          resource := newRes }
-        ] }
+  let consumed : List (ActionItem Consumed constr.Args) :=
+     [{ logic := constr.logic
+        object := newObj
+        resource := ephRes }]
+  let created : List (ActionItem Created constr.Args) :=
+     [{ logic := trueLogic
+        object := newObj
+        resource := newRes }]
   Action.create (rawArgs := constr.rawArgs) args consumed created
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
@@ -131,17 +124,16 @@ def Class.Method.logic (sig : Signature) (method : Class.Method sig) (args : Ano
 
 def Class.Method.action (sig : Signature) (method : Class.Method sig) (self : Object sig) (args : method.Args) : Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
-  let consumed : SomeActionItems method.Args Consumed :=
-     { items := [
-        { logic := method.logic
+  let consumed : List (ActionItem Consumed method.Args) :=
+       [{ logic := method.logic
           object := self
-          resource := self.toSomeObject.toResource }]}
+          resource := self.toSomeObject.toResource }]
   let createdItem (o : SomeObject) : ActionItem Created method.Args :=
-     { logic := trueLogic
-       object := o.2
-       resource := o.toResource }
-  let created : SomeActionItems method.Args Created :=
-     { items := List.map createdItem (method.created self args) }
+       { logic := trueLogic
+         object := o.2
+         resource := o.toResource }
+  let created : List (ActionItem Created method.Args) :=
+       List.map createdItem (method.created self args)
   Action.create (rawArgs := method.rawArgs) args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
