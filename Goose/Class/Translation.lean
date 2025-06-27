@@ -24,17 +24,13 @@ def Action.create {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
   -- 3. the action (method/constructor) arguments
   let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
     Std.HashMap.emptyWithCapacity
-    |>.insertMany (mkTagDataPairs consumed)
-    |>.insertMany (mkTagDataPairs created)
+    |>.insertMany (List.map mkTagDataPair consumed)
+    |>.insertMany (List.map mkTagDataPair created)
   { Data := Class.SomeAppData,
     consumed := List.map (Anoma.RootedNullifiableResource.Transparent.fromResource ∘ ActionItem.resource) consumed,
     created := List.map ActionItem.resource created,
     appData }
   where
-    mkTagDataPairs {c : ConsumedCreated} (i : List (ActionItem c Args))
-      : List (Anoma.Tag × Class.SomeAppData) :=
-        List.map mkTagDataPair i
-
     mkTagDataPair {c : ConsumedCreated} (i : ActionItem c Args)
      : Anoma.Tag × Class.SomeAppData :=
       (Anoma.Tag.fromResource (c.isConsumed ) i.resource,
