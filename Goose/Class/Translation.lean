@@ -1,5 +1,5 @@
 
-import Utils
+import Prelude
 import Anoma
 import Goose.Class
 import Goose.Class.Member
