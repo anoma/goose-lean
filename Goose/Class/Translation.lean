@@ -34,10 +34,10 @@ def Action.create {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
     mkTagDataPair {c : ConsumedCreated} (i : ActionItem c Args)
      : Anoma.Tag × Class.SomeAppData :=
       (Anoma.Tag.fromResource (c.isConsumed ) i.resource,
-        ⟨i.sig.pub,
+        { appData :=
          { Args := Args,
            memberAppData := Class.Member.appData i.sig i.object args,
-           memberLogic := i.logic }⟩)
+           memberLogic := i.logic }})
 
 def Action.create.old {sig : Signature} {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
   (consumedLogics createdLogics : List (Class.Member.Logic sig.pub Args))
@@ -126,7 +126,7 @@ def Class.Method.action (sig : Signature) (method : Class.Method sig) (self : Ob
           resource := self.toSomeObject.toResource }]
   let createdItem (o : SomeObject) : ActionItem Created method.Args :=
        { logic := trueLogic
-         object := o.2
+         object := o.object
          resource := o.toResource }
   let created : List (ActionItem Created method.Args) :=
        List.map createdItem (method.created self args)

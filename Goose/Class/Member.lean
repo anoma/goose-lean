@@ -35,12 +35,14 @@ structure Class.Member.AppData (pub : Public) (Args : Type u) where
   publicFields : pub.PublicFields
   args : Args
 
-abbrev Class.Member.SomeAppData (Args : Type u) := Σ (pub : Public), Class.Member.AppData pub Args
+structure Class.Member.SomeAppData (Args : Type u) where
+  {pub : Public}
+  appData : Class.Member.AppData pub Args
 
 def Class.Member.AppData.toSomeAppData {pub : Public} {Args : Type u}
-  (a : Class.Member.AppData pub Args)
+  (appData : Class.Member.AppData pub Args)
   : Class.Member.SomeAppData Args
-  := ⟨pub, a⟩
+  := {appData}
 
 def Class.Method.AppData (sig : Signature) (method : Class.Method sig) :=
   Member.AppData sig.pub method.Args
@@ -61,7 +63,6 @@ def Class.Member.appData {Args : Type u} (sig : Signature) (self : Object sig) (
 
 def Class.Member.someAppData {Args : Type u} (self : SomeObject) (args : Args)
   : Class.Member.SomeAppData Args :=
-    let ⟨sig, obj⟩ := self
-    (Class.Member.appData sig obj args).toSomeAppData
+    (Class.Member.appData self.sig self.object args).toSomeAppData
 
 end Goose

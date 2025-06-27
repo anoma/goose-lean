@@ -26,14 +26,16 @@ structure Class.AppData (pub : Public) where
   memberLogic : Anoma.Logic.Args (Class.Member.AppData pub Args) → Bool
   memberAppData : Class.Member.AppData pub Args
 
-abbrev Class.SomeAppData := Σ (pub : Public), Class.AppData pub
+structure Class.SomeAppData where
+  {pub : Public}
+  appData : Class.AppData pub
 
-def Class.AppData.toSomeAppData {pub : Public} (a : Class.AppData pub) : Class.SomeAppData := ⟨pub, a⟩
+def Class.AppData.toSomeAppData {pub : Public} (appData : Class.AppData pub) : Class.SomeAppData := {appData}
 
 instance Class.SomeAppData.RawInstance : Anoma.Raw Class.SomeAppData where
   -- NOTE: this should also include a raw representation of the action logic
   raw x :=
-   let appData := x.2
+   let appData := x.appData
    (@Member.AppData.RawInstance _ _ appData.rawArgs).raw appData.memberAppData
   cooked := panic! "cooked"
 

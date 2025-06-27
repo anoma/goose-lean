@@ -14,14 +14,17 @@ structure Object (sig : Signature) where
   /-- `publicFields` go into the `appData` field of the action -/
   publicFields : Public.PublicFields sig.pub
 
-abbrev SomeObject := Σ (sig : Signature), Object sig
+structure SomeObject where
+  {sig : Signature}
+  object : Object sig
 
-def Object.toSomeObject {sig : Signature} (obj : Object sig) : SomeObject := ⟨sig, obj⟩
+def Object.toSomeObject {sig : Signature} (object : Object sig) : SomeObject := {object}
 
 def SomeObject.toResource (sobj : SomeObject)
     (ephemeral := false) (nonce := 0) (nullifierKeyCommitment := "")
     : Anoma.Resource :=
-    let ⟨sig, obj⟩ := sobj
+    let sig := sobj.sig
+    let obj := sobj.object
   { Val := sig.priv.PrivateFields,
     rawVal :=  sig.priv.rawPrivateFields,
     label := sig.classLabel,
@@ -49,17 +52,17 @@ def SomeObject.fromResource
   (pubVals : pub.PublicFields)
   (res : Anoma.Resource)
   : SomeObject where
-  fst := {
-    priv := { PrivateFields := res.Val
-              rawPrivateFields := res.rawVal
-             }
-    pub := pub
-    classLabel := res.label
-   }
-  snd := {
-    quantity := res.quantity
-    privateFields := res.value
-    publicFields := pubVals
-   }
+    sig := {
+      priv := { PrivateFields := res.Val
+                rawPrivateFields := res.rawVal
+               }
+      pub := pub
+      classLabel := res.label
+     }
+    object := {
+      quantity := res.quantity
+      privateFields := res.value
+      publicFields := pubVals
+     }
 
 end Goose

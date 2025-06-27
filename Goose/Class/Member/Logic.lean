@@ -5,12 +5,14 @@ namespace Goose
 
 abbrev Class.Member.Logic (pub : Public) (Args : Type u) := Anoma.Logic.Args (Class.Member.AppData pub Args) → Bool
 
-abbrev Class.Member.SomeLogic (Args : Type u) := Σ (pub : Public), Logic pub Args
+structure Class.Member.SomeLogic (Args : Type u) where
+  {pub : Public}
+  logic : Logic pub Args
 
 def Class.Member.Logic.toSomeLogic {pub : Public} {Args : Type u}
-  (log : Class.Member.Logic (pub : Public) (Args : Type u))
+  (logic : Class.Member.Logic (pub : Public) (Args : Type u))
   : Class.Member.SomeLogic (Args : Type u)
-  := ⟨pub, log⟩
+  := {logic}
 
 def trueLogic {Args : Type u} {pub : Public} : Class.Member.Logic pub Args :=
   fun _ => True
@@ -26,8 +28,7 @@ def Class.Member.Logic.checkResourceData (objects : List SomeObject) (resources 
     && List.and (List.zipWith resourceDataEq objects resources)
   where
     resourceDataEq (sobj : SomeObject) (res : Anoma.Resource) : Bool :=
-      let ⟨sig, obj⟩ := sobj
-      @Anoma.rawEq _ _ res.rawVal sig.priv.rawPrivateFields res.value obj.privateFields
-        && res.label == sig.classLabel
+      @Anoma.rawEq _ _ res.rawVal sobj.sig.priv.rawPrivateFields res.value sobj.object.privateFields
+        && res.label == sobj.sig.classLabel
 
 end Goose
