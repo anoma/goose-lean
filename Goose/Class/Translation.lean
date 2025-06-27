@@ -104,7 +104,7 @@ def Class.Constructor.transaction (sig : Signature) (constr : Class.Constructor 
 /-- Creates a logic for a given method. This logic is combined with other method
     and constructor logics to create the complete resource logic for an object. -/
 def Class.Method.logic (sig : Signature) (method : Class.Method sig) (args : Anoma.Logic.Args method.AppData) : Bool :=
-  let publicFields : sig.pub.PublicFields  := args.data.publicFields
+  let publicFields : sig.pub.PublicFields := args.data.publicFields
   let argsData : method.Args := args.data.args
   let mselfObj : Option (Object sig) := Object.fromResource publicFields args.self
   match mselfObj with
