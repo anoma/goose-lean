@@ -121,14 +121,13 @@ def Class.Method.logic (sig : Signature) (method : Class.Method sig) (args : Ano
   match mselfObj with
     | none => False
     | (some selfObj) =>
-
-    let createdObjects := method.created selfObj argsData
-    if args.isConsumed.isConsumed then
-      Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
-        && Class.Member.Logic.checkResourceData createdObjects args.created
-        && method.extraLogic selfObj argsData
-    else
-      True
+      let createdObjects := method.created selfObj argsData
+      if args.isConsumed.isConsumed then
+        Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
+          && Class.Member.Logic.checkResourceData createdObjects args.created
+          && method.extraLogic selfObj argsData
+      else
+        True
 
 def Class.Method.action (sig : Signature) (method : Class.Method sig) (self : Object sig) (args : method.Args) : Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
