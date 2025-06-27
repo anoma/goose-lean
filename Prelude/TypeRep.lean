@@ -1,6 +1,5 @@
 
 import Lean
-open Lean Meta Elab Command
 
 abbrev Rep : Type := String
 
@@ -10,7 +9,7 @@ class TypeRep (A : Type) where
 
 macro "derive_type_rep " n:ident : command => do
   let inst ← `(instance : TypeRep $n where
-    rep := $(Quote.quote n.getId.getString!))
+    rep := $(Lean.Quote.quote n.getId.getString!))
   pure inst
 
 axiom uniqueTypeRep (A B : Type) [TypeRep A] [TypeRep B] : TypeRep.rep A = TypeRep.rep B → A = B
