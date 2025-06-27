@@ -18,18 +18,18 @@ def newCounter : Counter where
   count := 0
 
 def sig : Signature where
-  priv := {PrivateFields := Unit}
-  pub := {PublicFields := Nat}
+  priv := {PrivateFields := Nat}
+  pub := {PublicFields := Unit}
   classLabel := clLabel
 
 def Counter.toObject (c : Counter) : Object sig where
-  publicFields := c.count
+  publicFields := Unit.unit
   quantity := 1
-  privateFields := Unit.unit
+  privateFields := c.count
 
 def Counter.fromObject (o : Object sig) : Option Counter := do
   guard (o.quantity == 1)
-  some (Counter.mk (o.publicFields))
+  some (Counter.mk (o.privateFields))
 
 def Counter.fromObject! (self : Object sig) : Counter :=
   match Counter.fromObject self with
@@ -45,10 +45,10 @@ def counterIncr : Class.Method sig where
  Args := Nat
  classLabel := clLabel
  extraLogic (_self : Object sig) (_inc : Nat) : Bool := True
- created (self : Object sig) (step : Nat) : List (Object sig) :=
+ created (self : Object sig) (step : Nat) : List SomeObject :=
    match Counter.fromObject self with
     | none => panic! "self is not a Counter object"
-    | some n => [{n with count := n.count + step}.toObject];
+    | some n => [{n with count := n.count + step}.toObject.toSomeObject];
 
 def counterClass : Class sig where
   constructors := [counterConstructor]
