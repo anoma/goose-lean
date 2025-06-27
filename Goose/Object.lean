@@ -14,11 +14,14 @@ structure Object (sig : Signature) where
   /-- `publicFields` go into the `appData` field of the action -/
   publicFields : Public.PublicFields sig.pub
 
-abbrev SomeObject : Type _ := @Sigma Signature Object
+abbrev SomeObject := Σ (sig : Signature), Object sig
 
-def Object.toResource {sig : Signature} (obj : Object sig)
+def Object.toSomeObject {sig : Signature} (obj : Object sig) : SomeObject := ⟨sig, obj⟩
+
+def SomeObject.toResource (sobj : SomeObject)
     (ephemeral := false) (nonce := 0) (nullifierKeyCommitment := "")
     : Anoma.Resource :=
+    let ⟨sig, obj⟩ := sobj
   { Val := sig.priv.PrivateFields,
     rawVal :=  sig.priv.rawPrivateFields,
     label := sig.classLabel,

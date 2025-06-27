@@ -22,7 +22,7 @@ structure Class.Method (sig : Signature) where
       create the complete method logic. -/
   extraLogic : (self : Object sig) → Args → Bool
   /-- Objects created in the method call. -/
-  created : (self : Object sig) → Args → List (Object sig)
+  created : (self : Object sig) → Args → List SomeObject
 
 /-- A class member is a method or a constructor. -/
 inductive Class.Member (sig : Signature) where
@@ -34,6 +34,13 @@ inductive Class.Member (sig : Signature) where
 structure Class.Member.AppData (pub : Public) (Args : Type u) where
   publicFields : pub.PublicFields
   args : Args
+
+abbrev Class.Member.SomeAppData (Args : Type u) := Σ (pub : Public), Class.Member.AppData pub Args
+
+def Class.Member.AppData.toSomeAppData {pub : Public} {Args : Type u}
+  (a : Class.Member.AppData pub Args)
+  : Class.Member.SomeAppData Args
+  := ⟨pub, a⟩
 
 def Class.Method.AppData (sig : Signature) (method : Class.Method sig) :=
   Member.AppData sig.pub method.Args
@@ -51,5 +58,10 @@ def Class.Member.appData {Args : Type u} (sig : Signature) (self : Object sig) (
   {
     publicFields := self.publicFields,
     args }
+
+def Class.Member.someAppData {Args : Type u} (self : SomeObject) (args : Args)
+  : Class.Member.SomeAppData Args :=
+    let ⟨sig, obj⟩ := self
+    (Class.Member.appData sig obj args).toSomeAppData
 
 end Goose

@@ -26,9 +26,19 @@ structure Class.AppData (pub : Public) where
   memberLogic : Anoma.Logic.Args (Class.Member.AppData pub Args) → Bool
   memberAppData : Class.Member.AppData pub Args
 
-instance Class.AppData.RawInstance (pub : Public) : Anoma.Raw (Class.AppData pub) where
+abbrev Class.SomeAppData := Σ (pub : Public), Class.AppData pub
+
+def Class.AppData.toSomeAppData {pub : Public} (a : Class.AppData pub) : Class.SomeAppData := ⟨pub, a⟩
+
+instance Class.SomeAppData.RawInstance : Anoma.Raw Class.SomeAppData where
   -- NOTE: this should also include a raw representation of the action logic
-  raw appData := (@Member.AppData.RawInstance _ _ appData.rawArgs).raw appData.memberAppData
+  raw x :=
+   let appData := x.2
+   (@Member.AppData.RawInstance _ _ appData.rawArgs).raw appData.memberAppData
+  cooked := panic! "cooked"
+
+instance Class.AppData.RawInstance (pub : Public) : Anoma.Raw (Class.AppData pub) where
+  raw appData := Anoma.Raw.raw appData.toSomeAppData
   cooked := panic! "cooked"
 
 end Goose

@@ -7,8 +7,46 @@ import Goose.Class.Member.Logic
 
 namespace Goose
 
+structure ActionItem (c : ConsumedCreated) (Args : Type) : Type 1 where
+  {sig : Signature}
+  logic : Class.Member.Logic sig.pub Args
+  object : Object sig
+  resource : Anoma.Resource
+
+structure SomeActionItems (Args : Type) (c : ConsumedCreated) where
+  items : List (ActionItem c Args)
+
 /-- Helper function to create an Action. -/
-def Action.create {sig : Signature} {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
+def Action.create {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
+  (consumed : SomeActionItems Args Consumed)
+  (created : SomeActionItems Args Created)
+  : Anoma.Action :=
+  -- appData for each resource consists of:
+  -- 1. action logic (indicator)
+  -- 2. the public data of the object
+  -- 3. the action (method/constructor) arguments
+  let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
+    Std.HashMap.emptyWithCapacity
+    |>.insertMany (mkTagDataPairs consumed)
+    |>.insertMany (mkTagDataPairs created)
+  { Data := Class.SomeAppData,
+    consumed := List.map (Anoma.RootedNullifiableResource.Transparent.fromResource ∘ ActionItem.resource) consumed.items,
+    created := List.map ActionItem.resource created.items,
+    appData }
+  where
+    mkTagDataPairs {c : ConsumedCreated} (i : SomeActionItems Args c)
+      : List (Anoma.Tag × Class.SomeAppData) :=
+        List.map mkTagDataPair i.items
+
+    mkTagDataPair {c : ConsumedCreated} (i : ActionItem c Args)
+     : Anoma.Tag × Class.SomeAppData :=
+      (Anoma.Tag.fromResource (c.isConsumed ) i.resource,
+        ⟨i.sig.pub,
+         { Args := Args,
+           memberAppData := Class.Member.appData i.sig i.object args,
+           memberLogic := i.logic }⟩)
+
+def Action.create.old {sig : Signature} {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
   (consumedLogics createdLogics : List (Class.Member.Logic sig.pub Args))
   (consumedObjects createdObjects : List (Object sig))
   (consumedResources createdResources : List Anoma.Resource)
@@ -40,9 +78,9 @@ def Action.create {sig : Signature} {Args : Type} [rawArgs : Anoma.Raw Args] (ar
 def Class.Constructor.logic (sig : Signature) (constr : Class.Constructor sig) (args : Anoma.Logic.Args (constr.AppData sig.pub)) : Bool :=
   let argsData : constr.Args := args.data.args
   let newObj := constr.created argsData
-  if args.isConsumed then
-    Class.Member.Logic.checkResourceData [newObj] args.consumed
-      && Class.Member.Logic.checkResourceData [newObj] args.created
+  if args.isConsumed.isConsumed then
+    Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.consumed
+      && Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.created
       && constr.extraLogic argsData
   else
     True
@@ -50,17 +88,21 @@ def Class.Constructor.logic (sig : Signature) (constr : Class.Constructor sig) (
 def Class.Constructor.action (sig : Signature) (constr : Class.Constructor sig) (args : constr.Args) : Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
   let newObj : Object sig := constr.created args
-  let ephRes : Anoma.Resource := Object.toResource (ephemeral := true) newObj
-  let newRes : Anoma.Resource := Object.toResource (ephemeral := false) newObj
-  Action.create
-    (rawArgs := constr.rawArgs)
-    args
-    (consumedLogics := [constr.logic])
-    (createdLogics := [trueLogic])
-    (consumedObjects := [newObj])
-    (createdObjects := [newObj])
-    (consumedResources := [ephRes])
-    (createdResources := [newRes])
+  let ephRes : Anoma.Resource := SomeObject.toResource (ephemeral := true) newObj.toSomeObject
+  let newRes : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
+  let consumed : SomeActionItems constr.Args Consumed :=
+     { items := [
+        { logic := constr.logic
+          object := newObj
+          resource := ephRes }
+        ] }
+  let created : SomeActionItems constr.Args Created :=
+     { items := [
+        { logic := trueLogic
+          object := newObj
+          resource := newRes }
+        ] }
+  Action.create (rawArgs := constr.rawArgs) args consumed created
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Class.Constructor.transaction (sig : Signature) (constr : Class.Constructor sig) (args : constr.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
@@ -81,8 +123,8 @@ def Class.Method.logic (sig : Signature) (method : Class.Method sig) (args : Ano
     | (some selfObj) =>
 
     let createdObjects := method.created selfObj argsData
-    if args.isConsumed then
-      Class.Member.Logic.checkResourceData [selfObj] args.consumed
+    if args.isConsumed.isConsumed then
+      Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
         && Class.Member.Logic.checkResourceData createdObjects args.created
         && method.extraLogic selfObj argsData
     else
@@ -90,19 +132,18 @@ def Class.Method.logic (sig : Signature) (method : Class.Method sig) (args : Ano
 
 def Class.Method.action (sig : Signature) (method : Class.Method sig) (self : Object sig) (args : method.Args) : Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
-  let consumedObjects := [self]
-  let consumedResources := List.map Object.toResource consumedObjects
-  let createdObjects := method.created self args
-  let createdResources := List.map Object.toResource createdObjects
-  Action.create
-    (rawArgs := method.rawArgs)
-    args
-    (consumedLogics := [method.logic])
-    (createdLogics := [trueLogic])
-    consumedObjects
-    createdObjects
-    consumedResources
-    createdResources
+  let consumed : SomeActionItems method.Args Consumed :=
+     { items := [
+        { logic := method.logic
+          object := self
+          resource := self.toSomeObject.toResource }]}
+  let createdItem (o : SomeObject) : ActionItem Created method.Args :=
+     { logic := trueLogic
+       object := o.2
+       resource := o.toResource }
+  let created : SomeActionItems method.Args Created :=
+     { items := List.map createdItem (method.created self args) }
+  Action.create (rawArgs := method.rawArgs) args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
 def Class.Method.transaction (sig : Signature) (method : Class.Method sig) (self : Object sig) (args : method.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=

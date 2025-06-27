@@ -1,5 +1,6 @@
 
 import Anoma.Raw
+import Anoma.ConsumedCreated
 
 namespace Anoma
 
@@ -27,7 +28,7 @@ structure Resource where
 
 structure Logic.Args (Data : Type u) where
   self : Resource
-  isConsumed : Bool
+  isConsumed : ConsumedCreated
   consumed : List Resource
   created : List Resource
   /-- `data` is the action's appData for self -/
