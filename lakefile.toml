@@ -1,6 +1,6 @@
 name = "goose"
 version = "0.1.0"
-defaultTargets = ["Prelude", "Anoma", "Goose"]
+defaultTargets = ["Prelude", "Anoma", "Goose", "Applib", "Apps"]
 
 [leanOptions]
 relaxedAutoImplicit = false
@@ -13,3 +13,9 @@ name = "Anoma"
 
 [[lean_lib]]
 name = "Prelude"
+
+[[lean_lib]]
+name = "Applib"
+
+[[lean_lib]]
+name = "Apps"

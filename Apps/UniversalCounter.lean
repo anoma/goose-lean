@@ -1,26 +1,22 @@
 import Goose
 import Anoma.Raw
+import Applib
+
+open Applib
 
 namespace Counter
 
 open Goose
-
-axiom error {A : Type u} (msg : String) : A
-
-def clLabel : String := "UniversalCounter"
 
 structure Counter where
   count : Nat
 
 deriving instance Inhabited for Counter
 
-def newCounter : Counter where
-  count := 0
-
 def sig : Signature where
   priv := {PrivateFields := Nat}
   pub := {PublicFields := Unit}
-  classLabel := clLabel
+  classLabel := "UniversalCounter"
 
 def Counter.toObject (c : Counter) : Object sig where
   publicFields := Unit.unit
@@ -36,21 +32,27 @@ def Counter.fromObject! (self : Object sig) : Counter :=
     | none => panic! "self is not a Counter object"
     | some c => c
 
-def counterConstructor : Class.Constructor sig where
-  Args := Unit
-  extraLogic (_ : Unit) : Bool := True
-  created (_ : Unit) : Object sig := newCounter.toObject
+instance instCounterIsObject : IsObject Counter where
+  sig := sig
+  toObject := Counter.toObject
+  fromObject := Counter.fromObject
+  roundTrip : Counter.fromObject ∘ Counter.toObject = some := by rfl
 
-def counterIncr : Class.Method sig where
- Args := Nat
- classLabel := clLabel
- extraLogic (_self : Object sig) (_inc : Nat) : Bool := True
- created (self : Object sig) (step : Nat) : List SomeObject :=
-   match Counter.fromObject self with
-    | none => panic! "self is not a Counter object"
-    | some n => [{n with count := n.count + step}.toObject.toSomeObject];
+def newCounter : Counter where
+  count := 0
+
+def Counter.incrementBy (step : Nat) (c : Counter) : Counter :=
+  {c with count := c.count + step}
+
+def counterConstructor : Class.Constructor sig := defConstructor
+  (created := fun (_noArgs : Unit) => newCounter)
+  (extraLogic := fun (_noArgs : Unit) => True)
+
+def counterIncr : Class.Method sig := defMethod
+  (created := fun (self : Counter) (step : Nat) => [self.incrementBy step])
+  (extraLogic := fun _ _ => True )
 
 def counterClass : Class sig where
   constructors := [counterConstructor]
   methods := [counterIncr]
-  extraLogic (_self : Object sig) (_args : Anoma.Logic.Args (Class.Member.AppData sig.pub Unit)) : Bool := True
+  extraLogic _ _ := True
