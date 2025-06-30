@@ -2,6 +2,8 @@
 import Lean
 import Prelude.List
 
+open Lean Elab Command Meta
+
 mutual
   inductive Rep where
     /-- `Rep.atomic` is used for types without parameters (these can be uniquely
@@ -71,10 +73,16 @@ class TypeRep (A : Type u) where
 -- TODO: this should derive a generic instance for parameterised types (e.g.
 -- TypeRep A => TypeRep (List A)), currently just uses unique type name (e.g.
 -- List).
-macro "derive_type_rep " n:ident : command => do
-  let inst ← `(instance : TypeRep $n where
-    rep := Rep.atomic $(Lean.Quote.quote (n.getId.toStringWithSep "." false)))
-  pure inst
+syntax (name := deriveTypeRepCmd) "derive_type_rep " ident : command
+
+@[command_elab deriveTypeRepCmd]
+def elabDeriveTypeRep : CommandElab := fun stx => withFreshMacroScope do
+  match stx with
+  | `(derive_type_rep $n:ident) =>
+      elabCommand <| ← `(instance : TypeRep $n where
+          rep := Rep.atomic $(Lean.Quote.quote (n.getId.toStringWithSep "." false)))
+  | _ =>
+      throwError "Invalid syntax for `derive_type_rep`. Expected `derive_type_rep <TypeName>`."
 
 private axiom uniqueTypeRep (A B : Type) [TypeRep A] [TypeRep B] : TypeRep.rep A = TypeRep.rep B → A = B
 
@@ -90,7 +98,9 @@ def tryCast {A B : Type} [TypeRep A] [TypeRep B] (x : A) : Option B :=
 
 derive_type_rep Nat
 derive_type_rep String
+-- derive_type_rep List
 
 -- Examples:
 -- #eval (inferInstance : TypeRep Nat).rep
 -- #eval (inferInstance : TypeRep String).rep
+-- #eval (inferInstance : TypeRep (List Nat)).rep
