@@ -11,21 +11,20 @@ class IsObject (s : Type) where
   fromObject : Object sig -> Option s
   roundTrip : fromObject ∘ toObject = some
 
--- TODO better name
-structure GObject where
+structure AnObject where
   {ty : Type}
   [isObject : IsObject ty]
   obj : ty
 
-def GObject.toSomeObject (g : GObject) : SomeObject :=
+def AnObject.toSomeObject (g : AnObject) : SomeObject :=
   let i : IsObject g.ty := g.isObject
   (i.toObject g.obj).toSomeObject
 
-instance {ty : Type} [IsObject ty] : CoeHead ty GObject where
+instance {ty : Type} [IsObject ty] : CoeHead ty AnObject where
   coe (obj : ty) := {obj}
 
 def defMethod {cl Args : Type} [Anoma.Raw Args] [i : IsObject cl]
- (created : (self : cl) -> Args -> List GObject)
+ (created : (self : cl) -> Args -> List AnObject)
  (extraLogic : (self : cl) -> Args -> Bool := fun _ _ => True)
  : Class.Method i.sig where
     Args := Args
@@ -37,7 +36,7 @@ def defMethod {cl Args : Type} [Anoma.Raw Args] [i : IsObject cl]
     created (self : Object i.sig) (args : Args) :=
       match i.fromObject self with
         | none => []
-        | (some self') => List.map GObject.toSomeObject (created self' args)
+        | (some self') => List.map AnObject.toSomeObject (created self' args)
 
 def defConstructor {cl Args : Type} [Anoma.Raw Args] [i : IsObject cl]
  (created : Args -> cl)
