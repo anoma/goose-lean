@@ -27,11 +27,6 @@ def Counter.fromObject (o : Object sig) : Option Counter := do
   guard (o.quantity == 1)
   some (Counter.mk (o.privateFields))
 
-def Counter.fromObject! (self : Object sig) : Counter :=
-  match Counter.fromObject self with
-    | none => panic! "self is not a Counter object"
-    | some c => c
-
 instance instCounterIsObject : IsObject Counter where
   sig := sig
   toObject := Counter.toObject
