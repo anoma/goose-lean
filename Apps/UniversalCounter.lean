@@ -50,7 +50,7 @@ def counterConstructor : Class.Constructor sig := defConstructor
 
 def counterIncr : Class.Method sig := defMethod
   (created := fun (self : Counter) (step : Nat) => [self.incrementBy step])
-  (extraLogic := fun _ _ => True )
+  (extraLogic := fun _ _ => True)
 
 def counterClass : Class sig where
   constructors := [counterConstructor]
