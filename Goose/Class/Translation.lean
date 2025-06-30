@@ -76,6 +76,7 @@ def Class.Constructor.logic (sig : Signature) (constr : Class.Constructor sig) (
       && Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.created
       && constr.extraLogic argsData
   else
+    -- TODO: not general enough, fine for the counter
     True
 
 def Class.Constructor.action (sig : Signature) (constr : Class.Constructor sig) (args : constr.Args) : Anoma.Action :=
