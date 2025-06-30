@@ -28,7 +28,6 @@ def defMethod {cl Args : Type} [Anoma.Raw Args] [i : IsObject cl]
  (extraLogic : (self : cl) -> Args -> Bool := fun _ _ => True)
  : Class.Method i.sig where
     Args := Args
-    classLabel := i.sig.classLabel
     extraLogic (self : Object i.sig) (args : Args) :=
       match i.fromObject self with
         | none => False
