@@ -63,7 +63,7 @@ end
 instance Rep.hasDecEq : DecidableEq Rep := Rep.decEq
 instance Constr.Rep.hasDecEq : DecidableEq Constr.Rep := Constr.Rep.decEq
 
-class TypeRep (A : Type) where
+class TypeRep (A : Type u) where
   /-- A unique representation of the type. -/
   rep : Rep
 
@@ -81,6 +81,12 @@ private axiom uniqueTypeRep (A B : Type) [TypeRep A] [TypeRep B] : TypeRep.rep A
 /-- Casting based on equality of type representations. -/
 def rcast {A B : Type} [TypeRep A] [TypeRep B] (h : TypeRep.rep A = TypeRep.rep B) (x : A) : B :=
   cast (uniqueTypeRep A B h) x
+
+def tryCast {A B : Type} [TypeRep A] [TypeRep B] (x : A) : Option B :=
+  if h : TypeRep.rep A = TypeRep.rep B then
+    some (rcast h x)
+  else
+    none
 
 derive_type_rep Nat
 derive_type_rep String

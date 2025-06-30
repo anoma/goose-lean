@@ -1,15 +1,15 @@
-import Anoma.Raw
 import Anoma.Resource
+import Prelude
 
 namespace Goose
 
 structure Private where
   PrivateFields : Type
-  [rawPrivateFields : Anoma.Raw PrivateFields]
+  [repPrivateFields : TypeRep PrivateFields]
 
 structure Public where
   PublicFields : Type
-  [rawPublicFields : Anoma.Raw PublicFields]
+  [repPublicFields : TypeRep PublicFields]
 
 structure Signature where
   priv : Private
