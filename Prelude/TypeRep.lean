@@ -238,11 +238,20 @@ def tryCast {A B : Type} [TypeRep A] [TypeRep B] (x : A) : Option B :=
   else
     none
 
+instance : TypeRep Unit where
+  rep := Rep.atomic "Unit"
+
 derive_type_rep Nat
 derive_type_rep String
 derive_type_rep List
+derive_type_rep Option
 
 -- Examples:
 -- #eval (inferInstance : TypeRep Nat).rep
 -- #eval (inferInstance : TypeRep String).rep
 -- #eval (inferInstance : TypeRep (List Nat)).rep
+
+def beqCast {A B : Type} [TypeRep A] [TypeRep B] [BEq B] (x : A) (y : B) : Bool :=
+  match tryCast x with
+  | some y' => y' == y
+  | none => false

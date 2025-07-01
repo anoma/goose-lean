@@ -14,7 +14,7 @@ structure ActionItem (c : ConsumedCreated) (Args : Type) : Type 1 where
   resource : Anoma.Resource
 
 /-- Helper function to create an Action. -/
-def Action.create {Args : Type} [rawArgs : Anoma.Raw Args] (args : Args)
+def Action.create {Args : Type} [repArgs : TypeRep Args] [beqArgs : BEq Args] (args : Args)
   (consumed : List (ActionItem Consumed Args))
   (created : List (ActionItem Created Args))
   : Anoma.Action :=
@@ -65,7 +65,7 @@ def Class.Constructor.action (sig : Signature) (constr : Class.Constructor sig) 
      [{ logic := trueLogic
         object := newObj
         resource := newRes }]
-  Action.create (rawArgs := constr.rawArgs) args consumed created
+  Action.create (repArgs := constr.repArgs) (beqArgs := constr.beqArgs) args consumed created
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Class.Constructor.transaction (sig : Signature) (constr : Class.Constructor sig) (args : constr.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
@@ -104,7 +104,7 @@ def Class.Method.action (sig : Signature) (method : Class.Method sig) (self : Ob
          resource := o.toResource }
   let created : List (ActionItem Created method.Args) :=
        List.map createdItem (method.created self args)
-  Action.create (rawArgs := method.rawArgs) args consumed created
+  Action.create (repArgs := method.repArgs) (beqArgs := method.beqArgs) args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
 def Class.Method.transaction (sig : Signature) (method : Class.Method sig) (self : Object sig) (args : method.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=

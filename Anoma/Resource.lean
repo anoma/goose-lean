@@ -19,6 +19,7 @@ def CommitmentRoot.placeholder : CommitmentRoot := 0
 structure Resource where
   Val : Type u
   [repVal : TypeRep Val]
+  [beqVal : BEq Val]
   label : String
   quantity : Nat
   value : Val

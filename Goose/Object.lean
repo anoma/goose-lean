@@ -26,6 +26,7 @@ def SomeObject.toResource (sobj : SomeObject)
     let obj := sobj.object
   { Val := sig.priv.PrivateFields,
     repVal :=  sig.priv.repPrivateFields,
+    beqVal := sig.priv.beqPrivateFields,
     label := sig.classLabel,
     quantity := obj.quantity,
     value := obj.privateFields,
@@ -54,6 +55,7 @@ def SomeObject.fromResource
     sig := {
       priv := { PrivateFields := res.Val
                 repPrivateFields := res.repVal
+                beqPrivateFields := res.beqVal
                }
       pub := pub
       classLabel := res.label
