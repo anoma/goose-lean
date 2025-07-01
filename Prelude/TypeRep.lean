@@ -69,54 +69,110 @@ class TypeRep (A : Type u) where
   /-- A unique representation of the type. -/
   rep : Rep
 
-/-- Build a `Constr.Rep` term for constructor `ctor` whose argument types are `argTs`. -/
-private def mkConstrRep {m} [MonadLiftT MetaM m] [Monad m] (ctor : Name) (argTs : Array Expr) : m Expr := do
+private def getUniverseLevel (ty : Expr) : Option Level :=
+  match ty with
+  | .sort l =>
+      match l.toNat with
+      | some n => some <| Level.ofNat n.pred
+      | none => none
+  | _ => none
+
+private def dropParams (n : Nat) (ty : Expr) : List Expr × Expr :=
+  if n > 0 then
+    match ty with
+    | .forallE _name ty' body _bi =>
+        let (env, body') := dropParams (n - 1) body
+        (ty' :: env, body')
+    | _ => ([], ty)
+  else
+    ([], ty)
+
+-- NOTE: this is not fully correct (need to handle instance argument to TypeRep.rep)
+private def mkConstrRepArgs (shift : Nat) (acc : List Expr) (ty : Expr) : MetaM (List Expr) :=
+  match ty with
+  | .forallE _name ty' body _bi => do
+    let kind ← match ty' with
+      | .bvar n => pure acc[n]!
+      | _ => Meta.inferType ty'
+    let ty'' := ty'.lowerLooseBVars shift shift
+    let lvl : Level := getUniverseLevel kind |>.getD Level.zero
+    let inst ← match ty' with
+      | .bvar n => pure <| mkBVar n
+      | _ => pure ty'' -- Meta.synthInstance (← mkAppM ``TypeRep #[ty'])
+    let arg := mkApp2 (mkConst ``TypeRep.rep [lvl]) ty'' inst
+    mkConstrRepArgs (shift + 1) (arg :: acc) body
+  | _ =>
+    pure <| acc.reverse
+
+private def mkConstrRep (ctor : Name) (ctorType : Expr) (paramsNum : Nat) : MetaM Expr := do
   let nameLit : Expr := Expr.lit (Literal.strVal ctor.toString)
-  let argsList : Expr ← liftMetaM $ Meta.mkListLit (mkConst ``Rep) (argTs.toList.map (·.app (mkConst ``TypeRep.rep)))
+  let (tys, ty) := dropParams paramsNum ctorType
+  let repArgs ← mkConstrRepArgs 0 tys.reverse ty
+  let argsList : Expr ← liftMetaM $ Meta.mkListLit (mkConst ``Rep) (repArgs.drop paramsNum)
   pure <| mkApp2 (mkConst ``Constr.Rep.mk) nameLit argsList
 
-private def mkInstanceTypeWithConstraints (iv : InductiveVal) : MetaM Expr := do
-  -- 1) Turn `∀ (α₁ : u₁) … (αₙ : uₙ), T α₁ … αₙ` into an Array of binders + the body.
-  let bs ← forallTelescopeReducing iv.type fun fvars body =>
+private def mkInstanceHelper
+  (mkBinder : Name → BinderInfo → Expr → Expr → Expr)
+  (mkCore : (paramShift : Nat) → Level → (indTy : Expr) → (indApp : Expr) → Expr)
+  (iv : InductiveVal)
+  : MetaM Expr := do
+  -- Turn `∀ (α₁ : u₁) … (αₙ : uₙ), T α₁ … αₙ` into an Array of binders + the body.
+  let bs ← forallTelescopeReducing iv.type fun fvars _body =>
     fvars.mapM (fun fvar => do
       let type ← Meta.inferType fvar
       pure (← mkFreshUserName `α, BinderInfo.implicit, type))
-  let paramBs := bs.toList.take iv.numParams
-    -- Each `bs[i] : (nm : Name, bi : BinderInfo, ty : Expr)`
+  let params := bs.toList.take iv.numParams
+  -- Each `bs[i] : (nm : Name, bi : BinderInfo, ty : Expr)`
 
-  -- 2) Introduce a fresh local for each αᵢ
-  let fvars ← paramBs.mapM fun (nm, bi, ty) =>
-    withLocalDecl nm bi ty fun x => pure sorry
+  unless iv.numIndices == 0 do
+    throwError "Indexed types not supported."
+  let vars : List Name := params.map (fun (nm, _, _) => nm)
+  let vars' : List Name ← params.mapM (fun _ => mkFreshUserName `i)
+  let types : List Expr := params.map (fun (_, _, ty) => ty)
 
-  -- 3) Build `T α₁ … αₙ`
-  let indApp : Expr := mkAppN (mkConst iv.name) (fvars.toArray.map mkFVar)
+  -- Build `T α₁ … αₙ`
+  let levels := iv.levelParams.map Level.param
+  let level := match levels with
+    | [u] => u
+    | u :: levels' => levels'.foldr Level.max u
+    | [] => getUniverseLevel iv.type |>.getD Level.zero
+  let indTy : Expr := mkConst iv.name levels
+  let indApp : Expr := mkAppN indTy ((Array.range' vars'.length vars.length).reverse.map mkBVar)
 
-  -- 4) Build `TypeRep (T α₁ … αₙ)`
-  let core : Expr := mkApp (mkConst ``TypeRep) indApp
+  let core := mkCore vars'.length level indTy indApp
 
-  -- 5) Wrap each `[TypeRep αᵢ]` using `BinderInfo.instImplicit`
-  --    We zip binders with their fvars so we know which FVar to refer to.
-  let withInst : Expr := (paramBs.zip fvars).foldr
-    (fun ((nm, _, _), fvar) acc =>
-      -- ∀ [TypeRep αᵢ], acc
-      mkForall nm BinderInfo.instImplicit
-        (mkApp (mkConst ``TypeRep) (mkFVar fvar))
+  -- Wrap each `[TypeRep αᵢ]` using `BinderInfo.instImplicit`
+  let withInst : Expr := (vars'.zip (List.range vars.length)).foldr
+    (fun (var, idx) acc =>
+      mkBinder var BinderInfo.instImplicit
+        (mkApp (mkConst ``TypeRep [level]) (mkBVar idx))
         acc)
     core
 
-  -- 6) Finally wrap the `{α₁ … αₙ}` implicit parameters
-  let fullType : Expr := paramBs.foldr
-    (fun (nm, _, ty) acc =>
-      -- ∀ {nm : ty}, acc
-      mkForall nm BinderInfo.implicit ty acc)
+  -- Wrap the `{α₁ … αₙ}` implicit parameters
+  let fullValue : Expr := (vars.zip types).foldr
+    (fun (var, ty) acc =>
+      mkBinder var BinderInfo.implicit ty acc)
     withInst
 
-  return fullType
+  return fullValue
+
+private def mkInstanceType (iv : InductiveVal) : MetaM Expr := do
+  let mkCore _ (level : Level) _ (indApp : Expr) := mkApp (mkConst ``TypeRep [level]) indApp
+  mkInstanceHelper (mkBinder := mkForall) mkCore iv
+
+private def mkInstanceBody (iv : InductiveVal) (_e : Expr) : MetaM Expr := do
+  let mkCore _paramShift level _ indApp :=
+    --let indApp' := indApp.liftLooseBVars 0 1
+    --let indApp'' := indApp.liftLooseBVars 0 2
+    -- let e' := e.liftLooseBVars 0 (paramShift + 2)
+    let e' := mkApp (mkConst ``Rep.atomic) (mkStrLit iv.name.toString)
+    --mkLambda `A BinderInfo.default (Expr.sort level.succ)
+      -- (mkLambda `self BinderInfo.instImplicit (mkApp (mkConst ``TypeRep [level]) indApp')
+    (mkApp2 (mkConst ``TypeRep.mk [level]) indApp e')
+  mkInstanceHelper (mkBinder := mkLambda) mkCore iv
 
 /-- Derives a TypeRep instance for a given type. -/
--- TODO: this should derive a generic instance for parameterised types (e.g.
--- TypeRep A => TypeRep (List A)), currently just uses unique type name (e.g.
--- List).
 syntax (name := deriveTypeRepCmd) "derive_type_rep " ident : command
 
 @[command_elab deriveTypeRepCmd]
@@ -124,15 +180,17 @@ def elabDeriveTypeRep : CommandElab := fun stx => withFreshMacroScope do
   match stx with
   | `(derive_type_rep $name:ident) =>
     let tName := stx[1].getId
-    let env ← getEnv
+    let declName ← liftCoreM <| mkFreshUserName `inst
+
     -- lookup the inductive
+    let env ← getEnv
     let some cinfo := env.find? tName
       | throwError "derive_type_rep: `{tName}` not found"
     let info ← match cinfo with
       | .inductInfo info => pure info
       | _ => throwError "derive_type_rep: `{tName}` is not an inductive type"
 
-    let type ← liftTermElabM <| mkInstanceTypeWithConstraints info
+    let type ← liftTermElabM <| mkInstanceType info
 
     -- build Constr.Rep for each constructor
     let ctorReps ← info.ctors.mapM fun ctorName => do
@@ -141,39 +199,30 @@ def elabDeriveTypeRep : CommandElab := fun stx => withFreshMacroScope do
       let ctorInfo ← match ctorCinfo with
         | .ctorInfo info => pure info
         | _ => throwError "derive_type_rep: `{ctorName}` is not a constructor"
-      let argTys ← liftTermElabM <| forallTelescopeReducing ctorInfo.type fun fvars body => do
-        -- fvars : Array Expr  -- fresh local constants for each binder
-        -- body  : Expr       -- the result type with those fvars
-        fvars.mapM (fun fvar => Meta.inferType fvar)
-      liftTermElabM <| mkConstrRep ctorName argTys
+      liftTermElabM <| mkConstrRep ctorName ctorInfo.type info.numParams
 
     -- assemble `Rep.composite "T" [ … ]`
     let nameLit : Expr := Expr.lit (Literal.strVal tName.toString)
     let ctorList : Expr ← liftTermElabM <| mkListLit (mkConst ``Constr.Rep) ctorReps
-    let repBody : Expr := Expr.app (mkConst ``Rep.composite) (Expr.app nameLit ctorList)
+    let repConstr : Expr := Expr.app (Expr.app (mkConst ``Rep.composite) nameLit) ctorList
+
+    let repBody : Expr ← liftTermElabM <| mkInstanceBody info repConstr
 
     let decl :=
       Declaration.defnDecl {
-        name        := tName
-        levelParams := []
+        name        := declName
+        levelParams := info.levelParams
         type        := type
-        value       := valExpr
+        value       := repBody
         hints       := ReducibilityHints.abbrev
         safety      := DefinitionSafety.safe
       }
 
-    -- 6. Add the declaration to the environment
+    -- Add the declaration to the environment
     liftTermElabM <| addAndCompile decl
 
-    -- 7. Register it as an instance
-    addInstance name
-
-    let ctxStx : Syntax :=
-      mkNode `Lean.Parser.Term.instBinder
-        classConstraints
-
-    elabCommand <|
-      ← `(instance { $(paramIdents)* } $ctxStx  : TypeRep $name $paramIdents:ident* := ⟨ $(Quote.quote repBody):term ⟩)
+    -- Register it as an instance
+    liftTermElabM <| addInstance declName (attrKind := AttributeKind.global) (prio := 10)
   | _ =>
       throwError "Invalid syntax for `derive_type_rep`. Expected `derive_type_rep <TypeName>`."
 
@@ -191,7 +240,7 @@ def tryCast {A B : Type} [TypeRep A] [TypeRep B] (x : A) : Option B :=
 
 derive_type_rep Nat
 derive_type_rep String
--- derive_type_rep List
+derive_type_rep List
 
 -- Examples:
 -- #eval (inferInstance : TypeRep Nat).rep
