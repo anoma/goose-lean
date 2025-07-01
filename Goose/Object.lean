@@ -28,6 +28,7 @@ def SomeObject.toResource (sobj : SomeObject)
     repVal :=  sig.priv.repPrivateFields,
     beqVal := sig.priv.beqPrivateFields,
     label := sig.classLabel,
+    -- NOTE: in general, there may be more things in the label, not necessarily statically determined
     quantity := obj.quantity,
     value := obj.privateFields,
     ephemeral := ephemeral,

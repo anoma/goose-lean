@@ -50,6 +50,7 @@ def Class.Constructor.logic (sig : Signature) (constr : Class.Constructor sig) (
       && Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.created
       && constr.extraLogic argsData
   else
+    -- TODO: not general enough, fine for the counter
     True
 
 def Class.Constructor.action (sig : Signature) (constr : Class.Constructor sig) (args : constr.Args) : Anoma.Action :=
@@ -72,7 +73,7 @@ def Class.Constructor.transaction (sig : Signature) (constr : Class.Constructor 
   let action := constr.action sig args
   { roots := [currentRoot],
     actions := [action],
-    -- TODO: set deltaProof properly
+    -- TODO: automatically generate deltaProof that verifies that the transaction is balanced
     deltaProof := "" }
 
 /-- Creates a logic for a given method. This logic is combined with other method
@@ -90,6 +91,7 @@ def Class.Method.logic (sig : Signature) (method : Class.Method sig) (args : Ano
           && Class.Member.Logic.checkResourceData createdObjects args.created
           && method.extraLogic selfObj argsData
       else
+        -- TODO: may need to do something more here in general, fine for the counter
         True
 
 def Class.Method.action (sig : Signature) (method : Class.Method sig) (self : Object sig) (args : method.Args) : Anoma.Action :=

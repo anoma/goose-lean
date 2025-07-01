@@ -25,6 +25,7 @@ instance instBeqPublic : BEq Public where
     let _ := b.repPublicFields
     TypeRep.rep a.PublicFields == TypeRep.rep b.PublicFields
 
+-- TODO rename to something that does not conflict with authorization
 structure Signature where
   priv : Private
   pub : Public

@@ -19,7 +19,6 @@ structure Class.Method (sig : Signature) where
   Args : Type
   [repArgs : TypeRep Args]
   [beqArgs : BEq Args]
-  classLabel : String
   /-- Extra method logic. It is combined with auto-generated method logic to
       create the complete method logic. -/
   extraLogic : (self : Object sig) → Args → Bool
