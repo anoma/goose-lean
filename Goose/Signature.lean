@@ -11,6 +11,7 @@ structure Public where
   PublicFields : Type
   [rawPublicFields : Anoma.Raw PublicFields]
 
+-- TODO rename to something that does not conflict with authorization
 structure Signature where
   priv : Private
   pub : Public
