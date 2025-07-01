@@ -17,19 +17,20 @@ structure Intent where
   /-- The intent condition checks if the desired objects were received. Given
       intent arguments and provided objects, the intent condition is compiled to
       the resource logic of the resource intent. -/
-  condition : Args → (provided : List Object) → (received : List Object) → Bool
+  condition : Args → (provided : List SomeObject) → (received : List SomeObject) → Bool
 
 structure Intent.ResourceData where
   Args : Type
   [rawArgs : Anoma.Raw Args]
   args : Args
-  provided : List Object
+  provided : List SomeObject
 
 instance Intent.ResourceData.RawInstance : Anoma.Raw Intent.ResourceData where
   -- NOTE: this should also include a raw representation of the provided objects
   raw appData := appData.rawArgs.raw appData.args
+  cooked _ := panic! "Intent.ResourceData.cooked not implemented"
 
-def Intent.toResource (intent : Intent) (args : intent.Args) (provided : List Object) (nonce := 0) (nullifierKeyCommitment := "") : Anoma.Resource :=
+def Intent.toResource (intent : Intent) (args : intent.Args) (provided : List SomeObject) (nonce := 0) (nullifierKeyCommitment := "") : Anoma.Resource :=
   { Val := Intent.ResourceData,
     label := intent.label,
     quantity := 1,
