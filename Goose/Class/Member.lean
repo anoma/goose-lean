@@ -17,7 +17,6 @@ structure Class.Method (sig : Signature) where
   /-- The type of method arguments (excluding `self`). -/
   Args : Type
   [rawArgs : Anoma.Raw Args]
-  classLabel : String
   /-- Extra method logic. It is combined with auto-generated method logic to
       create the complete method logic. -/
   extraLogic : (self : Object sig) → Args → Bool

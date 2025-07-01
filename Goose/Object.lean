@@ -28,6 +28,7 @@ def SomeObject.toResource (sobj : SomeObject)
   { Val := sig.priv.PrivateFields,
     rawVal :=  sig.priv.rawPrivateFields,
     label := sig.classLabel,
+    -- NOTE: in general, there may be more things in the label, not necessarily statically determined
     quantity := obj.quantity,
     value := obj.privateFields,
     ephemeral := ephemeral,
