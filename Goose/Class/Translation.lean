@@ -22,9 +22,9 @@ private def Action.create {sig : Signature} (memberId : MemberId sig.pub) (args 
   (created : List CreatedObject) -- no appdata/logic
   : Anoma.Action :=
   -- appData for each resource consists of:
-  -- 1. action logic (indicator)
-  -- 2. the public data of the object
-  -- 3. the action (method/constructor) arguments
+  -- 1. member logic (indicator)
+  -- 2. the public fields of the object
+  -- 3. the member (method/constructor) arguments
   let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
     Std.HashMap.emptyWithCapacity
     |>.insertMany [mkTagDataPairConsumed consumed]

@@ -10,7 +10,7 @@ structure Class.Constructor {sig : Signature} (constrId : sig.pub.ConstructorId)
   /-- Extra constructor logic. It is combined with auto-generated constructor
       logic to create the complete constructor logic. -/
   extraLogic : constrId.Args → Bool
-  /-- Objects created in the constructor call. -/
+  /-- Object created in the constructor call. -/
   created : constrId.Args → Object sig
 
 structure Class.Method {sig : Signature} (methodId : sig.pub.MethodId) where
