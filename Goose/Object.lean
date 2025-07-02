@@ -1,5 +1,4 @@
 
-import Anoma.Raw
 import Anoma.Resource
 import Goose.Signature
 
@@ -26,7 +25,8 @@ def SomeObject.toResource (sobj : SomeObject)
     let sig := sobj.sig
     let obj := sobj.object
   { Val := sig.priv.PrivateFields,
-    rawVal :=  sig.priv.rawPrivateFields,
+    repVal :=  sig.priv.repPrivateFields,
+    beqVal := sig.priv.beqPrivateFields,
     label := sig.classLabel,
     -- NOTE: in general, there may be more things in the label, not necessarily statically determined
     quantity := obj.quantity,
@@ -40,10 +40,10 @@ def Object.fromResource
   (publicFields : sig.pub.PublicFields )
   (res : Anoma.Resource)
   : Option (Object sig) :=
-  let _ : Anoma.Raw res.Val := res.rawVal
-  let _ : Anoma.Raw sig.priv.PrivateFields := sig.priv.rawPrivateFields
+  let _ : TypeRep res.Val := res.repVal
+  let _ : TypeRep sig.priv.PrivateFields := sig.priv.repPrivateFields
   do
-  let privateFields : sig.priv.PrivateFields <- Anoma.Raw.cooked (Anoma.Raw.raw res.value) -- TODO this cast should be done safely
+  let privateFields : sig.priv.PrivateFields <- tryCast res.value
   pure { quantity := res.quantity,
          privateFields := privateFields,
          publicFields := publicFields }
@@ -55,7 +55,8 @@ def SomeObject.fromResource
   : SomeObject where
     sig := {
       priv := { PrivateFields := res.Val
-                rawPrivateFields := res.rawVal
+                repPrivateFields := res.repVal
+                beqPrivateFields := res.beqVal
                }
       pub := pub
       classLabel := res.label

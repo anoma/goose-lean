@@ -22,7 +22,8 @@ abbrev DeltaProof := String
 
 structure Action where
   Data : Type u
-  [rawData : Raw Data]
+  [repData : TypeRep Data]
+  [beqData : BEq Data]
   consumed : List RootedNullifiableResource
   created : List Resource
   /-- `appData` contains public data for each resource in the action -/

@@ -1,5 +1,5 @@
 
-import Anoma.Raw
+import Prelude
 import Anoma.ConsumedCreated
 
 namespace Anoma
@@ -18,7 +18,8 @@ def CommitmentRoot.placeholder : CommitmentRoot := 0
     contains the unique label of the class). -/
 structure Resource where
   Val : Type u
-  [rawVal : Raw Val]
+  [repVal : TypeRep Val]
+  [beqVal : BEq Val]
   label : String
   quantity : Nat
   value : Val

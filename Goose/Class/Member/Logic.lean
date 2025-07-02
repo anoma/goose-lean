@@ -28,7 +28,12 @@ def Class.Member.Logic.checkResourceData (objects : List SomeObject) (resources 
     && List.and (List.zipWith resourceDataEq objects resources)
   where
     resourceDataEq (sobj : SomeObject) (res : Anoma.Resource) : Bool :=
-      @Anoma.rawEq _ _ res.rawVal sobj.sig.priv.rawPrivateFields res.value sobj.object.privateFields
-        && res.label == sobj.sig.classLabel
+      let _ := res.beqVal
+      let _ := res.repVal
+      let _ := sobj.sig.priv.repPrivateFields
+      res.label == sobj.sig.classLabel &&
+        match tryCast sobj.object.privateFields with
+        | some privateFields => res.value == privateFields
+        | none => false
 
 end Goose

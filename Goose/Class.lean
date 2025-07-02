@@ -18,7 +18,8 @@ structure Class (sig : Signature) where
     called) and member app data. -/
 structure Class.AppData (pub : Public) where
   Args : Type
-  [rawArgs : Anoma.Raw Args]
+  [repArgs : TypeRep Args]
+  [beqArgs : BEq Args]
   /-- The logic associated with the member being called. In a real
       implementation, this would be an enum indicating the logic to be used. In
       Lean, it is more convenient to have this as a function to avoid
@@ -26,21 +27,36 @@ structure Class.AppData (pub : Public) where
   memberLogic : Anoma.Logic.Args (Class.Member.AppData pub Args) → Bool
   memberAppData : Class.Member.AppData pub Args
 
+instance instBeqAppData {pub : Public} : BEq (Class.AppData pub) where
+  beq a b :=
+    let _ := pub.beqPublicFields
+    let _ := a.repArgs
+    let _ := b.repArgs
+    let _ := b.beqArgs
+    -- TODO: check member logic properly
+    a.memberAppData.publicFields == b.memberAppData.publicFields
+    && beqCast a.memberAppData.args b.memberAppData.args
+
 structure Class.SomeAppData where
   {pub : Public}
   appData : Class.AppData pub
 
+instance instSomeAppDataBeq : BEq Class.SomeAppData where
+  beq a b :=
+    let _ := b.pub.beqPublicFields
+    let _ := a.pub.repPublicFields
+    let _ := b.pub.repPublicFields
+    let _ := a.appData.repArgs
+    let _ := b.appData.repArgs
+    let _ := b.appData.beqArgs
+    -- TODO: check member logic properly
+    beqCast a.appData.memberAppData.publicFields b.appData.memberAppData.publicFields
+    && beqCast a.appData.memberAppData.args b.appData.memberAppData.args
+
 def Class.AppData.toSomeAppData {pub : Public} (appData : Class.AppData pub) : Class.SomeAppData := {appData}
 
-instance Class.SomeAppData.RawInstance : Anoma.Raw Class.SomeAppData where
-  -- NOTE: this should also include a raw representation of the action logic
-  raw x :=
-   let appData := x.appData
-   (@Member.AppData.RawInstance _ _ appData.rawArgs).raw appData.memberAppData
-  cooked := panic! "cooked"
-
-instance Class.AppData.RawInstance (pub : Public) : Anoma.Raw (Class.AppData pub) where
-  raw appData := Anoma.Raw.raw appData.toSomeAppData
-  cooked := panic! "cooked"
+instance instSomeAppDataTypeRep : TypeRep Class.SomeAppData where
+  -- TODO: proper type representation
+  rep := Rep.atomic "Goose.Class.SomeAppData"
 
 end Goose

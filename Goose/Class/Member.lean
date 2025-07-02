@@ -6,7 +6,8 @@ namespace Goose
 structure Class.Constructor (sig : Signature) where
   /-- The type of constructor arguments. -/
   Args : Type
-  [rawArgs : Anoma.Raw Args]
+  [repArgs : TypeRep Args]
+  [beqArgs : BEq Args]
   /-- Extra constructor logic. It is combined with auto-generated constructor
       logic to create the complete constructor logic. -/
   extraLogic : Args → Bool
@@ -16,7 +17,8 @@ structure Class.Constructor (sig : Signature) where
 structure Class.Method (sig : Signature) where
   /-- The type of method arguments (excluding `self`). -/
   Args : Type
-  [rawArgs : Anoma.Raw Args]
+  [repArgs : TypeRep Args]
+  [beqArgs : BEq Args]
   /-- Extra method logic. It is combined with auto-generated method logic to
       create the complete method logic. -/
   extraLogic : (self : Object sig) → Args → Bool
@@ -34,6 +36,15 @@ structure Class.Member.AppData (pub : Public) (Args : Type u) where
   publicFields : pub.PublicFields
   args : Args
 
+instance instAppDataTypeRep {Args} (pub : Public) [TypeRep Args] : TypeRep (Class.Member.AppData pub Args) where
+  -- TODO: proper type representation
+  rep := Rep.atomic "Class.Member.AppData"
+
+instance instAppDataBeq {Args} (pub : Public) [BEq Args] : BEq (Class.Member.AppData pub Args) where
+  beq a b :=
+    let _ := pub.beqPublicFields
+    a.publicFields == b.publicFields && a.args == b.args
+
 structure Class.Member.SomeAppData (Args : Type u) where
   {pub : Public}
   appData : Class.Member.AppData pub Args
@@ -48,11 +59,6 @@ def Class.Method.AppData (sig : Signature) (method : Class.Method sig) :=
 
 def Class.Constructor.AppData {sig : Signature} (constr : Class.Constructor sig) :=
   Member.AppData sig.pub constr.Args
-
-instance Class.Member.AppData.RawInstance (pub : Public) {Args : Type u} [Anoma.Raw Args]
-   : Anoma.Raw (Class.Member.AppData pub Args) where
-  raw appData := pub.rawPublicFields.raw appData.publicFields ++ ":::" ++ Anoma.Raw.raw appData.args
-  cooked := panic! "cooked"
 
 def Class.Member.appData {Args : Type u} (sig : Signature) (self : Object sig) (args : Args)
   : Class.Member.AppData sig.pub Args :=
