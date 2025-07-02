@@ -67,4 +67,23 @@ def SomeObject.fromResource
       publicFields := pubVals
      }
 
+instance Object.hasTypeRep {sig : Signature} : TypeRep (Object sig) where
+  -- TODO: this is incorrect, should take the signature into account
+  rep := Rep.atomic "Object"
+
+instance Object.hasBEq {sig : Signature} : BEq (Object sig) where
+  beq a b :=
+    let _ := sig.priv.beqPrivateFields
+    let _ := sig.pub.beqPublicFields
+    a.quantity == b.quantity
+    && a.privateFields == b.privateFields
+    && a.publicFields == b.publicFields
+
+instance SomeObject.hasTypeRep : TypeRep SomeObject where
+  -- TODO: this is incorrect, should take the signature into account
+  rep := Rep.atomic "SomeObject"
+
+instance SomeObject.hasBEq : BEq SomeObject where
+  beq a b := a.sig == b.sig && beqCast a.object b.object
+
 end Goose

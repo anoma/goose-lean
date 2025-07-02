@@ -5,13 +5,22 @@ import Goose.Class.Member.Logic
 
 namespace Goose
 
-noncomputable unsafe def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
-  match Intent.ResourceData.fromResource args.self with
-  | some data =>
-    let receivedObjects := List.map (SomeObject.fromResource {PublicFields := Unit} ()) args.created
-    intent.condition (unsafeCast data.args) data.provided receivedObjects
-  | none =>
-    false
+def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
+  if args.isConsumed then
+    match Intent.ResourceData.fromResource args.self with
+    | some data =>
+      let _ : TypeRep data.Args := data.repArgs
+      let _ : TypeRep intent.Args := intent.repArgs
+      let receivedObjects := List.map (SomeObject.fromResource {PublicFields := Unit} ()) args.created
+      match tryCast data.args with
+      | some argsData =>
+        intent.condition argsData data.provided receivedObjects
+      | none =>
+        false
+    | none =>
+      false
+  else
+    true
 
 /-- An action which consumes the provided objects and creates the intent. -/
 def Intent.action (intent : Intent) (args : intent.Args) (provided : List SomeObject) : Anoma.Action :=
@@ -32,8 +41,10 @@ def Intent.action (intent : Intent) (args : intent.Args) (provided : List SomeOb
         { appData := {
             Args := Unit,
             memberAppData := Class.Member.appData obj.sig obj.object (),
-            -- An indication for trivial member logic (no extra logic for intent creation)
-            memberLogic := trueLogic}
+            -- An indication for trivial member logic (no extra logic for the
+            -- resources consumed in intent creation)
+            memberLogic := trueLogic
+          }
         })
 
 /-- A transaction which consumes the provided objects and creates the intent. -/
