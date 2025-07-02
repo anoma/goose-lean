@@ -68,7 +68,6 @@ def SomeObject.fromResource
      }
 
 instance Object.hasTypeRep {sig : Signature} : TypeRep (Object sig) where
-  -- Incorporate the signature into the type representation
   rep := Rep.atomic ("Object_" ++ sig.classLabel)
 
 instance Object.hasBEq {sig : Signature} : BEq (Object sig) where
@@ -80,7 +79,6 @@ instance Object.hasBEq {sig : Signature} : BEq (Object sig) where
     && a.publicFields == b.publicFields
 
 instance SomeObject.hasTypeRep : TypeRep SomeObject where
-  -- TODO: this is incorrect, should take the signature into account
   rep := Rep.atomic "SomeObject"
 
 instance SomeObject.hasBEq : BEq SomeObject where

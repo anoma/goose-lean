@@ -28,11 +28,14 @@ structure Intent.ResourceData where
   provided : List SomeObject
 
 instance Intent.ResourceData.hasTypeRep : TypeRep Intent.ResourceData where
-  -- TODO: this is incorrect, should take Args into account
   rep := Rep.atomic "Intent.ResourceData"
 
 instance Intent.ResourceData.hasBEq : BEq Intent.ResourceData where
-  beq a b := a.repArgs.rep == b.repArgs.rep && a.provided == b.provided
+  beq a b :=
+    let _ : TypeRep a.Args := a.repArgs
+    let _ : TypeRep b.Args := b.repArgs
+    let _ : BEq b.Args := b.beqArgs
+    beqCast a.args b.args && a.provided == b.provided
 
 def Intent.toResource (intent : Intent) (args : intent.Args) (provided : List SomeObject) (nonce := 0) (nullifierKeyCommitment := "") : Anoma.Resource :=
   { Val := Intent.ResourceData,
