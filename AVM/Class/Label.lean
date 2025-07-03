@@ -26,22 +26,23 @@ instance Public.hasBEq : BEq Public where
     let _ := b.repPublicFields
     TypeRep.rep a.PublicFields == TypeRep.rep b.PublicFields
 
+structure ArgsType where
+  type : Type
+  [rep : TypeRep type]
+  [beq : BEq type]
+
 structure Label where
   priv : Private
   pub : Public
   name : String
 
   MethodId : Type
-  MethodArgs : MethodId -> Type
-  repMethodArgs (m : MethodId) : TypeRep (MethodArgs m)
-  beqMethodArgs (m : MethodId) : BEq (MethodArgs m)
   [methodsFinite : Fintype MethodId]
   [methodsRepr : Repr MethodId]
+  MethodArgsTypes : MethodId -> ArgsType
 
   ConstructorId : Type
-  ConstructorArgs : ConstructorId -> Type
-  repConstructorArgs (m : ConstructorId) : TypeRep (ConstructorArgs m)
-  beqConstructorArgs (m : ConstructorId) : BEq (ConstructorArgs m)
+  ConstructorArgsTypes : ConstructorId -> ArgsType
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
 
@@ -49,8 +50,14 @@ inductive MemberId (lab : Label) where
   | constructorId : lab.ConstructorId -> MemberId lab
   | methodId : lab.MethodId -> MemberId lab
 
+def Label.ConstructorArgs {lab : Label} (constrId : lab.ConstructorId) : Type :=
+  (lab.ConstructorArgsTypes constrId).type
+
 def Label.ConstructorId.Args {lab : Label} (constrId : lab.ConstructorId) : Type :=
   lab.ConstructorArgs constrId
+
+def Label.MethodArgs {lab : Label} (methodId : lab.MethodId) : Type :=
+  (lab.MethodArgsTypes methodId).type
 
 def Label.MethodId.Args {lab : Label} (methodId : lab.MethodId) : Type :=
   lab.MethodArgs methodId
@@ -62,8 +69,8 @@ def MemberId.Args {lab : Label} (memberId : MemberId lab) : Type :=
 
 def MemberId.beqArgs {lab : Label} (memberId : MemberId lab) : BEq memberId.Args :=
   match memberId with
-    | .constructorId c => lab.beqConstructorArgs c
-    | .methodId c => lab.beqMethodArgs c
+    | constructorId c => (lab.ConstructorArgsTypes c).beq
+    | methodId c => (lab.MethodArgsTypes c).beq
 
 instance {lab : Label} : CoeHead lab.ConstructorId (MemberId lab) where
   coe := MemberId.constructorId
