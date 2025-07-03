@@ -141,11 +141,11 @@ def Class.logic (sig : Signature) (cls : Class sig)
     let mself : Option (Object sig) := Object.fromResource args.data.publicFields args.self
     match mself with
       | none => False
-      -- NOTE this is 'some' iff the object is being consumed (as self)
       | (some self) =>
         let msomeAppData : Option (Member.SomeAppData sig.pub) := args.data.memberSomeAppData
         match msomeAppData with
           | none => True
+          -- NOTE this is 'some' iff the object is being consumed (as self)
           | (some someAppData) =>
             let memberId : MemberId sig.pub := someAppData.memberId
             let memArgs : memberId.Args := someAppData.appData.args
