@@ -17,7 +17,7 @@ structure ConsumedObject (sig : Signature) : Type 1 where
   resource : Anoma.Resource
 
 /-- Helper function to create an Action. -/
-def Action.create {sig : Signature} (memberId : MemberId sig.pub) (args : memberId.Args)
+def Action.create {sig : Signature} (memberId : MemberId sig) (args : memberId.Args)
   (consumed : ConsumedObject sig)
   (created : List CreatedObject) -- no appdata/logic
   : Anoma.Action :=
@@ -46,14 +46,14 @@ def Action.create {sig : Signature} (memberId : MemberId sig.pub) (args : member
     mkTagDataPair (i : CreatedObject)
      : Anoma.Tag × Class.SomeAppData :=
       (Anoma.Tag.fromResource (isConsumed := False) i.resource,
-        {pub := i.sig.pub,
+        {sig := i.sig,
          appData := {publicFields := i.object.publicFields
                      memberSomeAppData := none}})
 
 /-- Creates a logic for a given constructor. This logic is combined with other
     method and constructor logics to create the complete resource logic for an
     object. -/
-def Class.Constructor.logic {sig : Signature} {constrId : sig.pub.ConstructorId}
+def Class.Constructor.logic {sig : Signature} {constrId : sig.ConstructorId}
   (constr : Class.Constructor constrId)
   (args : Anoma.Logic.Args constrId.Args)
   : Bool :=
@@ -67,7 +67,7 @@ def Class.Constructor.logic {sig : Signature} {constrId : sig.pub.ConstructorId}
       -- TODO: not general enough, fine for the counter
       True
 
-def Class.Constructor.action {sig : Signature} {constrId : sig.pub.ConstructorId}
+def Class.Constructor.action {sig : Signature} {constrId : sig.ConstructorId}
   (constr : Class.Constructor constrId) (args : constrId.Args)
   : Anoma.Action :=
     -- TODO: set nonce and nullifierKeyCommitment properly
@@ -83,7 +83,7 @@ def Class.Constructor.action {sig : Signature} {constrId : sig.pub.ConstructorId
     @Action.create sig constrId args consumed created
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
-def Class.Constructor.transaction {sig : Signature} {constrId : sig.pub.ConstructorId}
+def Class.Constructor.transaction {sig : Signature} {constrId : sig.ConstructorId}
   (constr : Class.Constructor constrId) (args : constrId.Args) (currentRoot : Anoma.CommitmentRoot)
   : Anoma.Transaction :=
     let action := constr.action args
@@ -94,7 +94,7 @@ def Class.Constructor.transaction {sig : Signature} {constrId : sig.pub.Construc
 
 /-- Creates a logic for a given method. This logic is combined with other method
     and constructor logics to create the complete resource logic for an object. -/
-def Class.Method.logic {sig : Signature} {methodId : sig.pub.MethodId}
+def Class.Method.logic {sig : Signature} {methodId : sig.MethodId}
   (method : Class.Method methodId)
   (publicFields : sig.pub.PublicFields)
   (args : Anoma.Logic.Args (Class.Method.AppData methodId))
@@ -114,7 +114,7 @@ def Class.Method.logic {sig : Signature} {methodId : sig.pub.MethodId}
           -- TODO: may need to do something more here in general, fine for the counter
           True
 
-def Class.Method.action {sig : Signature} (methodId : sig.pub.MethodId) (method : Class.Method methodId) (self : Object sig) (args : methodId.Args) : Anoma.Action :=
+def Class.Method.action {sig : Signature} (methodId : sig.MethodId) (method : Class.Method methodId) (self : Object sig) (args : methodId.Args) : Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
   let consumed : ConsumedObject sig :=
        { object := self
@@ -127,7 +127,7 @@ def Class.Method.action {sig : Signature} (methodId : sig.pub.MethodId) (method 
   Action.create (MemberId.methodId methodId) args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
-def Class.Method.transaction (sig : Signature) (methodId : sig.pub.MethodId) (method : Class.Method methodId) (self : Object sig) (args : methodId.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
+def Class.Method.transaction (sig : Signature) (methodId : sig.MethodId) (method : Class.Method methodId) (self : Object sig) (args : methodId.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
   let action := method.action methodId self args
   { roots := [currentRoot],
     actions := [action],
@@ -136,18 +136,18 @@ def Class.Method.transaction (sig : Signature) (methodId : sig.pub.MethodId) (me
 
 -- TODO make it prettier by avoiding nested matches
 def Class.logic (sig : Signature) (cls : Class sig)
-  (args : Anoma.Logic.Args (Class.AppData sig.pub))
+  (args : Anoma.Logic.Args (Class.AppData sig))
   : Bool :=
     let mself : Option (Object sig) := Object.fromResource args.data.publicFields args.self
     match mself with
       | none => False
       | (some self) =>
-        let msomeAppData : Option (Member.SomeAppData sig.pub) := args.data.memberSomeAppData
+        let msomeAppData : Option (Member.SomeAppData sig) := args.data.memberSomeAppData
         match msomeAppData with
           | none => True
           -- NOTE this is 'some' iff the object is being consumed (as self)
           | (some someAppData) =>
-            let memberId : MemberId sig.pub := someAppData.memberId
+            let memberId : MemberId sig := someAppData.memberId
             let memArgs : memberId.Args := someAppData.appData.args
             match x : memberId with
               | MemberId.constructorId c =>

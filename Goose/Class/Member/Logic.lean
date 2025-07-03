@@ -3,12 +3,12 @@ import Goose.Class.Member
 
 namespace Goose
 
-abbrev Class.Member.Logic {pub : Public} (memId : MemberId pub) : Type 1 := Anoma.Logic.Args (Class.Member.AppData memId) → Bool
+abbrev Class.Member.Logic {sig : Signature} (memId : MemberId sig) : Type 1 := Anoma.Logic.Args (Class.Member.AppData memId) → Bool
 
-def trueLogic {pub : Public} {memId : MemberId pub} : Class.Member.Logic memId :=
+def trueLogic {sig : Signature} {memId : MemberId sig} : Class.Member.Logic memId :=
   fun _ => True
 
-def falseLogic {pub : Public} {memId : MemberId pub} : Class.Member.Logic memId :=
+def falseLogic {sig : Signature} {memId : MemberId sig} : Class.Member.Logic memId :=
   fun _ => False
 
 /-- Checks that the number of objects and resources match, and that the

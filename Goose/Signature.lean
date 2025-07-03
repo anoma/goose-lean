@@ -14,6 +14,24 @@ structure Public where
   [repPublicFields : TypeRep PublicFields]
   [beqPublicFields : BEq PublicFields]
 
+instance instBeqPrivate : BEq Private where
+  beq a b :=
+    let _ := a.repPrivateFields
+    let _ := b.repPrivateFields
+    TypeRep.rep a.PrivateFields == TypeRep.rep b.PrivateFields
+
+instance instBeqPublic : BEq Public where
+  beq a b :=
+    let _ := a.repPublicFields
+    let _ := b.repPublicFields
+    TypeRep.rep a.PublicFields == TypeRep.rep b.PublicFields
+
+-- TODO rename to something that does not conflict with authorization
+structure Signature where
+  priv : Private
+  pub : Public
+  classLabel : String
+
   MethodId : Type
   MethodArgs : MethodId -> Type
   repMethodArgs (m : MethodId) : TypeRep (MethodArgs m)
@@ -28,47 +46,28 @@ structure Public where
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
 
-instance instBeqPrivate : BEq Private where
-  beq a b :=
-    let _ := a.repPrivateFields
-    let _ := b.repPrivateFields
-    TypeRep.rep a.PrivateFields == TypeRep.rep b.PrivateFields
+inductive MemberId (sig : Signature) where
+  | constructorId : sig.ConstructorId -> MemberId sig
+  | methodId : sig.MethodId -> MemberId sig
 
-instance instBeqPublic : BEq Public where
-  beq a b :=
-    let _ := a.repPublicFields
-    let _ := b.repPublicFields
-    TypeRep.rep a.PublicFields == TypeRep.rep b.PublicFields
+def Signature.ConstructorId.Args {sig : Signature} (constrId : sig.ConstructorId) : Type :=
+  sig.ConstructorArgs constrId
 
-inductive MemberId (pub : Public) where
-  | constructorId : pub.ConstructorId -> MemberId pub
-  | methodId : pub.MethodId -> MemberId pub
+def Signature.MethodId.Args {sig : Signature} (methodId : sig.MethodId) : Type :=
+  sig.MethodArgs methodId
 
-def Public.ConstructorId.Args {pub : Public} (constrId : pub.ConstructorId) : Type :=
-  pub.ConstructorArgs constrId
-
-def Public.MethodId.Args {pub : Public} (methodId : pub.MethodId) : Type :=
-  pub.MethodArgs methodId
-
-def MemberId.Args {pub : Public} (memberId : MemberId pub) : Type :=
+def MemberId.Args {sig : Signature} (memberId : MemberId sig) : Type :=
   match memberId with
-    | constructorId c => pub.ConstructorArgs c
-    | methodId c => pub.MethodArgs c
+    | constructorId c => sig.ConstructorArgs c
+    | methodId c => sig.MethodArgs c
 
-def MemberId.beqArgs {pub : Public} (memberId : MemberId pub) : BEq memberId.Args :=
+def MemberId.beqArgs {sig : Signature} (memberId : MemberId sig) : BEq memberId.Args :=
   match memberId with
-    | constructorId c => pub.beqConstructorArgs c
-    | methodId c => pub.beqMethodArgs c
+    | constructorId c => sig.beqConstructorArgs c
+    | methodId c => sig.beqMethodArgs c
 
-instance {pub : Public} : CoeHead pub.ConstructorId (MemberId pub) where
+instance {sig : Signature} : CoeHead sig.ConstructorId (MemberId sig) where
   coe := MemberId.constructorId
 
-instance {pub : Public} : CoeHead pub.MethodId (MemberId pub) where
+instance {sig : Signature} : CoeHead sig.MethodId (MemberId sig) where
   coe := MemberId.methodId
-
--- TODO rename to something that does not conflict with authorization
-structure Signature where
-  priv : Private
-  pub : Public
-  classLabel : String
-deriving BEq
