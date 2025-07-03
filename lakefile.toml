@@ -2,6 +2,11 @@ name = "goose"
 version = "0.1.0"
 defaultTargets = ["Prelude", "Anoma", "Goose", "Applib", "Apps"]
 
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.21.0"
+
 [leanOptions]
 relaxedAutoImplicit = false
 

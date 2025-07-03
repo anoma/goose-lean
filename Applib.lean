@@ -22,26 +22,24 @@ def AnObject.toSomeObject (g : AnObject) : SomeObject :=
 instance {ty : Type} [IsObject ty] : CoeHead ty AnObject where
   coe (obj : ty) := {obj}
 
-def defMethod {cl Args : Type} [TypeRep Args] [BEq Args] [i : IsObject cl]
+def defMethod {cl : Type} [i : IsObject cl] {methodId : i.sig.pub.MethodId}
  -- TODO rename created to body
- (created : (self : cl) -> Args -> List AnObject)
- (extraLogic : (self : cl) -> Args -> Bool := fun _ _ => True)
- : Class.Method i.sig where
-    Args := Args
-    extraLogic (self : Object i.sig) (args : Args) :=
+ (created : (self : cl) -> methodId.Args -> List AnObject)
+ (extraLogic : (self : cl) -> methodId.Args -> Bool := fun _ _ => True)
+ : Class.Method methodId where
+    extraLogic (self : Object i.sig) (args : methodId.Args) :=
       match i.fromObject self with
         | none => False
         | (some self') => extraLogic self' args
-    created (self : Object i.sig) (args : Args) :=
+    created (self : Object i.sig) (args : methodId.Args) :=
       match i.fromObject self with
         | none => []
         | (some self') => List.map AnObject.toSomeObject (created self' args)
 
-def defConstructor {cl Args : Type} [TypeRep Args] [BEq Args] [i : IsObject cl]
- (created : Args -> cl)
+def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.sig.pub.ConstructorId}
+ (created : constrId.Args -> cl)
  -- TODO rename extraLogic to extraConstraints
- (extraLogic : Args -> Bool)
- : Class.Constructor i.sig where
-    Args := Args
-    extraLogic (args : Args) := extraLogic args
-    created (args : Args) := i.toObject (created args)
+ (extraLogic : constrId.Args -> Bool)
+ : Class.Constructor constrId where
+    extraLogic (args : constrId.Args) := extraLogic args
+    created (args : constrId.Args) := i.toObject (created args)

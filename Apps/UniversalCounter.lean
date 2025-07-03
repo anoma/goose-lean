@@ -1,28 +1,52 @@
 import Goose
 import Applib
+import Mathlib.Data.Fintype.Basic
+import Mathlib.Tactic.DeriveFintype
 
 open Applib
-
-namespace Counter
-
-open Goose
 
 structure Counter where
   count : Nat
 
+namespace Counter
+
+inductive Methods where
+  | Incr : Methods
+  deriving DecidableEq, Fintype, Repr
+
+inductive Constructors where
+  | Zero : Constructors
+  deriving DecidableEq, Fintype, Repr
+
 deriving instance Inhabited for Counter
+
+open Goose
 
 def sig : Signature where
   priv := {PrivateFields := Nat}
-  pub := {PublicFields := Unit}
+  pub := {PublicFields := Unit,
+          MethodId := Methods
+          MethodArgs := fun
+            | Methods.Incr => Nat
+          repMethodArgs := fun
+            | Methods.Incr => inferInstance
+          beqMethodArgs := fun
+            | Methods.Incr => inferInstance
+          ConstructorId := Constructors
+          ConstructorArgs := fun
+            | Constructors.Zero => Unit
+          repConstructorArgs := fun
+            | Constructors.Zero => inferInstance
+          beqConstructorArgs := fun
+            | Constructors.Zero => inferInstance}
   classLabel := "UniversalCounter"
 
-def Counter.toObject (c : Counter) : Object sig where
+def toObject (c : Counter) : Object sig where
   publicFields := Unit.unit
   quantity := 1
   privateFields := c.count
 
-def Counter.fromObject (o : Object sig) : Option Counter := do
+def fromObject (o : Object sig) : Option Counter := do
   guard (o.quantity == 1)
   some (Counter.mk (o.privateFields))
 
@@ -35,18 +59,20 @@ instance instCounterIsObject : IsObject Counter where
 def newCounter : Counter where
   count := 0
 
-def Counter.incrementBy (step : Nat) (c : Counter) : Counter :=
+def incrementBy (step : Nat) (c : Counter) : Counter :=
   {c with count := c.count + step}
 
-def counterConstructor : Class.Constructor sig := defConstructor
+def counterConstructor : @Class.Constructor sig Constructors.Zero := defConstructor
   (created := fun (_noArgs : Unit) => newCounter)
   (extraLogic := fun (_noArgs : Unit) => True)
 
-def counterIncr : Class.Method sig := defMethod
+def counterIncr : @Class.Method sig Methods.Incr := defMethod
   (created := fun (self : Counter) (step : Nat) => [self.incrementBy step])
   (extraLogic := fun _ _ => True)
 
 def counterClass : Class sig where
-  constructors := [counterConstructor]
-  methods := [counterIncr]
+  constructors := fun
+    | Constructors.Zero => counterConstructor
+  methods := fun
+    | Methods.Incr => counterIncr
   extraLogic _ _ := True

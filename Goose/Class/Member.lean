@@ -3,71 +3,66 @@ import Goose.Signature
 
 namespace Goose
 
-structure Class.Constructor (sig : Signature) where
-  /-- The type of constructor arguments. -/
-  Args : Type
-  [repArgs : TypeRep Args]
-  [beqArgs : BEq Args]
+def Class.Constructor.Args {pub : Public} (constrId : pub.ConstructorId) : Type :=
+  pub.ConstructorArgs constrId
+
+structure Class.Constructor {sig : Signature} (constrId : sig.pub.ConstructorId) where
   /-- Extra constructor logic. It is combined with auto-generated constructor
       logic to create the complete constructor logic. -/
-  extraLogic : Args → Bool
+  extraLogic : constrId.Args → Bool
   /-- Objects created in the constructor call. -/
-  created : Args → Object sig
+  created : constrId.Args → Object sig
 
-structure Class.Method (sig : Signature) where
-  /-- The type of method arguments (excluding `self`). -/
-  Args : Type
-  [repArgs : TypeRep Args]
-  [beqArgs : BEq Args]
+structure Class.Method {sig : Signature} (methodId : sig.pub.MethodId) where
   /-- Extra method logic. It is combined with auto-generated method logic to
       create the complete method logic. -/
-  extraLogic : (self : Object sig) → Args → Bool
+  extraLogic : (self : Object sig) → methodId.Args → Bool
   /-- Objects created in the method call. -/
-  created : (self : Object sig) → Args → List SomeObject
+  created : (self : Object sig) → methodId.Args → List SomeObject
 
 /-- A class member is a method or a constructor. -/
-inductive Class.Member (sig : Signature) where
-  | constructor (constr : Class.Constructor sig) : Class.Member sig
-  | method (method : Class.Method sig) : Class.Member sig
+inductive Class.Member (sig : Signature) : Type 1 where
+  | constructor (constrId : sig.pub.ConstructorId) (constr : Class.Constructor constrId) : Class.Member sig
+  | method (methodId : sig.pub.MethodId) (method : Class.Method methodId) : Class.Member sig
 
 /-- The appData associated with a member call consists of the
     self object's public fields and the member arguments. -/
-structure Class.Member.AppData (pub : Public) (Args : Type u) where
-  publicFields : pub.PublicFields
-  args : Args
+structure Class.Member.AppData {pub : Public} (memberId : MemberId pub) where
+  args : memberId.Args
+  -- TODO the types should reflect these three cases:
+  -- 1. Class (consumed or created) => only public fields
+  -- 2. Member created => only public fields
+  -- 3. Member consumed => public fields + method args
 
-instance instAppDataTypeRep {Args} (pub : Public) [TypeRep Args] : TypeRep (Class.Member.AppData pub Args) where
+structure Class.Member.SomeAppData (pub : Public) where
+  {memberId : MemberId pub}
+  appData : Class.Member.AppData memberId
+
+instance instMemberSomeAppDataTypeRep {pub : Public}
+ : TypeRep (Class.Member.SomeAppData pub) where
+  -- TODO: proper type representation
+  rep := Rep.atomic "Class.Member.SomeAppData"
+
+instance instMemberAppDataTypeRep {pub : Public} (memberId : MemberId pub)
+ : TypeRep (Class.Member.AppData memberId) where
   -- TODO: proper type representation
   rep := Rep.atomic "Class.Member.AppData"
 
-instance instAppDataBeq {Args} (pub : Public) [BEq Args] : BEq (Class.Member.AppData pub Args) where
+instance instAppDataBeq {pub : Public} (memberId : MemberId pub)
+ : BEq (Class.Member.AppData memberId) where
   beq a b :=
     let _ := pub.beqPublicFields
-    a.publicFields == b.publicFields && a.args == b.args
+    let _ := memberId.beqArgs
+    a.args == b.args
 
-structure Class.Member.SomeAppData (Args : Type u) where
-  {pub : Public}
-  appData : Class.Member.AppData pub Args
+instance instMemberSomeAppDataBeq {pub : Public}
+ : BEq (Class.Member.SomeAppData pub) where
+  beq a b := beqCast a.appData b.appData
 
-def Class.Member.AppData.toSomeAppData {pub : Public} {Args : Type u}
-  (appData : Class.Member.AppData pub Args)
-  : Class.Member.SomeAppData Args
-  := {appData}
+def Class.Method.AppData {pub : Public} (methodId : pub.MethodId) : Type :=
+  Member.AppData (MemberId.methodId methodId)
 
-def Class.Method.AppData (sig : Signature) (method : Class.Method sig) :=
-  Member.AppData sig.pub method.Args
-
-def Class.Constructor.AppData {sig : Signature} (constr : Class.Constructor sig) :=
-  Member.AppData sig.pub constr.Args
-
-def Class.Member.appData {Args : Type u} (sig : Signature) (self : Object sig) (args : Args)
-  : Class.Member.AppData sig.pub Args :=
-  {
-    publicFields := self.publicFields,
-    args }
-
-def Class.Member.someAppData {Args : Type u} (self : SomeObject) (args : Args)
-  : Class.Member.SomeAppData Args :=
-    (Class.Member.appData self.sig self.object args).toSomeAppData
+def Class.Constructor.AppData {pub : Public} {constrId : pub.ConstructorId} : Type :=
+  Member.AppData (MemberId.constructorId constrId)
 
 end Goose
