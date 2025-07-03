@@ -29,10 +29,6 @@ inductive Class.Member (sig : Signature) : Type 1 where
     self object's public fields and the member arguments. -/
 structure Class.Member.AppData {pub : Public} (memberId : MemberId pub) where
   args : memberId.Args
-  -- TODO the types should reflect these three cases:
-  -- 1. Class (consumed or created) => only public fields
-  -- 2. Member created => only public fields
-  -- 3. Member consumed => public fields + method args
 
 structure Class.Member.SomeAppData (pub : Public) where
   {memberId : MemberId pub}

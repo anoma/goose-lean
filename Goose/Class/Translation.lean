@@ -16,7 +16,7 @@ structure ConsumedObject (sig : Signature) : Type 1 where
   object : Object sig
   resource : Anoma.Resource
 
--- /-- Helper function to create an Action. -/
+/-- Helper function to create an Action. -/
 def Action.create {sig : Signature} (memberId : MemberId sig.pub) (args : memberId.Args)
   (consumed : ConsumedObject sig)
   (created : List CreatedObject) -- no appdata/logic
@@ -110,7 +110,7 @@ def Class.Method.logic {sig : Signature} {methodId : sig.pub.MethodId}
             && Class.Member.Logic.checkResourceData createdObjects args.created
             && method.extraLogic selfObj argsData
         else
-          -- NOTE thise branch is never hit because we don't AppData for created resources
+          -- NOTE thise branch is never hit because we don't add AppData for created resources
           -- TODO: may need to do something more here in general, fine for the counter
           True
 
@@ -134,14 +134,14 @@ def Class.Method.transaction (sig : Signature) (methodId : sig.pub.MethodId) (me
     -- TODO: set deltaProof properly
     deltaProof := "" }
 
--- TODO make it prettier by avoiding nested matchs
+-- TODO make it prettier by avoiding nested matches
 def Class.logic (sig : Signature) (cls : Class sig)
   (args : Anoma.Logic.Args (Class.AppData sig.pub))
   : Bool :=
-    -- NOTE this is 'some' iff the object is being consumed
     let mself : Option (Object sig) := Object.fromResource args.data.publicFields args.self
     match mself with
       | none => False
+      -- NOTE this is 'some' iff the object is being consumed (as self)
       | (some self) =>
         let msomeAppData : Option (Member.SomeAppData sig.pub) := args.data.memberSomeAppData
         match msomeAppData with

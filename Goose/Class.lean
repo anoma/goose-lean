@@ -14,23 +14,9 @@ structure Class (sig : Signature) where
      -/
   extraLogic : (self : Object sig) → Anoma.Logic.Args sig.pub.PublicFields → Bool
 
--- def Class.allConstructors {sig : Signature} (cl : Class sig)
---   : List (sig.pub.ConstructorId × Class.Constructor sig)
---   := sorry
-
--- def Class.allMethods {sig : Signature} (cl : Class sig)
---   : List (sig.pub.MethodId × Class.Method sig)
---   := sorry
-
 /-- The class app data consists of member logic (indicator which member is being
     called) and member app data. -/
 structure Class.AppData (pub : Public) where
-  -- Args : Type
-  -- [rawArgs : Anoma.Raw Args]
-  /-- The logic associated with the member being called. In a real
-      implementation, this would be an enum indicating the logic to be used. In
-      Lean, it is more convenient to have this as a function to avoid
-      type-checking problems. -/
   publicFields : pub.PublicFields
   memberSomeAppData : Option (Class.Member.SomeAppData pub)
   -- TODO the types should reflect these three cases:
@@ -57,12 +43,6 @@ instance instAppDataTypeRep {pub : Public} : TypeRep (Class.AppData pub) where
 
 instance instSomeAppDataBeq : BEq Class.SomeAppData where
   beq a b :=
-    -- let _ := b.pub.beqPublicFields
-    -- let _ := a.pub.repPublicFields
-    -- let _ := b.pub.repPublicFields
-    -- let _ := a.appData.repArgs
-    -- let _ := b.appData.repArgs
-    -- let _ := b.appData.beqArgs
     -- TODO: check member logic properly
     beqCast a.appData b.appData
 
