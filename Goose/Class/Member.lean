@@ -1,64 +1,62 @@
 import Goose.Object
-import Goose.Signature
+import Goose.Class.Label
 
-namespace Goose
+namespace Goose.Class
 
-def Class.Constructor.Args {sig : Signature} (constrId : sig.ConstructorId) : Type :=
-  sig.ConstructorArgs constrId
+def Constructor.Args {lab : Label} (constrId : lab.ConstructorId) : Type :=
+  lab.ConstructorArgs constrId
 
-structure Class.Constructor {sig : Signature} (constrId : sig.ConstructorId) where
+structure Constructor {lab : Label} (constrId : lab.ConstructorId) where
   /-- Extra constructor logic. It is combined with auto-generated constructor
       logic to create the complete constructor logic. -/
   extraLogic : constrId.Args → Bool
   /-- Objects created in the constructor call. -/
-  created : constrId.Args → Object sig
+  created : constrId.Args → Object lab
 
-structure Class.Method {sig : Signature} (methodId : sig.MethodId) where
+structure Method {lab : Label} (methodId : lab.MethodId) where
   /-- Extra method logic. It is combined with auto-generated method logic to
       create the complete method logic. -/
-  extraLogic : (self : Object sig) → methodId.Args → Bool
+  extraLogic : (self : Object lab) → methodId.Args → Bool
   /-- Objects created in the method call. -/
-  created : (self : Object sig) → methodId.Args → List SomeObject
+  created : (self : Object lab) → methodId.Args → List SomeObject
 
 /-- A class member is a method or a constructor. -/
-inductive Class.Member (sig : Signature) : Type 1 where
-  | constructor (constrId : sig.ConstructorId) (constr : Class.Constructor constrId) : Class.Member sig
-  | method (methodId : sig.MethodId) (method : Class.Method methodId) : Class.Member sig
+inductive Member (lab : Label) : Type 1 where
+  | constructor (constrId : lab.ConstructorId) (constr : Constructor constrId) : Member lab
+  | method (methodId : lab.MethodId) (method : Method methodId) : Member lab
 
 /-- The appData associated with a member call consists of the
     self object's public fields and the member arguments. -/
-structure Class.Member.AppData {sig : Signature} (memberId : MemberId sig) where
+structure Member.AppData {lab : Label} (memberId : MemberId lab) where
   args : memberId.Args
 
-structure Class.Member.SomeAppData (sig : Signature) where
-  {memberId : MemberId sig}
-  appData : Class.Member.AppData memberId
+structure Member.SomeAppData (lab : Label) where
+  {memberId : MemberId lab}
+  appData : Member.AppData memberId
 
-instance instMemberSomeAppDataTypeRep {sig : Signature}
- : TypeRep (Class.Member.SomeAppData sig) where
+instance Member.SomeAppData.hasTypeRep {lab : Label}
+ : TypeRep (Member.SomeAppData lab) where
   -- TODO: proper type representation
   rep := Rep.atomic "Class.Member.SomeAppData"
 
-instance instMemberAppDataTypeRep {sig : Signature} (memberId : MemberId sig)
- : TypeRep (Class.Member.AppData memberId) where
+instance Member.AppData.hasTypeRep {lab : Label} (memberId : MemberId lab)
+ : TypeRep (Member.AppData memberId) where
   -- TODO: proper type representation
   rep := Rep.atomic "Class.Member.AppData"
 
-instance instAppDataBeq {sig : Signature} (memberId : MemberId sig)
- : BEq (Class.Member.AppData memberId) where
+instance AppData.hasBeq {lab : Label} (memberId : MemberId lab)
+ : BEq (Member.AppData memberId) where
   beq a b :=
-    let _ := sig.pub.beqPublicFields
+    let _ := lab.pub.beqPublicFields
     let _ := memberId.beqArgs
     a.args == b.args
 
-instance instMemberSomeAppDataBeq {sig : Signature}
- : BEq (Class.Member.SomeAppData sig) where
+instance Member.SomeAppData.hasBeq {lab : Label}
+ : BEq (Member.SomeAppData lab) where
   beq a b := beqCast a.appData b.appData
 
-def Class.Method.AppData {sig : Signature} (methodId : sig.MethodId) : Type :=
+def Method.AppData {lab : Label} (methodId : lab.MethodId) : Type :=
   Member.AppData (MemberId.methodId methodId)
 
-def Class.Constructor.AppData {sig : Signature} {constrId : sig.ConstructorId} : Type :=
+def Constructor.AppData {lab : Label} {constrId : lab.ConstructorId} : Type :=
   Member.AppData (MemberId.constructorId constrId)
-
-end Goose
