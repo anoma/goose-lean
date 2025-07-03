@@ -24,21 +24,21 @@ open Goose
 
 def sig : Signature where
   priv := {PrivateFields := Nat}
-  pub := {PublicFields := Unit,
-          MethodId := Methods
-          MethodArgs := fun
-            | Methods.Incr => Nat
-          repMethodArgs := fun
-            | Methods.Incr => inferInstance
-          beqMethodArgs := fun
-            | Methods.Incr => inferInstance
-          ConstructorId := Constructors
-          ConstructorArgs := fun
-            | Constructors.Zero => Unit
-          repConstructorArgs := fun
-            | Constructors.Zero => inferInstance
-          beqConstructorArgs := fun
-            | Constructors.Zero => inferInstance}
+  pub := {PublicFields := Unit}
+  MethodId := Methods
+  MethodArgs := fun
+    | Methods.Incr => Nat
+  repMethodArgs := fun
+    | Methods.Incr => inferInstance
+  beqMethodArgs := fun
+    | Methods.Incr => inferInstance
+  ConstructorId := Constructors
+  ConstructorArgs := fun
+    | Constructors.Zero => Unit
+  repConstructorArgs := fun
+    | Constructors.Zero => inferInstance
+  beqConstructorArgs := fun
+    | Constructors.Zero => inferInstance
   classLabel := "UniversalCounter"
 
 def toObject (c : Counter) : Object sig where
