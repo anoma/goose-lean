@@ -20,7 +20,7 @@ structure Resource where
   Val : Type u
   [repVal : TypeRep Val]
   [beqVal : BEq Val]
-  Label : Type w
+  Label : Type (u + 1)
   [repLabel : TypeRep Label]
   [beqLabel : BEq Label]
   label : Label

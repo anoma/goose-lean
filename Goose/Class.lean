@@ -41,12 +41,12 @@ instance Class.AppData.hasTypeRep {lab : Label} : TypeRep (Class.AppData lab) wh
   -- TODO: proper type representation
   rep := Rep.atomic "Goose.Class.AppData"
 
-instance instSomeAppDataBeq : BEq Class.SomeAppData where
+instance SomeAppData.hasBeq : BEq Class.SomeAppData where
   beq a b :=
     -- TODO: check member logic properly
     beqCast a.appData b.appData
 
-def Class.AppData.toSomeAppData {sig : Signature} (appData : Class.AppData sig) : Class.SomeAppData := {appData}
+def Class.AppData.toSomeAppData {lab : Label} (appData : Class.AppData lab) : Class.SomeAppData := {appData}
 
 instance instSomeAppDataTypeRep : TypeRep Class.SomeAppData where
   -- TODO: proper type representation

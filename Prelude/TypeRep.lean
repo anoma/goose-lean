@@ -226,13 +226,13 @@ def elabDeriveTypeRep : CommandElab := fun stx => withFreshMacroScope do
   | _ =>
       throwError "Invalid syntax for `derive_type_rep`. Expected `derive_type_rep <TypeName>`."
 
-private axiom uniqueTypeRep (A B : Type) [TypeRep A] [TypeRep B] : TypeRep.rep A = TypeRep.rep B → A = B
+private axiom uniqueTypeRep (A B : Type u) [TypeRep A] [TypeRep B] : TypeRep.rep A = TypeRep.rep B → A = B
 
 /-- Casting based on equality of type representations. -/
-def rcast {A B : Type} [TypeRep A] [TypeRep B] (h : TypeRep.rep A = TypeRep.rep B) (x : A) : B :=
+def rcast {A B : Type u} [TypeRep A] [TypeRep B] (h : TypeRep.rep A = TypeRep.rep B) (x : A) : B :=
   cast (uniqueTypeRep A B h) x
 
-def tryCast {A B : Type} [TypeRep A] [TypeRep B] (x : A) : Option B :=
+def tryCast {A B : Type u} [TypeRep A] [TypeRep B] (x : A) : Option B :=
   if h : TypeRep.rep A = TypeRep.rep B then
     some (rcast h x)
   else
@@ -251,7 +251,7 @@ derive_type_rep Option
 -- #eval (inferInstance : TypeRep String).rep
 -- #eval (inferInstance : TypeRep (List Nat)).rep
 
-def beqCast {A B : Type} [TypeRep A] [TypeRep B] [BEq B] (x : A) (y : B) : Bool :=
+def beqCast {A B : Type u} [TypeRep A] [TypeRep B] [BEq B] (x : A) (y : B) : Bool :=
   match tryCast x with
   | some y' => y' == y
   | none => false
