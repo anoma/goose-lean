@@ -55,16 +55,14 @@ def incrementBy (step : Nat) (c : Counter) : Counter :=
   {c with count := c.count + step}
 
 def counterConstructor : @Class.Constructor lab Constructors.Zero := defConstructor
-  (created := fun (_noArgs : Unit) => newCounter)
-  (extraLogic := fun (_noArgs : Unit) => True)
+  (body := fun (_noArgs : Unit) => newCounter)
 
 def counterIncr : @Class.Method lab Methods.Incr := defMethod
-  (created := fun (self : Counter) (step : Nat) => [self.incrementBy step])
-  (extraLogic := fun _ _ => True)
+  (body := fun (self : Counter) (step : Nat) => [self.incrementBy step])
 
 def counterClass : Class lab where
   constructors := fun
     | Constructors.Zero => counterConstructor
   methods := fun
     | Methods.Incr => counterIncr
-  extraLogic _ _ := True
+  invariant _ _ := True
