@@ -34,3 +34,5 @@ instance SomeAppData.hasBeq : BEq Class.SomeAppData where
 
 instance SomeAppData.hasTypeRep : TypeRep Class.SomeAppData where
   rep := Rep.atomic "AVM.Class.SomeAppData"
+
+abbrev Logic.Args (lab : Label) := Anoma.Logic.Args (Class.AppData lab)

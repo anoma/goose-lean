@@ -27,7 +27,7 @@ structure Label where
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
 
-inductive Label.MemberId (lab : Label) where
+inductive Label.MemberId (lab : Label.{u}) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
   | falseLogicId : MemberId lab

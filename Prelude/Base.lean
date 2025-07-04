@@ -7,11 +7,11 @@ def run (b : BoolCheck Unit) : Bool := match b with
   | (.ok _) => True
   | (.error r) => r
 
-def someOr (m : Option A) (els : Bool) : BoolCheck A := match m with
+def isSomeOr {A} (m : Option A) (els : Bool) : BoolCheck A := match m with
   | none => .error els
   | (some x) => .ok x
 
-def some (m : Option A) : BoolCheck A := someOr m False
+def isSome {A} (m : Option A) : BoolCheck A := isSomeOr m False
 
 def ret (r : Bool) : BoolCheck Unit := Except.error r
 

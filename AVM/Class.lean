@@ -11,4 +11,4 @@ structure Class (lab : Class.Label) where
   /-- Extra class-specific logic. The whole resource logic function for an
      object consists of the class invariant and the method and constructor logics.
      -/
-  invariant : (self : Object lab) → Anoma.Logic.Args (Class.AppData lab) → Bool
+  invariant : (self : Object lab) → Class.Logic.Args lab → Bool

@@ -54,14 +54,17 @@ private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : 
     object. -/
 def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId)
-  (args : Anoma.Logic.Args constrId.Args.type)
+  (args : Class.Logic.Args lab)
   : Bool :=
-    let argsData : constrId.Args.type := args.data
-    let newObj := constr.created argsData
     if args.isConsumed then
-      Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.consumed
-        && Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.created
-        && constr.invariant argsData
+      match SomeType.cast args.data.memberArgs with
+      | some argsData =>
+        let newObj := constr.created argsData
+        Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.consumed
+          && Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.created
+          && constr.invariant argsData
+      | none =>
+        False
     else
       -- TODO: not general enough, fine for the counter
       True
@@ -96,13 +99,10 @@ def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
 def Method.logic {lab : Label} {methodId : lab.MethodId}
   (method : Class.Method methodId)
   (publicFields : lab.PublicFields.type)
-  (args : Anoma.Logic.Args (Class.AppData lab))
+  (args : Class.Logic.Args lab)
   : Bool :=
     if args.isConsumed then
-      match tryCast
-              (repA := Label.MemberId.Args.hasTypeRep args.data.memberId)
-              (repB := Label.MemberId.Args.hasTypeRep memberId)
-              args.data.memberArgs with
+      match SomeType.cast args.data.memberArgs with
       | some argsData =>
         let mselfObj : Option (Object lab) := Object.fromResource publicFields args.self
         match mselfObj with
@@ -118,7 +118,7 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
       -- TODO: may need to do something more here in general, fine for the counter
       True
 
-def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (args : methodId.Args) : Anoma.Action :=
+def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (args : methodId.Args.type) : Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
   let consumed : ConsumedObject lab :=
        { object := self
@@ -128,21 +128,34 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
          resource := o.toResource }
   let created : List CreatedObject :=
        List.map createObject (method.created self args)
-  Action.create (MemberId.methodId methodId) args consumed created
+  @Action.create lab methodId args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
-def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (args : methodId.Args) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
+def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
   let action := method.action methodId self args
   { roots := [currentRoot],
     actions := [action],
     -- TODO: set deltaProof properly
     deltaProof := "" }
 
--- TODO make it prettier by avoiding nested matches
-def logic (lab : Label) (cls : Class lab)
-  (args : Anoma.Logic.Args (Class.AppData lab))
-  : Bool := BoolCheck.run do
-    let mself : Object lab <- BoolCheck.some (Object.fromResource args.data.publicFields args.self)
+def logic (lab : Label) (cls : Class lab) (args : Class.Logic.Args lab) : Bool :=
+  if args.isConsumed then
+    -- Check:
+    -- 1. member logic corresponding to the memberId in AppData
+    -- 2. class invariant for the object being consumed
+    match args.data.memberId with
+    | .constructorId c =>
+      Class.Constructor.logic (cls.constructors c) args
+    | .methodId m =>
+      Class.Method.logic (cls.methods m) args.data.publicFields args
+    | .falseLogicId =>
+      False
+  else
+    True
+
+/-
+  BoolCheck.run do
+    let mself : Object lab <- BoolCheck.isSome (Object.fromResource args.data.publicFields args.self)
     -- NOTE We have AppData iff the object is being consumed (as self)
     -- TODO: we should not rely on app data to detect the consumed case,
     -- because in this way someone can simply turn off the checks by
@@ -151,13 +164,13 @@ def logic (lab : Label) (cls : Class lab)
     let memberId : MemberId lab := someAppData.memberId
     let memArgs : memberId.Args := someAppData.appData.args
     match x : memberId with
-      | MemberId.constructorId c =>
+      | .constructorId c =>
         BoolCheck.guard (Class.Constructor.logic (cls.constructors c)
           -- TODO how to do this without tactics?
           {args with data := by {
               rw [x] at memArgs
               apply memArgs }})
-      | MemberId.methodId m =>
+      | .methodId m =>
         BoolCheck.guard (Class.Method.logic (cls.methods m)
           args.data.publicFields
           -- TODO how to do this without tactics?
@@ -165,3 +178,4 @@ def logic (lab : Label) (cls : Class lab)
             constructor
             rw [<- x]
             apply memArgs }})
+-/
