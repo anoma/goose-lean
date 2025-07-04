@@ -2,7 +2,7 @@
 import Prelude.TypeRep
 
 structure SomeType where
-  type : Type
+  type : Type u
   [rep : TypeRep type]
   [beq : BEq type]
 
@@ -12,5 +12,11 @@ instance SomeType.hasTypeRep : TypeRep SomeType where
 instance SomeType.hasBEq : BEq SomeType where
   beq a b := a.rep.rep == b.rep.rep
 
-def SomeType.equal {A B : SomeType} (a : A.type) (b : B.type) : Bool :=
-  beqCast (repA := A.rep) (repB := B.rep) (beqB := B.beq) a b
+instance {A : SomeType} : TypeRep A.type where
+  rep := A.rep.rep
+
+instance {A : SomeType} : BEq A.type where
+  beq := A.beq.beq
+
+def SomeType.cast {A B : SomeType} (a : A.type) : Option B.type :=
+  tryCast (repA := A.rep) (repB := B.rep) a

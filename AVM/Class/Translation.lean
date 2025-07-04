@@ -7,17 +7,17 @@ import AVM.Class.Member.Logic
 
 namespace AVM.Class
 
-private structure CreatedObject : Type (u + 2) where
+private structure CreatedObject where
   {lab : Label}
   object : Object lab
-  resource : Anoma.Resource.{u}
+  resource : Anoma.Resource
 
-private structure ConsumedObject (sig : Label) : Type (u + 2) where
+private structure ConsumedObject (sig : Label) where
   object : Object sig
-  resource : Anoma.Resource.{u}
+  resource : Anoma.Resource
 
 /-- Helper function to create an Action. -/
-private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : memberId.Args)
+private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : memberId.Args.type)
   (consumed : ConsumedObject lab)
   (created : List CreatedObject) -- no appdata/logic
   : Anoma.Action :=
@@ -54,9 +54,9 @@ private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : 
     object. -/
 def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId)
-  (args : Anoma.Logic.Args constrId.Args)
+  (args : Anoma.Logic.Args constrId.Args.type)
   : Bool :=
-    let argsData : constrId.Args := args.data
+    let argsData : constrId.Args.type := args.data
     let newObj := constr.created argsData
     if args.isConsumed then
       Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.consumed
@@ -67,7 +67,7 @@ def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
       True
 
 def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
-  (constr : Class.Constructor constrId) (args : constrId.Args)
+  (constr : Class.Constructor constrId) (args : constrId.Args.type)
   : Anoma.Action :=
     -- TODO: set nonce and nullifierKeyCommitment properly
     let newObj : Object lab := constr.created args
@@ -83,7 +83,7 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
-  (constr : Class.Constructor constrId) (args : constrId.Args) (currentRoot : Anoma.CommitmentRoot)
+  (constr : Class.Constructor constrId) (args : constrId.Args.type) (currentRoot : Anoma.CommitmentRoot)
   : Anoma.Transaction :=
     let action := constr.action args
     { roots := [currentRoot],
@@ -95,7 +95,7 @@ def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
     and constructor logics to create the complete resource logic for an object. -/
 def Method.logic {lab : Label} {methodId : lab.MethodId}
   (method : Class.Method methodId)
-  (publicFields : lab.pub.PublicFields)
+  (publicFields : lab.PublicFields.type)
   (args : Anoma.Logic.Args (Class.AppData lab))
   : Bool :=
     if args.isConsumed then

@@ -1,4 +1,5 @@
 
+import Prelude
 import AVM.Class.Member
 
 namespace AVM.Class
@@ -11,11 +12,6 @@ def Member.Logic.checkResourceData (objects : List SomeObject) (resources : List
     && List.and (List.zipWith resourceDataEq objects resources)
   where
     resourceDataEq (sobj : SomeObject) (res : Anoma.Resource) : Bool :=
-      let _ := res.beqVal
-      let _ := res.repVal
-      let _ := sobj.lab.priv.repPrivateFields
-      let _ := res.repLabel
-      let _ := res.beqLabel
       sobj.object.quantity == res.quantity &&
       sobj.lab === res.label &&
         match tryCast sobj.object.privateFields with

@@ -251,9 +251,9 @@ derive_type_rep Option
 -- #eval (inferInstance : TypeRep String).rep
 -- #eval (inferInstance : TypeRep (List Nat)).rep
 
-def beqCast {A B : Type u} [repA : TypeRep A] [repB : TypeRep B] [beqB : BEq B] (x : A) (y : B) : Bool :=
+def beq_generic {A B : Type u} [repA : TypeRep A] [repB : TypeRep B] [beqB : BEq B] (x : A) (y : B) : Bool :=
   match tryCast x with
   | some y' => y' == y
   | none => false
 
-infix:50 " === " => beqCast
+infix:50 " === " => beq_generic

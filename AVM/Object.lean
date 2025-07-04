@@ -9,9 +9,9 @@ namespace AVM
 structure Object (lab : Class.Label) where
   quantity : Nat
   /-- `privateFields` go into the `value` field of the resource -/
-  privateFields : Class.Private.PrivateFields lab.priv
+  privateFields : lab.PrivateFields.type
   /-- `publicFields` go into the `appData` field of the action -/
-  publicFields : Class.Public.PublicFields lab.pub
+  publicFields : lab.PublicFields.type
 
 structure SomeObject where
   {lab : Class.Label}
@@ -24,10 +24,8 @@ def SomeObject.toResource (sobj : SomeObject)
     : Anoma.Resource :=
     let lab := sobj.lab
     let obj := sobj.object
-  { Val := lab.priv.PrivateFields,
-    repVal := lab.priv.repPrivateFields,
-    beqVal := lab.priv.beqPrivateFields,
-    Label := Class.Label,
+  { Val := lab.PrivateFields,
+    Label := SomeType.mk Class.Label,
     label := lab,
     -- NOTE: in general, there may be more things in the label, not necessarily statically determined
     quantity := obj.quantity,
@@ -38,13 +36,10 @@ def SomeObject.toResource (sobj : SomeObject)
 
 def Object.fromResource
   {lab : Class.Label}
-  (publicFields : lab.pub.PublicFields)
+  (publicFields : lab.PublicFields.type)
   (res : Anoma.Resource)
-  : Option (Object lab) :=
-  let _ : TypeRep res.Val := res.repVal
-  let _ : TypeRep lab.priv.PrivateFields := lab.priv.repPrivateFields
-  do
-  let privateFields : lab.priv.PrivateFields <- tryCast res.value
+  : Option (Object lab) := do
+  let privateFields : lab.PrivateFields.type <- SomeType.cast res.value
   pure { quantity := res.quantity,
          privateFields := privateFields,
          publicFields := publicFields }

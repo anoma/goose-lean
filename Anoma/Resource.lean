@@ -17,15 +17,11 @@ def CommitmentRoot.placeholder : CommitmentRoot := 0
     GOOSE model, the resource logic is determined by the `label` field (which
     contains the unique label of the class). -/
 structure Resource where
-  Val : Type u
-  [repVal : TypeRep Val]
-  [beqVal : BEq Val]
-  Label : Type (u + 1)
-  [repLabel : TypeRep Label]
-  [beqLabel : BEq Label]
-  label : Label
+  Val : SomeType
+  Label : SomeType
+  label : Label.type
   quantity : Nat
-  value : Val
+  value : Val.type
   ephemeral : Bool
   nonce : Nonce
   nullifierKeyCommitment : NullifierKeyCommitment
@@ -59,11 +55,11 @@ def RootedNullifiableResource.Transparent.fromResource (res : Resource) : Rooted
 def Resource.commitment (res : Resource) : String :=
   -- The exact way to compute the commitment doesn't matter for the model (for
   -- now)
-  reprStr res.repLabel.rep ++ "-" ++ toString res.nonce
+  reprStr res.Label.rep.rep ++ "-" ++ toString res.nonce
 
 def Resource.nullifier (res : Resource) : String :=
   -- The exact way to compute the nullifier doesn't matter for the model (for
   -- now)
-  reprStr res.repLabel.rep ++ "-" ++ toString res.nonce
+  reprStr res.Label.rep.rep ++ "-" ++ toString res.nonce
 
 end Anoma
