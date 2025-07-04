@@ -46,9 +46,10 @@ structure Label where
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
 
-inductive MemberId (lab : Label) where
+inductive Label.MemberId (lab : Label) where
   | constructorId : lab.ConstructorId -> MemberId lab
   | methodId : lab.MethodId -> MemberId lab
+  | falseLogicId : MemberId lab
 
 def Label.ConstructorArgs {lab : Label} (constrId : lab.ConstructorId) : Type :=
   (lab.ConstructorArgsTypes constrId).type
@@ -62,21 +63,29 @@ def Label.MethodArgs {lab : Label} (methodId : lab.MethodId) : Type :=
 def Label.MethodId.Args {lab : Label} (methodId : lab.MethodId) : Type :=
   lab.MethodArgs methodId
 
-def MemberId.Args {lab : Label} (memberId : MemberId lab) : Type :=
+def Label.MemberId.Args {lab : Label} (memberId : MemberId lab) : Type :=
   match memberId with
-    | .constructorId c => lab.ConstructorArgs c
-    | .methodId c => lab.MethodArgs c
+  | .constructorId c => lab.ConstructorArgs c
+  | .methodId c => lab.MethodArgs c
+  | .falseLogicId => Unit
 
-def MemberId.beqArgs {lab : Label} (memberId : MemberId lab) : BEq memberId.Args :=
+def Label.MemberId.Args.hasBeq {lab : Label} (memberId : MemberId lab) : BEq memberId.Args :=
   match memberId with
-    | constructorId c => (lab.ConstructorArgsTypes c).beq
-    | methodId c => (lab.MethodArgsTypes c).beq
+  | .constructorId c => (lab.ConstructorArgsTypes c).beq
+  | .methodId c => (lab.MethodArgsTypes c).beq
+  | .falseLogicId => inferInstanceAs (BEq Unit)
 
-instance {lab : Label} : CoeHead lab.ConstructorId (MemberId lab) where
-  coe := MemberId.constructorId
+def Label.MemberId.Args.hasTypeRep {lab : Label} (memberId : MemberId lab) : TypeRep memberId.Args :=
+  match memberId with
+  | .constructorId c => (lab.ConstructorArgsTypes c).rep
+  | .methodId c => (lab.MethodArgsTypes c).rep
+  | .falseLogicId => inferInstanceAs (TypeRep Unit)
 
-instance {lab : Label} : CoeHead lab.MethodId (MemberId lab) where
-  coe := MemberId.methodId
+instance {lab : Label} : CoeHead lab.ConstructorId (Label.MemberId lab) where
+  coe := Label.MemberId.constructorId
+
+instance {lab : Label} : CoeHead lab.MethodId (Label.MemberId lab) where
+  coe := Label.MemberId.methodId
 
 instance Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"

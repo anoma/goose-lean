@@ -14,24 +14,24 @@ structure Class (lab : Class.Label) where
      -/
   extraLogic : (self : Object lab) → Anoma.Logic.Args lab.pub.PublicFields → Bool
 
-/-- The class app data consists of member logic (indicator which member is being
-    called) and member app data. -/
+/-- The class app data consists of:
+    1. public fields of the object
+    2. member logic indicator (indicator which member is being
+      called)
+    3. member arguments
+  -/
 structure Class.AppData (lab : Label) where
   publicFields : lab.pub.PublicFields
-  memberSomeAppData : Option (Class.Member.SomeAppData lab)
-  -- TODO the types should reflect these three cases:
-  -- 1. Class (consumed or created) => only public fields
-  -- 2. Member created => only public fields
-  -- 3. Member consumed => public fields + method args
+  memberId : lab.MemberId
+  memberArgs : memberId.Args
 
 instance Class.AppData.hasBEq {lab : Label} : BEq (Class.AppData lab) where
   beq a b :=
     let _ := lab.pub.beqPublicFields
     -- TODO: check member logic properly
     a.publicFields == b.publicFields
-    && (match a.memberSomeAppData, b.memberSomeAppData with
-      | some a', some b' => beqCast a' b'
-      | _, _ => False)
+    && a.memberId == b.memberId
+    && beqCast a.memberArgs b.memberArgs
 
 structure Class.SomeAppData where
   {lab : Label}

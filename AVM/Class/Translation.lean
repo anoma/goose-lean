@@ -22,9 +22,9 @@ private def Action.create {lab : Label} (memberId : MemberId lab) (args : member
   (created : List CreatedObject) -- no appdata/logic
   : Anoma.Action :=
   -- appData for each resource consists of:
-  -- 1. action logic (indicator)
-  -- 2. the public data of the object
-  -- 3. the action (method/constructor) arguments
+  -- 1. member logic (indicator)
+  -- 2. public field of the object
+  -- 3. member (method/constructor) arguments
   let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
     Std.HashMap.emptyWithCapacity
     |>.insertMany [mkTagDataPairConsumed consumed]
@@ -99,20 +99,19 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
   (publicFields : lab.pub.PublicFields)
   (args : Anoma.Logic.Args (Class.Method.AppData methodId))
   : Bool :=
-    let argsData : methodId.Args := args.data.args
-    let mselfObj : Option (Object lab) := Object.fromResource publicFields args.self
-    match mselfObj with
-      | none => False
-      | (some selfObj) =>
-        let createdObjects := method.created selfObj argsData
-        if args.isConsumed then
+    if args.isConsumed then
+      let argsData : methodId.Args := args.data.args
+      let mselfObj : Option (Object lab) := Object.fromResource publicFields args.self
+      match mselfObj with
+        | none => False
+        | (some selfObj) =>
+          let createdObjects := method.created selfObj argsData
           Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
             && Class.Member.Logic.checkResourceData createdObjects args.created
             && method.extraLogic selfObj argsData
-        else
-          -- NOTE thise branch is never hit because we don't add AppData for created resources
-          -- TODO: may need to do something more here in general, fine for the counter
-          True
+    else
+      -- TODO: may need to do something more here in general, fine for the counter
+      True
 
 def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (args : methodId.Args) : Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
