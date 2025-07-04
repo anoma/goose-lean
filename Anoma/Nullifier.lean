@@ -5,16 +5,6 @@ inductive NullifierKey where
   | privateMk : NullifierKey
   deriving Repr, BEq, Hashable
 
-namespace NullifierKey
-
-/-- Not a secret. Use this instance when ownership is not relevant -/
-instance NullifierKey.instInhabited : Inhabited NullifierKey where
-  default := NullifierKey.privateMk
-
-abbrev universal : NullifierKey := default
-
-end NullifierKey
-
 /-- A public value derived from a secret NullifierKey and a Resource -/
 inductive Nullifier where
   | privateMk : Nullifier
@@ -30,3 +20,16 @@ inductive NullifierKeyCommitment where
 /-- Not a secret. Use this instance when ownership is not relevant -/
 instance NullifierKeyCommitment.instInhabited : Inhabited NullifierKeyCommitment where
   default := NullifierKeyCommitment.privateMk
+
+namespace NullifierKey
+
+/-- Not a secret. Use this instance when ownership is not relevant -/
+instance NullifierKey.instInhabited : Inhabited NullifierKey where
+  default := NullifierKey.privateMk
+
+abbrev universal : NullifierKey := default
+
+/-- Computes the commitment of a NullifierKey -/
+def commitment : NullifierKeyCommitment := default
+
+end NullifierKey
