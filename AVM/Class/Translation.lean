@@ -17,14 +17,10 @@ private structure ConsumedObject (sig : Label) : Type (u + 2) where
   resource : Anoma.Resource.{u}
 
 /-- Helper function to create an Action. -/
-private def Action.create {lab : Label} (memberId : MemberId lab) (args : memberId.Args)
+private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : memberId.Args)
   (consumed : ConsumedObject lab)
   (created : List CreatedObject) -- no appdata/logic
   : Anoma.Action :=
-  -- appData for each resource consists of:
-  -- 1. member logic (indicator)
-  -- 2. public field of the object
-  -- 3. member (method/constructor) arguments
   let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
     Std.HashMap.emptyWithCapacity
     |>.insertMany [mkTagDataPairConsumed consumed]
@@ -37,18 +33,21 @@ private def Action.create {lab : Label} (memberId : MemberId lab) (args : member
     mkTagDataPairConsumed (i : ConsumedObject lab)
      : Anoma.Tag × Class.SomeAppData :=
       (Anoma.Tag.fromResource (isConsumed := True) i.resource,
-        { appData :=
-         { publicFields := i.object.publicFields
-           memberSomeAppData := some {
-            memberId
-            appData := {args}}}})
+        { appData := {
+            memberId,
+            memberArgs := args,
+            publicFields := i.object.publicFields
+        }})
 
     mkTagDataPair (i : CreatedObject)
      : Anoma.Tag × Class.SomeAppData :=
       (Anoma.Tag.fromResource (isConsumed := False) i.resource,
         {lab := i.lab,
-         appData := {publicFields := i.object.publicFields
-                     memberSomeAppData := none}})
+         appData := {
+          memberId := Label.MemberId.falseLogicId,
+          memberArgs := (),
+          publicFields := i.object.publicFields
+        }})
 
 /-- Creates a logic for a given constructor. This logic is combined with other
     method and constructor logics to create the complete resource logic for an
@@ -97,18 +96,24 @@ def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
 def Method.logic {lab : Label} {methodId : lab.MethodId}
   (method : Class.Method methodId)
   (publicFields : lab.pub.PublicFields)
-  (args : Anoma.Logic.Args (Class.Method.AppData methodId))
+  (args : Anoma.Logic.Args (Class.AppData lab))
   : Bool :=
     if args.isConsumed then
-      let argsData : methodId.Args := args.data.args
-      let mselfObj : Option (Object lab) := Object.fromResource publicFields args.self
-      match mselfObj with
-        | none => False
-        | (some selfObj) =>
-          let createdObjects := method.created selfObj argsData
-          Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
-            && Class.Member.Logic.checkResourceData createdObjects args.created
-            && method.extraLogic selfObj argsData
+      match tryCast
+              (repA := Label.MemberId.Args.hasTypeRep args.data.memberId)
+              (repB := Label.MemberId.Args.hasTypeRep memberId)
+              args.data.memberArgs with
+      | some argsData =>
+        let mselfObj : Option (Object lab) := Object.fromResource publicFields args.self
+        match mselfObj with
+          | none => False
+          | (some selfObj) =>
+            let createdObjects := method.created selfObj argsData
+            Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
+              && Class.Member.Logic.checkResourceData createdObjects args.created
+              && method.extraLogic selfObj argsData
+      | none =>
+        False
     else
       -- TODO: may need to do something more here in general, fine for the counter
       True

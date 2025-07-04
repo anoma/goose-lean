@@ -14,16 +14,15 @@ structure Class (lab : Class.Label) where
      -/
   extraLogic : (self : Object lab) → Anoma.Logic.Args lab.pub.PublicFields → Bool
 
-/-- The class app data consists of:
-    1. public fields of the object
-    2. member logic indicator (indicator which member is being
-      called)
-    3. member arguments
+/-- The app data for an object in a given class consists of:
+    1. member logic indicator (indicator which member is being called)
+    2. member arguments
+    3. public fields of the object
   -/
 structure Class.AppData (lab : Label) where
-  publicFields : lab.pub.PublicFields
   memberId : lab.MemberId
   memberArgs : memberId.Args
+  publicFields : lab.pub.PublicFields
 
 structure Class.SomeAppData where
   {lab : Label}

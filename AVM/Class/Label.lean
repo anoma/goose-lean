@@ -79,7 +79,7 @@ def Label.MemberId.Args {lab : Label} (memberId : MemberId lab) : Type :=
   | .methodId c => lab.MethodArgs c
   | .falseLogicId => Unit
 
-def Label.MemberId.Args.hasBeq {lab : Label} (memberId : MemberId lab) : BEq memberId.Args :=
+instance Label.MemberId.Args.hasBeq {lab : Label} (memberId : MemberId lab) : BEq memberId.Args :=
   match memberId with
   | .constructorId c => (lab.ConstructorArgsTypes c).beq
   | .methodId c => (lab.MethodArgsTypes c).beq

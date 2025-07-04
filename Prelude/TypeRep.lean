@@ -232,7 +232,7 @@ private axiom uniqueTypeRep (A B : Type u) [TypeRep A] [TypeRep B] : TypeRep.rep
 def rcast {A B : Type u} [TypeRep A] [TypeRep B] (h : TypeRep.rep A = TypeRep.rep B) (x : A) : B :=
   cast (uniqueTypeRep A B h) x
 
-def tryCast {A B : Type u} [TypeRep A] [TypeRep B] (x : A) : Option B :=
+def tryCast {A B : Type u} [repA : TypeRep A] [repB : TypeRep B] (x : A) : Option B :=
   if h : TypeRep.rep A = TypeRep.rep B then
     some (rcast h x)
   else
