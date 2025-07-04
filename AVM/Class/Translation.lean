@@ -62,7 +62,7 @@ def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
     if args.isConsumed then
       Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.consumed
         && Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.created
-        && constr.extraLogic argsData
+        && constr.invariant argsData
     else
       -- TODO: not general enough, fine for the counter
       True
@@ -108,7 +108,7 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
         if args.isConsumed then
           Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
             && Class.Member.Logic.checkResourceData createdObjects args.created
-            && method.extraLogic selfObj argsData
+            && method.invariant selfObj argsData
         else
           -- NOTE thise branch is never hit because we don't add AppData for created resources
           -- TODO: may need to do something more here in general, fine for the counter
