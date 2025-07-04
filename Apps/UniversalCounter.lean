@@ -23,6 +23,7 @@ deriving instance Inhabited for Counter
 open AVM
 
 def lab : Class.Label where
+  name := "UniversalCounter"
   priv := {PrivateFields := Nat}
   pub := {PublicFields := Unit}
   MethodId := Methods
@@ -31,7 +32,6 @@ def lab : Class.Label where
   ConstructorId := Constructors
   ConstructorArgsTypes := fun
     | Constructors.Zero => {type := Unit}
-  name := "UniversalCounter"
 
 def toObject (c : Counter) : Object lab where
   publicFields := Unit.unit
