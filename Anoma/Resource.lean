@@ -14,15 +14,11 @@ def CommitmentRoot.placeholder : CommitmentRoot := 0
     GOOSE model, the resource logic is determined by the `label` field (which
     contains the unique label of the class). -/
 structure Resource where
-  Val : Type u
-  [repVal : TypeRep Val]
-  [beqVal : BEq Val]
-  Label : Type (u + 1)
-  [repLabel : TypeRep Label]
-  [beqLabel : BEq Label]
-  label : Label
+  Val : SomeType
+  Label : SomeType
+  label : Label.type
   quantity : Nat
-  value : Val
+  value : Val.type
   ephemeral : Bool
   nonce : Nonce
   nullifierKeyCommitment : NullifierKeyCommitment
@@ -63,5 +59,3 @@ inductive Commitment where
 
 /-- Computes the commitment of a Resource -/
 def Resource.commitment (_r : Resource) : Commitment := Commitment.privateMk
-
-end Anoma

@@ -232,7 +232,7 @@ private axiom uniqueTypeRep (A B : Type u) [TypeRep A] [TypeRep B] : TypeRep.rep
 def rcast {A B : Type u} [TypeRep A] [TypeRep B] (h : TypeRep.rep A = TypeRep.rep B) (x : A) : B :=
   cast (uniqueTypeRep A B h) x
 
-def tryCast {A B : Type u} [TypeRep A] [TypeRep B] (x : A) : Option B :=
+def tryCast {A B : Type u} [repA : TypeRep A] [repB : TypeRep B] (x : A) : Option B :=
   if h : TypeRep.rep A = TypeRep.rep B then
     some (rcast h x)
   else
@@ -251,7 +251,9 @@ derive_type_rep Option
 -- #eval (inferInstance : TypeRep String).rep
 -- #eval (inferInstance : TypeRep (List Nat)).rep
 
-def beqCast {A B : Type u} [TypeRep A] [TypeRep B] [BEq B] (x : A) (y : B) : Bool :=
+def beq_generic {A B : Type u} [repA : TypeRep A] [repB : TypeRep B] [beqB : BEq B] (x : A) (y : B) : Bool :=
   match tryCast x with
   | some y' => y' == y
   | none => false
+
+infix:50 " === " => beq_generic
