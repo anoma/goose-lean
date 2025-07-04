@@ -4,7 +4,7 @@ This repository contains GOOSE specification in Lean 4. GOOSE provides an object
 
 GOOSE consists of three layers:
 1. Surface syntax for defining classes, methods, and other object-oriented constructs. The syntax is implemented using Lean 4's macro system and it desugars to the Anoma Virtual Machine (AVM) object structures.
-2. Anoma Virtual Machine object structures (`AVM` directory) provide representations of objects, methods, classes, etc. These constitute the GOOSE object model and are translated to the Anoma Resource Machine structures.
+2. Anoma Virtual Machine object structures (`AVM` directory) provide representations of objects, methods, classes, etc. These constitute the AVM object model and are translated to the Anoma Resource Machine structures.
 3. Anoma Resource Machine structures (`Anoma` directory).
 
 ## Building documentation
