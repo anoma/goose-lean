@@ -11,10 +11,12 @@ private structure CreatedObject where
   {lab : Label}
   object : Object lab
   resource : Anoma.Resource
+  commitment : Anoma.Commitment
 
 private structure ConsumedObject (sig : Label) where
   object : Object sig
   resource : Anoma.Resource
+  nullifier : Anoma.Nullifier
 
 /-- Helper function to create an Action. -/
 private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : memberId.Args.type)
@@ -32,7 +34,7 @@ private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : 
   where
     mkTagDataPairConsumed (i : ConsumedObject lab)
      : Anoma.Tag × Class.SomeAppData :=
-      (Anoma.Tag.fromResource (isConsumed := True) i.resource,
+      (Anoma.Tag.Consumed i.nullifier,
         { appData := {
             memberId,
             memberArgs := args,
@@ -41,7 +43,7 @@ private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : 
 
     mkTagDataPair (i : CreatedObject)
      : Anoma.Tag × Class.SomeAppData :=
-      (Anoma.Tag.fromResource (isConsumed := False) i.resource,
+      (Anoma.Tag.Created i.commitment,
         {lab := i.lab,
          appData := {
           memberId := Label.MemberId.falseLogicId,
@@ -77,11 +79,12 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
     let ephRes : Anoma.Resource := SomeObject.toResource (ephemeral := true) newObj.toSomeObject
     let newRes : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
     let consumed : ConsumedObject lab := { object := newObj
+                                           nullifier := Anoma.Nullifier.placeholder
                                            resource := ephRes }
     let created : List CreatedObject :=
-       [{
-          object := newObj
-          resource := newRes }]
+       [{ object := newObj
+          resource := newRes
+          commitment := newRes.commitment }]
     @Action.create lab constrId args consumed created
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
@@ -122,10 +125,12 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
   -- TODO: set nonce and nullifierKeyCommitment properly
   let consumed : ConsumedObject lab :=
        { object := self
+         nullifier := Anoma.Nullifier.placeholder
          resource := self.toSomeObject.toResource }
   let createObject (o : SomeObject) : CreatedObject  :=
        { object := o.object
-         resource := o.toResource }
+         resource := o.toResource
+         commitment := o.toResource.commitment }
   let created : List CreatedObject :=
        List.map createObject (method.created self args)
   @Action.create lab methodId args consumed created
