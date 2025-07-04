@@ -137,34 +137,27 @@ def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.M
 -- TODO make it prettier by avoiding nested matches
 def logic (lab : Label) (cls : Class lab)
   (args : Anoma.Logic.Args (Class.AppData lab))
-  : Bool :=
-    let mself : Option (Object lab) := Object.fromResource args.data.publicFields args.self
-    match mself with
-      | none => False
-      | (some self) =>
-        let msomeAppData : Option (Member.SomeAppData lab) := args.data.memberSomeAppData
-        match msomeAppData with
-          | none => True
-          -- NOTE this is 'some' iff the object is being consumed (as self)
-          -- TODO: we should not rely on app data to detect the consumed case,
-          -- because in this way someone can simply turn off the checks by
-          -- providing malicious app data
-          | (some someAppData) =>
-            let memberId : MemberId lab := someAppData.memberId
-            let memArgs : memberId.Args := someAppData.appData.args
-            match x : memberId with
-              | MemberId.constructorId c =>
-                Class.Constructor.logic (cls.constructors c)
-                  -- TODO how to do this without tactics?
-                  {args with data := by {
-                      rw [x] at memArgs
-                      apply memArgs }}
-
-              | MemberId.methodId m =>
-                Class.Method.logic (cls.methods m)
-                  args.data.publicFields
-                  -- TODO how to do this without tactics?
-                  {args with data := by {
-                    constructor
-                    rw [<- x]
-                    apply memArgs }}
+  : Bool := BoolCheck.run do
+    let mself : Object lab <- BoolCheck.some (Object.fromResource args.data.publicFields args.self)
+    -- NOTE We have AppData iff the object is being consumed (as self)
+    -- TODO: we should not rely on app data to detect the consumed case,
+    -- because in this way someone can simply turn off the checks by
+    -- providing malicious app data
+    let someAppData : Member.SomeAppData lab <- BoolCheck.someOr args.data.memberSomeAppData True
+    let memberId : MemberId lab := someAppData.memberId
+    let memArgs : memberId.Args := someAppData.appData.args
+    match x : memberId with
+      | MemberId.constructorId c =>
+        BoolCheck.guard (Class.Constructor.logic (cls.constructors c)
+          -- TODO how to do this without tactics?
+          {args with data := by {
+              rw [x] at memArgs
+              apply memArgs }})
+      | MemberId.methodId m =>
+        BoolCheck.guard (Class.Method.logic (cls.methods m)
+          args.data.publicFields
+          -- TODO how to do this without tactics?
+          {args with data := by {
+            constructor
+            rw [<- x]
+            apply memArgs }})
