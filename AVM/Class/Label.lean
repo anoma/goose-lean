@@ -39,17 +39,27 @@ structure Label where
   MethodId : Type
   [methodsFinite : Fintype MethodId]
   [methodsRepr : Repr MethodId]
+  [methodsBEq : BEq MethodId]
   MethodArgsTypes : MethodId -> ArgsType
 
   ConstructorId : Type
   ConstructorArgsTypes : ConstructorId -> ArgsType
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
+  [constructorsBEq : BEq ConstructorId]
 
 inductive Label.MemberId (lab : Label) where
   | constructorId : lab.ConstructorId -> MemberId lab
   | methodId : lab.MethodId -> MemberId lab
   | falseLogicId : MemberId lab
+
+instance Label.MemberId.hasBEq {lab : Label} : BEq (Label.MemberId lab) where
+  beq a b :=
+    match a, b with
+    | .constructorId c1, .constructorId c2 => lab.constructorsBEq.beq c1 c2
+    | .methodId m1, .methodId m2 => lab.methodsBEq.beq m1 m2
+    | .falseLogicId, .falseLogicId => True
+    | _, _ => False
 
 def Label.ConstructorArgs {lab : Label} (constrId : lab.ConstructorId) : Type :=
   (lab.ConstructorArgsTypes constrId).type

@@ -255,3 +255,5 @@ def beqCast {A B : Type u} [TypeRep A] [TypeRep B] [BEq B] (x : A) (y : B) : Boo
   match tryCast x with
   | some y' => y' == y
   | none => false
+
+infix:50 " === " => beqCast

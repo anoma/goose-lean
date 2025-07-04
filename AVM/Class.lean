@@ -25,31 +25,29 @@ structure Class.AppData (lab : Label) where
   memberId : lab.MemberId
   memberArgs : memberId.Args
 
-instance Class.AppData.hasBEq {lab : Label} : BEq (Class.AppData lab) where
-  beq a b :=
-    let _ := lab.pub.beqPublicFields
-    -- TODO: check member logic properly
-    a.publicFields == b.publicFields
-    && a.memberId == b.memberId
-    && beqCast a.memberArgs b.memberArgs
-
 structure Class.SomeAppData where
   {lab : Label}
   appData : Class.AppData lab
 
-instance Class.AppData.hasTypeRep {lab : Label} : TypeRep (Class.AppData lab) where
-  -- TODO: proper type representation
-  rep := Rep.atomic "AVM.Class.AppData"
-
-instance SomeAppData.hasBeq : BEq Class.SomeAppData where
-  beq a b :=
-    -- TODO: check member logic properly
-    beqCast a.appData b.appData
-
 def Class.AppData.toSomeAppData {lab : Label} (appData : Class.AppData lab) : Class.SomeAppData := {appData}
 
-instance instSomeAppDataTypeRep : TypeRep Class.SomeAppData where
-  -- TODO: proper type representation
+instance Class.AppData.hasBEq {lab : Label} : BEq (Class.AppData lab) where
+  beq a b :=
+    let _ := lab.pub.beqPublicFields
+    let _ := Label.MemberId.Args.hasTypeRep a.memberId
+    let _ := Label.MemberId.Args.hasTypeRep b.memberId
+    let _ := Label.MemberId.Args.hasBeq b.memberId
+    a.publicFields == b.publicFields
+    && a.memberId == b.memberId
+    && a.memberArgs === b.memberArgs
+
+instance Class.AppData.hasTypeRep {lab : Label} : TypeRep (Class.AppData lab) where
+  rep := Rep.atomic ("AVM.Class.AppData_" ++ lab.name)
+
+instance SomeAppData.hasBeq : BEq Class.SomeAppData where
+  beq a b := a.appData === b.appData
+
+instance SomeAppData.hasTypeRep : TypeRep Class.SomeAppData where
   rep := Rep.atomic "AVM.Class.SomeAppData"
 
 end AVM
