@@ -7,16 +7,16 @@ def Constructor.Args {lab : Label} (constrId : lab.ConstructorId) : Type :=
   lab.ConstructorArgs constrId
 
 structure Constructor {lab : Label} (constrId : lab.ConstructorId) where
-  /-- Extra constructor logic. It is combined with auto-generated constructor
-      logic to create the complete constructor logic. -/
-  extraLogic : constrId.Args → Bool
+  /-- Extra constructor logic. The constructor invariant is combined with
+      auto-generated constructor body constraints to create the constructor logic. -/
+  invariant : constrId.Args → Bool
   /-- Objects created in the constructor call. -/
   created : constrId.Args → Object lab
 
 structure Method {lab : Label} (methodId : lab.MethodId) where
-  /-- Extra method logic. It is combined with auto-generated method logic to
-      create the complete method logic. -/
-  extraLogic : (self : Object lab) → methodId.Args → Bool
+  /-- Extra method logic. The method invariant is combined with auto-generated
+      method body constraints to create the method logic. -/
+  invariant : (self : Object lab) → methodId.Args → Bool
   /-- Objects created in the method call. -/
   created : (self : Object lab) → methodId.Args → List SomeObject
 

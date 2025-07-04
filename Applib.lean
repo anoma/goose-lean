@@ -23,23 +23,21 @@ instance {ty : Type} [IsObject ty] : CoeHead ty AnObject where
   coe (obj : ty) := {obj}
 
 def defMethod {cl : Type} [i : IsObject cl] {methodId : i.lab.MethodId}
- -- TODO rename created to body
- (created : (self : cl) -> methodId.Args -> List AnObject)
- (extraLogic : (self : cl) -> methodId.Args -> Bool := fun _ _ => True)
+ (body : (self : cl) -> methodId.Args -> List AnObject)
+ (invariant : (self : cl) -> methodId.Args -> Bool := fun _ _ => True)
  : Class.Method methodId where
-    extraLogic (self : Object i.lab) (args : methodId.Args) :=
+    invariant (self : Object i.lab) (args : methodId.Args) :=
       match i.fromObject self with
         | none => False
-        | (some self') => extraLogic self' args
+        | (some self') => invariant self' args
     created (self : Object i.lab) (args : methodId.Args) :=
       match i.fromObject self with
         | none => []
-        | (some self') => List.map AnObject.toSomeObject (created self' args)
+        | (some self') => List.map AnObject.toSomeObject (body self' args)
 
 def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.lab.ConstructorId}
- (created : constrId.Args -> cl)
- -- TODO rename extraLogic to extraConstraints
- (extraLogic : constrId.Args -> Bool)
+ (body : constrId.Args -> cl)
+ (invariant : constrId.Args -> Bool := fun _ => True)
  : Class.Constructor constrId where
-    extraLogic (args : constrId.Args) := extraLogic args
-    created (args : constrId.Args) := i.toObject (created args)
+    invariant (args : constrId.Args) := invariant args
+    created (args : constrId.Args) := i.toObject (body args)

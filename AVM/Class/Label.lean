@@ -31,10 +31,15 @@ structure ArgsType where
   [rep : TypeRep type]
   [beq : BEq type]
 
+/-- A class label uniquely identifies and specifies a class. The class
+    specification provided by a label consists of unique class name, private and
+    public field types, constructor and method ids. -/
 structure Label where
+  /-- The name of the class uniquely identifying the class.
+      Assumption: lab1.name = lab2.name -> lab1 = lab2. -/
+  name : String
   priv : Private
   pub : Public
-  name : String
 
   MethodId : Type
   [methodsFinite : Fintype MethodId]
@@ -102,6 +107,6 @@ instance Label.hasTypeRep : TypeRep Label where
 
 instance Label.hasBEq : BEq Label where
   beq a b :=
-    a.priv == b.priv
+    a.name == b.name
+    && a.priv == b.priv
     && a.pub == b.pub
-    && a.name == b.name

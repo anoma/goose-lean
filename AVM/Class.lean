@@ -10,9 +10,9 @@ structure Class (lab : Class.Label) where
   constructors : (c : lab.ConstructorId) -> Class.Constructor c
   methods : (m : lab.MethodId) -> Class.Method m
   /-- Extra class-specific logic. The whole resource logic function for an
-     object consists of the class logic and the method and constructor logics.
+     object consists of the class invariant and the method and constructor logics.
      -/
-  extraLogic : (self : Object lab) → Anoma.Logic.Args lab.pub.PublicFields → Bool
+  invariant : (self : Object lab) → Anoma.Logic.Args lab.pub.PublicFields → Bool
 
 /-- The app data for an object in a given class consists of:
     1. member logic indicator (indicator which member is being called)
