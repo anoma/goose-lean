@@ -1,7 +1,7 @@
-import Goose.Object
-import Goose.Class.Label
+import AVM.Object
+import AVM.Class.Label
 
-namespace Goose.Class
+namespace AVM.Class
 
 def Constructor.Args {lab : Label} (constrId : lab.ConstructorId) : Type :=
   lab.ConstructorArgs constrId

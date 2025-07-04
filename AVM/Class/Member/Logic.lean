@@ -1,7 +1,7 @@
 
-import Goose.Class.Member
+import AVM.Class.Member
 
-namespace Goose.Class
+namespace AVM.Class
 
 abbrev Member.Logic {lab : Label} (memId : MemberId lab) := Anoma.Logic.Args (Class.Member.AppData memId) → Bool
 

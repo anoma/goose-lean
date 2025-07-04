@@ -1,4 +1,4 @@
-import Goose
+import AVM
 import Applib
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Tactic.DeriveFintype
@@ -20,7 +20,7 @@ inductive Constructors where
 
 deriving instance Inhabited for Counter
 
-open Goose
+open AVM
 
 def lab : Class.Label where
   priv := {PrivateFields := Nat}
