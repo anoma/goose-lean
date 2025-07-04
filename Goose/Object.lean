@@ -48,15 +48,3 @@ def Object.fromResource
   pure { quantity := res.quantity,
          privateFields := privateFields,
          publicFields := publicFields }
-
-/-
-def SomeObject.fromResource (res : Anoma.Resource) : Option SomeObject := do
-  let _ : TypeRep res.Label := res.repLabel
-  match tryCast res.label with
-  | none => none
-  | some lab =>
-    match Object.fromResource sorry res with
-    | none => none
-    | some object =>
-      pure { lab, object }
--/
