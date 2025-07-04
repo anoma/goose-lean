@@ -26,19 +26,11 @@ def lab : Class.Label where
   priv := {PrivateFields := Nat}
   pub := {PublicFields := Unit}
   MethodId := Methods
-  MethodArgs := fun
-    | Methods.Incr => Nat
-  repMethodArgs := fun
-    | Methods.Incr => inferInstance
-  beqMethodArgs := fun
-    | Methods.Incr => inferInstance
+  MethodArgsTypes := fun
+    | Methods.Incr => {type := Nat}
   ConstructorId := Constructors
-  ConstructorArgs := fun
-    | Constructors.Zero => Unit
-  repConstructorArgs := fun
-    | Constructors.Zero => inferInstance
-  beqConstructorArgs := fun
-    | Constructors.Zero => inferInstance
+  ConstructorArgsTypes := fun
+    | Constructors.Zero => {type := Unit}
   name := "UniversalCounter"
 
 def toObject (c : Counter) : Object lab where
