@@ -24,6 +24,7 @@ def Member.Logic.checkResourceData (objects : List SomeObject) (resources : List
       let _ := sobj.lab.priv.repPrivateFields
       let _ := res.repLabel
       let _ := res.beqLabel
+      sobj.object.quantity == res.quantity &&
       beqCast sobj.lab res.label &&
         match tryCast sobj.object.privateFields with
         | some privateFields => res.value == privateFields
