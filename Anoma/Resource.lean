@@ -1,15 +1,12 @@
 
 import Prelude
 import Anoma.ConsumedCreated
+import Anoma.Nullifier
 
 namespace Anoma
 
 abbrev Nonce := Nat
 abbrev CommitmentRoot := Nat
-abbrev NullifierKeyCommitment := String
-abbrev NullifierKey := String
-
-def NullifierKey.Universal : NullifierKey := "universal"
 
 def CommitmentRoot.placeholder : CommitmentRoot := 0
 
@@ -50,20 +47,21 @@ structure RootedNullifiableResource where
   resource : Resource
   root : CommitmentRoot
 
+-- TODO placeholder implementation
+/-- If the key matches the resource.nullifierKeyCommitment then it returns the nullifier of the resource -/
+def nullify (_res : RootedNullifiableResource) : Option Nullifier := none
+
 def RootedNullifiableResource.Transparent.fromResource (res : Resource) : RootedNullifiableResource  :=
- { key := NullifierKey.Universal,
+ { key := NullifierKey.universal,
    resource := res,
    -- TODO: shouldn't we use a real commitment root?
    root := CommitmentRoot.placeholder }
 
-def Resource.commitment (res : Resource) : String :=
-  -- The exact way to compute the commitment doesn't matter for the model (for
-  -- now)
-  reprStr res.repLabel.rep ++ "-" ++ toString res.nonce
+inductive Commitment where
+  | privateMk : Commitment
+  deriving Inhabited, Repr, BEq, Hashable
 
-def Resource.nullifier (res : Resource) : String :=
-  -- The exact way to compute the nullifier doesn't matter for the model (for
-  -- now)
-  reprStr res.repLabel.rep ++ "-" ++ toString res.nonce
+/-- Computes the commitment of a Resource -/
+def Resource.commitment (_r : Resource) : Commitment := Commitment.privateMk
 
 end Anoma
