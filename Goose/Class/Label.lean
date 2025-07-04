@@ -2,7 +2,7 @@ import Anoma.Resource
 import Prelude
 import Mathlib.Data.Fintype.Basic
 
-namespace Goose
+namespace Goose.Class
 
 structure Private where
   PrivateFields : Type
@@ -14,23 +14,22 @@ structure Public where
   [repPublicFields : TypeRep PublicFields]
   [beqPublicFields : BEq PublicFields]
 
-instance instBeqPrivate : BEq Private where
+instance Private.hasBEq : BEq Private where
   beq a b :=
     let _ := a.repPrivateFields
     let _ := b.repPrivateFields
     TypeRep.rep a.PrivateFields == TypeRep.rep b.PrivateFields
 
-instance instBeqPublic : BEq Public where
+instance Public.hasBEq : BEq Public where
   beq a b :=
     let _ := a.repPublicFields
     let _ := b.repPublicFields
     TypeRep.rep a.PublicFields == TypeRep.rep b.PublicFields
 
--- TODO rename to something that does not conflict with authorization
-structure Signature where
+structure Label where
   priv : Private
   pub : Public
-  classLabel : String
+  name : String
 
   MethodId : Type
   MethodArgs : MethodId -> Type
@@ -46,28 +45,37 @@ structure Signature where
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
 
-inductive MemberId (sig : Signature) where
-  | constructorId : sig.ConstructorId -> MemberId sig
-  | methodId : sig.MethodId -> MemberId sig
+inductive MemberId (lab : Label) where
+  | constructorId : lab.ConstructorId -> MemberId lab
+  | methodId : lab.MethodId -> MemberId lab
 
-def Signature.ConstructorId.Args {sig : Signature} (constrId : sig.ConstructorId) : Type :=
-  sig.ConstructorArgs constrId
+def Label.ConstructorId.Args {lab : Label} (constrId : lab.ConstructorId) : Type :=
+  lab.ConstructorArgs constrId
 
-def Signature.MethodId.Args {sig : Signature} (methodId : sig.MethodId) : Type :=
-  sig.MethodArgs methodId
+def Label.MethodId.Args {lab : Label} (methodId : lab.MethodId) : Type :=
+  lab.MethodArgs methodId
 
-def MemberId.Args {sig : Signature} (memberId : MemberId sig) : Type :=
+def MemberId.Args {lab : Label} (memberId : MemberId lab) : Type :=
   match memberId with
-    | constructorId c => sig.ConstructorArgs c
-    | methodId c => sig.MethodArgs c
+    | .constructorId c => lab.ConstructorArgs c
+    | .methodId c => lab.MethodArgs c
 
-def MemberId.beqArgs {sig : Signature} (memberId : MemberId sig) : BEq memberId.Args :=
+def MemberId.beqArgs {lab : Label} (memberId : MemberId lab) : BEq memberId.Args :=
   match memberId with
-    | constructorId c => sig.beqConstructorArgs c
-    | methodId c => sig.beqMethodArgs c
+    | .constructorId c => lab.beqConstructorArgs c
+    | .methodId c => lab.beqMethodArgs c
 
-instance {sig : Signature} : CoeHead sig.ConstructorId (MemberId sig) where
+instance {lab : Label} : CoeHead lab.ConstructorId (MemberId lab) where
   coe := MemberId.constructorId
 
-instance {sig : Signature} : CoeHead sig.MethodId (MemberId sig) where
+instance {lab : Label} : CoeHead lab.MethodId (MemberId lab) where
   coe := MemberId.methodId
+
+instance Label.hasTypeRep : TypeRep Label where
+  rep := Rep.atomic "Goose.Class.Label"
+
+instance Label.hasBEq : BEq Label where
+  beq a b :=
+    a.priv == b.priv
+    && a.pub == b.pub
+    && a.name == b.name

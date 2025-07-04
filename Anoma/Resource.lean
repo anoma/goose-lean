@@ -20,7 +20,10 @@ structure Resource where
   Val : Type u
   [repVal : TypeRep Val]
   [beqVal : BEq Val]
-  label : String
+  Label : Type (u + 1)
+  [repLabel : TypeRep Label]
+  [beqLabel : BEq Label]
+  label : Label
   quantity : Nat
   value : Val
   ephemeral : Bool
@@ -56,11 +59,11 @@ def RootedNullifiableResource.Transparent.fromResource (res : Resource) : Rooted
 def Resource.commitment (res : Resource) : String :=
   -- The exact way to compute the commitment doesn't matter for the model (for
   -- now)
-  res.label ++ "-" ++ toString res.nonce
+  reprStr res.repLabel.rep ++ "-" ++ toString res.nonce
 
 def Resource.nullifier (res : Resource) : String :=
   -- The exact way to compute the nullifier doesn't matter for the model (for
   -- now)
-  res.label ++ "-" ++ toString res.nonce
+  reprStr res.repLabel.rep ++ "-" ++ toString res.nonce
 
 end Anoma

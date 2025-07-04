@@ -1,33 +1,34 @@
 
 import Anoma.Resource
-import Goose.Signature
+import Goose.Class.Label
 
 namespace Goose
 
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `Goose.Class`. -/
-structure Object (sig : Signature) where
+structure Object (lab : Class.Label) where
   quantity : Nat
   /-- `privateFields` go into the `value` field of the resource -/
-  privateFields : Private.PrivateFields sig.priv
+  privateFields : Class.Private.PrivateFields lab.priv
   /-- `publicFields` go into the `appData` field of the action -/
-  publicFields : Public.PublicFields sig.pub
+  publicFields : Class.Public.PublicFields lab.pub
 
 structure SomeObject where
-  {sig : Signature}
-  object : Object sig
+  {lab : Class.Label}
+  object : Object lab
 
-def Object.toSomeObject {sig : Signature} (object : Object sig) : SomeObject := {object}
+def Object.toSomeObject {lab : Class.Label} (object : Object lab) : SomeObject := {object}
 
 def SomeObject.toResource (sobj : SomeObject)
     (ephemeral := false) (nonce := 0) (nullifierKeyCommitment := "")
     : Anoma.Resource :=
-    let sig := sobj.sig
+    let lab := sobj.lab
     let obj := sobj.object
-  { Val := sig.priv.PrivateFields,
-    repVal :=  sig.priv.repPrivateFields,
-    beqVal := sig.priv.beqPrivateFields,
-    label := sig.classLabel,
+  { Val := lab.priv.PrivateFields,
+    repVal := lab.priv.repPrivateFields,
+    beqVal := lab.priv.beqPrivateFields,
+    Label := Class.Label,
+    label := lab,
     -- NOTE: in general, there may be more things in the label, not necessarily statically determined
     quantity := obj.quantity,
     value := obj.privateFields,
@@ -36,14 +37,14 @@ def SomeObject.toResource (sobj : SomeObject)
     nullifierKeyCommitment }
 
 def Object.fromResource
-  {sig : Signature}
-  (publicFields : sig.pub.PublicFields)
+  {lab : Class.Label}
+  (publicFields : lab.pub.PublicFields)
   (res : Anoma.Resource)
-  : Option (Object sig) :=
+  : Option (Object lab) :=
   let _ : TypeRep res.Val := res.repVal
-  let _ : TypeRep sig.priv.PrivateFields := sig.priv.repPrivateFields
+  let _ : TypeRep lab.priv.PrivateFields := lab.priv.repPrivateFields
   do
-  let privateFields : sig.priv.PrivateFields <- tryCast res.value
+  let privateFields : lab.priv.PrivateFields <- tryCast res.value
   pure { quantity := res.quantity,
          privateFields := privateFields,
          publicFields := publicFields }

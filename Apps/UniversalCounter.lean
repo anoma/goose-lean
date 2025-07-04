@@ -22,7 +22,7 @@ deriving instance Inhabited for Counter
 
 open Goose
 
-def sig : Signature where
+def lab : Class.Label where
   priv := {PrivateFields := Nat}
   pub := {PublicFields := Unit}
   MethodId := Methods
@@ -39,19 +39,19 @@ def sig : Signature where
     | Constructors.Zero => inferInstance
   beqConstructorArgs := fun
     | Constructors.Zero => inferInstance
-  classLabel := "UniversalCounter"
+  name := "UniversalCounter"
 
-def toObject (c : Counter) : Object sig where
+def toObject (c : Counter) : Object lab where
   publicFields := Unit.unit
   quantity := 1
   privateFields := c.count
 
-def fromObject (o : Object sig) : Option Counter := do
+def fromObject (o : Object lab) : Option Counter := do
   guard (o.quantity == 1)
   some (Counter.mk (o.privateFields))
 
-instance instCounterIsObject : IsObject Counter where
-  sig := sig
+instance hasIsObject : IsObject Counter where
+  lab := lab
   toObject := Counter.toObject
   fromObject := Counter.fromObject
   roundTrip : Counter.fromObject ∘ Counter.toObject = some := by rfl
@@ -62,15 +62,15 @@ def newCounter : Counter where
 def incrementBy (step : Nat) (c : Counter) : Counter :=
   {c with count := c.count + step}
 
-def counterConstructor : @Class.Constructor sig Constructors.Zero := defConstructor
+def counterConstructor : @Class.Constructor lab Constructors.Zero := defConstructor
   (created := fun (_noArgs : Unit) => newCounter)
   (extraLogic := fun (_noArgs : Unit) => True)
 
-def counterIncr : @Class.Method sig Methods.Incr := defMethod
+def counterIncr : @Class.Method lab Methods.Incr := defMethod
   (created := fun (self : Counter) (step : Nat) => [self.incrementBy step])
   (extraLogic := fun _ _ => True)
 
-def counterClass : Class sig where
+def counterClass : Class lab where
   constructors := fun
     | Constructors.Zero => counterConstructor
   methods := fun
