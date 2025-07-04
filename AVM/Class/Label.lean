@@ -2,7 +2,7 @@ import Anoma.Resource
 import Prelude
 import Mathlib.Data.Fintype.Basic
 
-namespace Goose.Class
+namespace AVM.Class
 
 structure Private where
   PrivateFields : Type
@@ -72,7 +72,7 @@ instance {lab : Label} : CoeHead lab.MethodId (MemberId lab) where
   coe := MemberId.methodId
 
 instance Label.hasTypeRep : TypeRep Label where
-  rep := Rep.atomic "Goose.Class.Label"
+  rep := Rep.atomic "AVM.Class.Label"
 
 instance Label.hasBEq : BEq Label where
   beq a b :=

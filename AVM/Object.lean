@@ -1,11 +1,11 @@
 
 import Anoma.Resource
-import Goose.Class.Label
+import AVM.Class.Label
 
-namespace Goose
+namespace AVM
 
 /-- Represents a concrete object, translated into a resource. For class
-    represetation (object description), see `Goose.Class`. -/
+    represetation (object description), see `AVM.Class`. -/
 structure Object (lab : Class.Label) where
   quantity : Nat
   /-- `privateFields` go into the `value` field of the resource -/

@@ -1,8 +1,8 @@
-import Goose
+import AVM
 
 namespace Applib
 
-open Goose
+open AVM
 
 class IsObject (s : Type) where
   lab : Class.Label

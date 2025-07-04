@@ -1,8 +1,8 @@
 
-import Goose.Class.Member
-import Goose.Class.Label
+import AVM.Class.Member
+import AVM.Class.Label
 
-namespace Goose
+namespace AVM
 
 /-- Syntax-level object description (fields + constructors + methods) should
     desugar to the `Class` structure. -/
@@ -39,7 +39,7 @@ structure Class.SomeAppData where
 
 instance Class.AppData.hasTypeRep {lab : Label} : TypeRep (Class.AppData lab) where
   -- TODO: proper type representation
-  rep := Rep.atomic "Goose.Class.AppData"
+  rep := Rep.atomic "AVM.Class.AppData"
 
 instance SomeAppData.hasBeq : BEq Class.SomeAppData where
   beq a b :=
@@ -50,6 +50,6 @@ def Class.AppData.toSomeAppData {lab : Label} (appData : Class.AppData lab) : Cl
 
 instance instSomeAppDataTypeRep : TypeRep Class.SomeAppData where
   -- TODO: proper type representation
-  rep := Rep.atomic "Goose.Class.SomeAppData"
+  rep := Rep.atomic "AVM.Class.SomeAppData"
 
-end Goose
+end AVM

@@ -1,11 +1,11 @@
 
 import Prelude
 import Anoma
-import Goose.Class
-import Goose.Class.Member
-import Goose.Class.Member.Logic
+import AVM.Class
+import AVM.Class.Member
+import AVM.Class.Member.Logic
 
-namespace Goose.Class
+namespace AVM.Class
 
 private structure CreatedObject : Type (u + 2) where
   {lab : Label}
