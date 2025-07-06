@@ -76,10 +76,10 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
   : Anoma.Action :=
     -- TODO: set nonce and nullifierKeyCommitment properly
     let newObj : Object lab := constr.created args
-    let ephRes : Anoma.Resource := SomeObject.toResource (ephemeral := true) newObj.toSomeObject
+    let ephRes : Anoma.Resource := SomeObject.toResource (ephemeral := true) newObj.toSomeObject -- TODO for ephemeral resources, does nullifierKeyCommitment matter?
     let newRes : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
     let consumed : ConsumedObject lab := { object := newObj
-                                           nullifier := Anoma.Nullifier.placeholder
+                                           nullifier := Anoma.Nullifier.todo
                                            resource := ephRes }
     let created : List CreatedObject :=
        [{ object := newObj
@@ -121,12 +121,18 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
       -- TODO: may need to do something more here in general, fine for the counter
       true
 
-def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (args : methodId.Args.type) : Anoma.Action :=
+def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Option Anoma.NullifierKey) (args : methodId.Args.type) : Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
+  let resource := self.toSomeObject.toResource
+  let nullRes : Anoma.RootedNullifiableResource := {
+    key := key.getD Anoma.NullifierKey.universal
+    resource
+    root := Anoma.CommitmentRoot.placeholder
+   }
   let consumed : ConsumedObject lab :=
        { object := self
-         nullifier := Anoma.Nullifier.placeholder
-         resource := self.toSomeObject.toResource }
+         nullifier := (Anoma.nullify nullRes).getD Anoma.Nullifier.todo
+         resource }
   let createObject (o : SomeObject) : CreatedObject  :=
        { object := o.object
          resource := o.toResource
@@ -136,8 +142,8 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
   @Action.create lab methodId args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
-def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
-  let action := method.action methodId self args
+def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Option Anoma.NullifierKey) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
+  let action := method.action methodId self key args
   { roots := [currentRoot],
     actions := [action],
     -- TODO: set deltaProof properly

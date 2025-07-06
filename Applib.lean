@@ -22,7 +22,7 @@ def AnObject.toSomeObject (g : AnObject) : SomeObject :=
 instance {ty : Type} [IsObject ty] : CoeHead ty AnObject where
   coe (obj : ty) := {obj}
 
-def defMethod {cl : Type} [i : IsObject cl] {methodId : i.lab.MethodId}
+def defMethod (cl : Type) [i : IsObject cl] {methodId : i.lab.MethodId}
  (body : (self : cl) -> methodId.Args.type -> List AnObject)
  (invariant : (self : cl) -> methodId.Args.type -> Bool := fun _ _ => true)
  : Class.Method methodId where
