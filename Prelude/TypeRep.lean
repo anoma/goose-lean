@@ -50,18 +50,20 @@ private axiom uniqueTypeRep (A B : Type u) [TypeRep A] [TypeRep B] : TypeRep.rep
 def rcast {A B : Type u} [TypeRep A] [TypeRep B] (h : TypeRep.rep A = TypeRep.rep B) (x : A) : B :=
   cast (uniqueTypeRep A B h) x
 
+/-- Try casting based on equality of type representations. -/
 def tryCast {A B : Type u} [repA : TypeRep A] [repB : TypeRep B] (x : A) : Option B :=
   if h : TypeRep.rep A = TypeRep.rep B then
     some (rcast h x)
   else
     none
 
+/-- Boolean equality between elements in different types. -/
 def beq_generic {A B : Type u} [repA : TypeRep A] [repB : TypeRep B] [beqB : BEq B] (x : A) (y : B) : Bool :=
   match tryCast x with
   | some y' => y' == y
   | none => false
 
-/-- Boolean qquality between elements in different types with the same type representation. -/
+/-- Boolean equality between elements in different types. -/
 infix:50 " === " => beq_generic
 
 instance : TypeRep Unit where
