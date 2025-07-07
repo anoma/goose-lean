@@ -4,84 +4,65 @@ import Mathlib.Data.Fintype.Basic
 
 namespace AVM.Class
 
-structure Private where
-  PrivateFields : Type
-  [repPrivateFields : TypeRep PrivateFields]
-  [beqPrivateFields : BEq PrivateFields]
-
-structure Public where
-  PublicFields : Type
-  [repPublicFields : TypeRep PublicFields]
-  [beqPublicFields : BEq PublicFields]
-
-instance Private.hasBEq : BEq Private where
-  beq a b :=
-    let _ := a.repPrivateFields
-    let _ := b.repPrivateFields
-    TypeRep.rep a.PrivateFields == TypeRep.rep b.PrivateFields
-
-instance Public.hasBEq : BEq Public where
-  beq a b :=
-    let _ := a.repPublicFields
-    let _ := b.repPublicFields
-    TypeRep.rep a.PublicFields == TypeRep.rep b.PublicFields
-
-structure ArgsType where
-  type : Type
-  [rep : TypeRep type]
-  [beq : BEq type]
-
 /-- A class label uniquely identifies and specifies a class. The class
     specification provided by a label consists of unique class name, private and
     public field types, constructor and method ids. -/
-structure Label where
+structure Label : Type (max u v + 1) where
   /-- The name of the class uniquely identifying the class.
       Assumption: lab1.name = lab2.name -> lab1 = lab2. -/
   name : String
-  priv : Private
-  pub : Public
+
+  PrivateFields : SomeType.{u}
+  PublicFields : SomeType.{v}
 
   MethodId : Type
   [methodsFinite : Fintype MethodId]
   [methodsRepr : Repr MethodId]
-  MethodArgsTypes : MethodId -> ArgsType
+  [methodsBEq : BEq MethodId]
+  MethodArgs : MethodId -> SomeType.{u}
 
   ConstructorId : Type
-  ConstructorArgsTypes : ConstructorId -> ArgsType
+  ConstructorArgs : ConstructorId -> SomeType.{u}
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
+  [constructorsBEq : BEq ConstructorId]
 
-inductive MemberId (lab : Label) where
-  | constructorId : lab.ConstructorId -> MemberId lab
-  | methodId : lab.MethodId -> MemberId lab
+inductive Label.MemberId (lab : Label.{u}) where
+  | constructorId (constrId : lab.ConstructorId) : MemberId lab
+  | methodId (methodId : lab.MethodId) : MemberId lab
+  /-- Signifies an "always false" member logic. This is used for the member
+    logic field of app data, in the created case. It is important that "dummy"
+    member logic indicator for the created case always returns false – otherwise
+    one could circumvent method logic checks by providing the dummy member logic
+    indicator. This could also be represented by an `Option` type in app data,
+    but having explicit `falseLogicId` makes its intended behaviour clear. -/
+  | falseLogicId : MemberId lab
 
-def Label.ConstructorArgs {lab : Label} (constrId : lab.ConstructorId) : Type :=
-  (lab.ConstructorArgsTypes constrId).type
+instance Label.MemberId.hasBEq {lab : Label} : BEq (Label.MemberId lab) where
+  beq a b :=
+    match a, b with
+    | .constructorId c1, .constructorId c2 => lab.constructorsBEq.beq c1 c2
+    | .methodId m1, .methodId m2 => lab.methodsBEq.beq m1 m2
+    | .falseLogicId, .falseLogicId => true
+    | _, _ => false
 
-def Label.ConstructorId.Args {lab : Label} (constrId : lab.ConstructorId) : Type :=
+def Label.ConstructorId.Args {lab : Label} (constrId : lab.ConstructorId) : SomeType :=
   lab.ConstructorArgs constrId
 
-def Label.MethodArgs {lab : Label} (methodId : lab.MethodId) : Type :=
-  (lab.MethodArgsTypes methodId).type
-
-def Label.MethodId.Args {lab : Label} (methodId : lab.MethodId) : Type :=
+def Label.MethodId.Args {lab : Label} (methodId : lab.MethodId) : SomeType :=
   lab.MethodArgs methodId
 
-def MemberId.Args {lab : Label} (memberId : MemberId lab) : Type :=
+def Label.MemberId.Args {lab : Label.{u}} (memberId : MemberId lab) : SomeType.{u} :=
   match memberId with
-    | .constructorId c => lab.ConstructorArgs c
-    | .methodId c => lab.MethodArgs c
+  | .constructorId c => lab.ConstructorArgs c
+  | .methodId c => lab.MethodArgs c
+  | .falseLogicId => ⟨ULift Unit⟩
 
-def MemberId.beqArgs {lab : Label} (memberId : MemberId lab) : BEq memberId.Args :=
-  match memberId with
-    | constructorId c => (lab.ConstructorArgsTypes c).beq
-    | methodId c => (lab.MethodArgsTypes c).beq
+instance {lab : Label} : CoeHead lab.ConstructorId (Label.MemberId lab) where
+  coe := Label.MemberId.constructorId
 
-instance {lab : Label} : CoeHead lab.ConstructorId (MemberId lab) where
-  coe := MemberId.constructorId
-
-instance {lab : Label} : CoeHead lab.MethodId (MemberId lab) where
-  coe := MemberId.methodId
+instance {lab : Label} : CoeHead lab.MethodId (Label.MemberId lab) where
+  coe := Label.MemberId.methodId
 
 instance Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"
@@ -89,5 +70,5 @@ instance Label.hasTypeRep : TypeRep Label where
 instance Label.hasBEq : BEq Label where
   beq a b :=
     a.name == b.name
-    && a.priv == b.priv
-    && a.pub == b.pub
+    && a.PrivateFields == b.PrivateFields
+    && a.PublicFields == b.PublicFields

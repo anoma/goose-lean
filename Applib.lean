@@ -23,21 +23,21 @@ instance {ty : Type} [IsObject ty] : CoeHead ty AnObject where
   coe (obj : ty) := {obj}
 
 def defMethod {cl : Type} [i : IsObject cl] {methodId : i.lab.MethodId}
- (body : (self : cl) -> methodId.Args -> List AnObject)
- (invariant : (self : cl) -> methodId.Args -> Bool := fun _ _ => True)
+ (body : (self : cl) -> methodId.Args.type -> List AnObject)
+ (invariant : (self : cl) -> methodId.Args.type -> Bool := fun _ _ => true)
  : Class.Method methodId where
-    invariant (self : Object i.lab) (args : methodId.Args) :=
+    invariant (self : Object i.lab) (args : methodId.Args.type) :=
       match i.fromObject self with
-        | none => False
+        | none => false
         | (some self') => invariant self' args
-    created (self : Object i.lab) (args : methodId.Args) :=
+    created (self : Object i.lab) (args : methodId.Args.type) :=
       match i.fromObject self with
         | none => []
         | (some self') => List.map AnObject.toSomeObject (body self' args)
 
 def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.lab.ConstructorId}
- (body : constrId.Args -> cl)
- (invariant : constrId.Args -> Bool := fun _ => True)
+ (body : constrId.Args.type -> cl)
+ (invariant : constrId.Args.type -> Bool := fun _ => true)
  : Class.Constructor constrId where
-    invariant (args : constrId.Args) := invariant args
-    created (args : constrId.Args) := i.toObject (body args)
+    invariant (args : constrId.Args.type) := invariant args
+    created (args : constrId.Args.type) := i.toObject (body args)

@@ -24,14 +24,14 @@ open AVM
 
 def lab : Class.Label where
   name := "UniversalCounter"
-  priv := {PrivateFields := Nat}
-  pub := {PublicFields := Unit}
+  PrivateFields := ⟨Nat⟩
+  PublicFields := ⟨Unit⟩
   MethodId := Methods
-  MethodArgsTypes := fun
-    | Methods.Incr => {type := Nat}
+  MethodArgs := fun
+    | Methods.Incr => ⟨Nat⟩
   ConstructorId := Constructors
-  ConstructorArgsTypes := fun
-    | Constructors.Zero => {type := Unit}
+  ConstructorArgs := fun
+    | Constructors.Zero => ⟨Unit⟩
 
 def toObject (c : Counter) : Object lab where
   publicFields := Unit.unit
@@ -66,4 +66,3 @@ def counterClass : Class lab where
     | Constructors.Zero => counterConstructor
   methods := fun
     | Methods.Incr => counterIncr
-  invariant _ _ := True
