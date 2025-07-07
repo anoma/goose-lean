@@ -7,21 +7,21 @@ namespace AVM.Class
 /-- A class label uniquely identifies and specifies a class. The class
     specification provided by a label consists of unique class name, private and
     public field types, constructor and method ids. -/
-structure Label : Type (u + 2) where
+structure Label : Type (max u v + 1) where
   /-- The name of the class uniquely identifying the class.
       Assumption: lab1.name = lab2.name -> lab1 = lab2. -/
   name : String
 
   PrivateFields : SomeType.{u}
-  PublicFields : SomeType.{u}
+  PublicFields : SomeType.{v}
 
-  MethodId : Type u
+  MethodId : Type
   [methodsFinite : Fintype MethodId]
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
   MethodArgs : MethodId -> SomeType.{u}
 
-  ConstructorId : Type u
+  ConstructorId : Type
   ConstructorArgs : ConstructorId -> SomeType.{u}
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
