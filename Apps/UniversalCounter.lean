@@ -66,4 +66,3 @@ def counterClass : Class lab where
     | Constructors.Zero => counterConstructor
   methods := fun
     | Methods.Incr => counterIncr
-  invariant _ _ := true
