@@ -74,9 +74,9 @@ def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
 def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId) (args : constrId.Args.type)
   : Anoma.Action :=
-    -- TODO: set nonce and nullifierKeyCommitment properly
+    -- TODO: set nonce properly
     let newObj : Object lab := constr.created args
-    let ephRes : Anoma.Resource := {SomeObject.toResource (ephemeral := true) newObj.toSomeObject with nullifierKeyCommitment := default} -- TODO for ephemeral resources, does nullifierKeyCommitment matter?
+    let ephRes : Anoma.Resource := {SomeObject.toResource (ephemeral := true) newObj.toSomeObject with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal}
     let nullEph : Anoma.Nullifier := (Anoma.nullify
       { key := Anoma.NullifierKey.universal
         resource := ephRes

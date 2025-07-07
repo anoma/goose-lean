@@ -15,12 +15,8 @@ inductive NullifierKeyCommitment where
   | privateMk : NullifierKeyCommitment
   deriving Repr, BEq, Hashable, DecidableEq
 
-/-- Not a secret. Use this instance when ownership is not relevant -/
-instance NullifierKeyCommitment.instInhabited : Inhabited NullifierKeyCommitment where
-  default := NullifierKeyCommitment.privateMk
-
 /-- Computes the commitment of a NullifierKey -/
-def commitment (_k : NullifierKey) : NullifierKeyCommitment := default
+def NullifierKey.commitment (_k : NullifierKey) : NullifierKeyCommitment := NullifierKeyCommitment.privateMk
 
 /-- A public value derived from a secret NullifierKey and a Resource -/
 inductive Nullifier where
@@ -33,9 +29,7 @@ def Nullifier.todo : Nullifier := privateMk
 instance : TypeRep NullifierKeyCommitment where
   rep := Rep.atomic "NullifierKeyCommitment"
 
-/-- Not a secret. Use this instance when ownership is not relevant -/
-instance NullifierKey.instInhabited : Inhabited NullifierKey where
-  default := NullifierKey.privateMk
-
 /-- Use this when the nullifier key is universal -/
-def NullifierKeyCommitment.universal : NullifierKeyCommitment := default
+def NullifierKeyCommitment.universal : NullifierKeyCommitment := NullifierKey.universal.commitment
+
+deriving instance Inhabited for NullifierKeyCommitment

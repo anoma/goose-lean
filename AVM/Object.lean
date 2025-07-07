@@ -33,7 +33,7 @@ def SomeObject.toResource (sobj : SomeObject)
     value := obj.privateFields,
     ephemeral := ephemeral,
     nonce,
-    nullifierKeyCommitment := obj.nullifierKeyCommitment.getD default}
+    nullifierKeyCommitment := obj.nullifierKeyCommitment.getD Anoma.NullifierKeyCommitment.universal}
 
 def Object.fromResource
   {lab : Class.Label}
