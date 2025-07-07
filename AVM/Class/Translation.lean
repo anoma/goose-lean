@@ -144,6 +144,9 @@ def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.M
     deltaProof := "" }
 
 def logic (lab : Label) (cls : Class lab) (args : Class.Logic.Args lab) : Bool :=
+  -- Check if the logic is consumed. We should not rely on app data (args.data)
+  -- to detect the consumed case, because then someone could simply turn
+  -- off the checks by providing malicious app data
   if args.isConsumed then
     -- Check:
     -- 1. member logic corresponding to the memberId in AppData
