@@ -36,3 +36,15 @@ instance SomeAppData.hasTypeRep : TypeRep Class.SomeAppData where
   rep := Rep.atomic "AVM.Class.SomeAppData"
 
 abbrev Logic.Args (lab : Label) := Anoma.Logic.Args (Class.AppData lab)
+
+def SomeObject.fromResource
+  (someAppData : SomeAppData)
+  (res : Anoma.Resource)
+  : Option SomeObject := do
+  let lab : Class.Label ← tryCast res.label
+  match SomeType.cast someAppData.appData.publicFields with
+  | none => none
+  | some publicFields =>
+    match Object.fromResource publicFields res with
+    | none => none
+    | some obj => pure {lab := lab, object := obj}

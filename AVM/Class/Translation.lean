@@ -47,7 +47,7 @@ private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : 
         {lab := i.lab,
          appData := {
           memberId := Label.MemberId.falseLogicId,
-          memberArgs := (),
+          memberArgs := ULift.up (),
           publicFields := i.object.publicFields
         }})
 

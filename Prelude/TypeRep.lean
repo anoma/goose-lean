@@ -92,3 +92,6 @@ instance {α β} [TypeRep α] [TypeRep β]: TypeRep (Sum α β) where
 
 instance {α β} [TypeRep α] [TypeRep β] : TypeRep (Except α β) where
   rep := Rep.composite "Except" [TypeRep.rep α, TypeRep.rep β]
+
+instance {α} [TypeRep α] : TypeRep (ULift α) where
+  rep := Rep.composite "ULift" [TypeRep.rep α]
