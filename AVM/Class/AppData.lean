@@ -37,9 +37,9 @@ instance SomeAppData.hasTypeRep : TypeRep Class.SomeAppData where
 
 abbrev Logic.Args (lab : Label) := Anoma.Logic.Args (Class.AppData lab)
 
-def SomeObject.fromResource
-  (someAppData : SomeAppData)
+def SomeObject.fromResourceWithAppData
   (res : Anoma.Resource)
+  (someAppData : SomeAppData)
   : Option SomeObject := do
   let lab : Class.Label ← tryCast res.label
   match SomeType.cast someAppData.appData.publicFields with
