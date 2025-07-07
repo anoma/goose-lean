@@ -5,6 +5,9 @@ inductive UUnit : Type u where
 instance UUnit.instInhabited : Inhabited UUnit where
   default := unit
 
+instance UUnit.hasBEq : BEq UUnit where
+  beq _ _ := true
+
 namespace BoolCheck
 
 /-- A monad for boolean checks that supports early return --/

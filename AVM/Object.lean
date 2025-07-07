@@ -27,9 +27,8 @@ def SomeObject.toResource (sobj : SomeObject)
     let lab := sobj.lab
     let obj := sobj.object
   { Val := lab.PrivateFields,
-    Label := ⟨Class.Label⟩,
-    label := lab,
-    -- NOTE: in general, there may be more things in the label, not necessarily statically determined
+    Label := ⟨Class.Label × lab.DynamicLabel.dynLabel⟩,
+    label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.publicFields obj.privateFields⟩,
     quantity := obj.quantity,
     value := obj.privateFields,
     ephemeral := ephemeral,

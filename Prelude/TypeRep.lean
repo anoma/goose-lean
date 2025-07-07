@@ -1,6 +1,7 @@
 
 import Lean
 import Prelude.List
+import Prelude.Base
 
 open Lean Elab Command Meta
 
@@ -65,6 +66,9 @@ def beq_generic {A B : Type u} [repA : TypeRep A] [repB : TypeRep B] [beqB : BEq
 
 /-- Boolean equality between elements in different types. -/
 infix:50 " === " => beq_generic
+
+instance : TypeRep UUnit where
+  rep := Rep.atomic "UUnit"
 
 instance : TypeRep Unit where
   rep := Rep.atomic "Unit"
