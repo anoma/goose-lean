@@ -66,10 +66,10 @@ def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
           && Class.Member.Logic.checkResourceData [newObj.toSomeObject] args.created
           && constr.invariant argsData
       | none =>
-        False
+        false
     else
       -- TODO: not general enough, fine for the counter
-      True
+      true
 
 def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId) (args : constrId.Args.type)
@@ -109,17 +109,17 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
       | some argsData =>
         let mselfObj : Option (Object lab) := Object.fromResource publicFields args.self
         match mselfObj with
-          | none => False
+          | none => false
           | (some selfObj) =>
             let createdObjects := method.created selfObj argsData
             Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
               && Class.Member.Logic.checkResourceData createdObjects args.created
               && method.invariant selfObj argsData
       | none =>
-        False
+        false
     else
       -- TODO: may need to do something more here in general, fine for the counter
-      True
+      true
 
 def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (args : methodId.Args.type) : Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
@@ -148,39 +148,19 @@ def logic (lab : Label) (cls : Class lab) (args : Class.Logic.Args lab) : Bool :
     -- Check:
     -- 1. member logic corresponding to the memberId in AppData
     -- 2. class invariant for the object being consumed
-    match args.data.memberId with
-    | .constructorId c =>
-      Class.Constructor.logic (cls.constructors c) args
-    | .methodId m =>
-      Class.Method.logic (cls.methods m) args.data.publicFields args
-    | .falseLogicId =>
-      False
+    BoolCheck.run do
+      let selfObj : Object lab <- BoolCheck.some (Object.fromResource args.data.publicFields args.self)
+      BoolCheck.ret <|
+        checkMemberLogic args.data.memberId args
+        && cls.invariant selfObj args
   else
-    True
-
-/-
-  BoolCheck.run do
-    let mself : Object lab <- BoolCheck.isSome (Object.fromResource args.data.publicFields args.self)
-    -- NOTE We have AppData iff the object is being consumed (as self)
-    -- TODO: we should not rely on app data to detect the consumed case,
-    -- because in this way someone can simply turn off the checks by
-    -- providing malicious app data
-    let someAppData : Member.SomeAppData lab <- BoolCheck.someOr args.data.memberSomeAppData True
-    let memberId : MemberId lab := someAppData.memberId
-    let memArgs : memberId.Args := someAppData.appData.args
-    match x : memberId with
+    true
+  where
+    checkMemberLogic (memberId : Label.MemberId lab) (args : Class.Logic.Args lab) : Bool :=
+      match memberId with
       | .constructorId c =>
-        BoolCheck.guard (Class.Constructor.logic (cls.constructors c)
-          -- TODO how to do this without tactics?
-          {args with data := by {
-              rw [x] at memArgs
-              apply memArgs }})
+        Class.Constructor.logic (cls.constructors c) args
       | .methodId m =>
-        BoolCheck.guard (Class.Method.logic (cls.methods m)
-          args.data.publicFields
-          -- TODO how to do this without tactics?
-          {args with data := by {
-            constructor
-            rw [<- x]
-            apply memArgs }})
--/
+        Class.Method.logic (cls.methods m) args.data.publicFields args
+      | .falseLogicId =>
+        false

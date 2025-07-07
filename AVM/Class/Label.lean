@@ -37,8 +37,8 @@ instance Label.MemberId.hasBEq {lab : Label} : BEq (Label.MemberId lab) where
     match a, b with
     | .constructorId c1, .constructorId c2 => lab.constructorsBEq.beq c1 c2
     | .methodId m1, .methodId m2 => lab.methodsBEq.beq m1 m2
-    | .falseLogicId, .falseLogicId => True
-    | _, _ => False
+    | .falseLogicId, .falseLogicId => true
+    | _, _ => false
 
 def Label.ConstructorId.Args {lab : Label} (constrId : lab.ConstructorId) : SomeType :=
   lab.ConstructorArgs constrId

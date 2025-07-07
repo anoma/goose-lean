@@ -24,11 +24,11 @@ instance {ty : Type} [IsObject ty] : CoeHead ty AnObject where
 
 def defMethod {cl : Type} [i : IsObject cl] {methodId : i.lab.MethodId}
  (body : (self : cl) -> methodId.Args -> List AnObject)
- (invariant : (self : cl) -> methodId.Args -> Bool := fun _ _ => True)
+ (invariant : (self : cl) -> methodId.Args -> Bool := fun _ _ => true)
  : Class.Method methodId where
     invariant (self : Object i.lab) (args : methodId.Args) :=
       match i.fromObject self with
-        | none => False
+        | none => false
         | (some self') => invariant self' args
     created (self : Object i.lab) (args : methodId.Args) :=
       match i.fromObject self with
@@ -37,7 +37,7 @@ def defMethod {cl : Type} [i : IsObject cl] {methodId : i.lab.MethodId}
 
 def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.lab.ConstructorId}
  (body : constrId.Args -> cl)
- (invariant : constrId.Args -> Bool := fun _ => True)
+ (invariant : constrId.Args -> Bool := fun _ => true)
  : Class.Constructor constrId where
     invariant (args : constrId.Args) := invariant args
     created (args : constrId.Args) := i.toObject (body args)

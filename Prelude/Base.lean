@@ -4,18 +4,18 @@ namespace BoolCheck
 abbrev BoolCheck (ret : Type := Unit) : Type := Except Bool ret
 
 def run (b : BoolCheck Unit) : Bool := match b with
-  | (.ok _) => True
+  | (.ok _) => true
   | (.error r) => r
 
-def isSomeOr {A} (m : Option A) (els : Bool) : BoolCheck A := match m with
+def someOr {A} (m : Option A) (els : Bool) : BoolCheck A := match m with
   | none => .error els
   | (some x) => .ok x
 
-def isSome {A} (m : Option A) : BoolCheck A := isSomeOr m False
+def some {A} (m : Option A) : BoolCheck A := someOr m false
 
 def ret (r : Bool) : BoolCheck Unit := Except.error r
 
-def guard (b : Bool) : BoolCheck Unit := if b then pure Unit.unit else ret False
+def guard (b : Bool) : BoolCheck Unit := if b then pure Unit.unit else ret false
 
 end BoolCheck
 
