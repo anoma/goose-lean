@@ -15,7 +15,7 @@ structure Object (lab : Class.Label) where
   /-- `publicFields` go into the `appData` field of the action -/
   publicFields : lab.PublicFields.type
 
-structure SomeObject : Type (u + 2) where
+structure SomeObject : Type (u + 1) where
   {lab : Class.Label.{u}}
   object : Object.{u} lab
 

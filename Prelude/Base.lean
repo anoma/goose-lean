@@ -1,9 +1,16 @@
+/-- Universe polymorphic unit type -/
+inductive UUnit : Type u where
+  | unit : UUnit
+
+instance UUnit.instInhabited : Inhabited UUnit where
+  default := unit
+
 namespace BoolCheck
 
 /-- A monad for boolean checks that supports early return --/
-abbrev BoolCheck (ret : Type := Unit) : Type := Except Bool ret
+abbrev BoolCheck (ret : Type u := UUnit.{u}) : Type u := Except Bool ret
 
-def run (b : BoolCheck Unit) : Bool := match b with
+def run (b : BoolCheck UUnit) : Bool := match b with
   | (.ok _) => true
   | (.error r) => r
 
@@ -13,9 +20,9 @@ def someOr {A} (m : Option A) (els : Bool) : BoolCheck A := match m with
 
 def some {A} (m : Option A) : BoolCheck A := someOr m false
 
-def ret (r : Bool) : BoolCheck Unit := Except.error r
+def ret (r : Bool) : BoolCheck UUnit := Except.error r
 
-def guard (b : Bool) : BoolCheck Unit := if b then pure Unit.unit else ret false
+def guard (b : Bool) : BoolCheck UUnit := if b then pure default else ret false
 
 end BoolCheck
 
