@@ -50,7 +50,7 @@ def Label.MemberId.Args {lab : Label} (memberId : MemberId lab) : SomeType :=
   match memberId with
   | .constructorId c => lab.ConstructorArgs c
   | .methodId c => lab.MethodArgs c
-  | .falseLogicId => SomeType.mk Unit
+  | .falseLogicId => ⟨Unit⟩
 
 instance {lab : Label} : CoeHead lab.ConstructorId (Label.MemberId lab) where
   coe := Label.MemberId.constructorId
