@@ -20,3 +20,6 @@ instance {A : SomeType} : BEq A.type where
 
 def SomeType.cast {A B : SomeType} (a : A.type) : Option B.type :=
   tryCast (repA := A.instTypeRep) (repB := B.instTypeRep) a
+
+instance : CoeHead SomeType Type where
+  coe (ty : SomeType) := ty.type
