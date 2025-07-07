@@ -8,7 +8,7 @@ namespace Anoma
 abbrev Nonce := Nat
 abbrev CommitmentRoot := Nat
 
-def CommitmentRoot.placeholder : CommitmentRoot := 0
+def CommitmentRoot.todo : CommitmentRoot := 0
 
 /-- Representation of Anoma Resource data, without the resource logic. In the
     GOOSE model, the resource logic is determined by the `label` field (which
@@ -45,13 +45,13 @@ structure RootedNullifiableResource where
 
 -- TODO placeholder implementation
 /-- If the key matches the resource.nullifierKeyCommitment then it returns the nullifier of the resource -/
-def nullify (_res : RootedNullifiableResource) : Option Nullifier := none
+def nullify (_res : RootedNullifiableResource) : Option Nullifier := Nullifier.todo
 
 def RootedNullifiableResource.Transparent.fromResource (res : Resource) : RootedNullifiableResource  :=
  { key := NullifierKey.universal,
    resource := res,
    -- TODO: shouldn't we use a real commitment root?
-   root := CommitmentRoot.placeholder }
+   root := CommitmentRoot.todo }
 
 inductive Commitment : Type where
   | privateMk : Commitment

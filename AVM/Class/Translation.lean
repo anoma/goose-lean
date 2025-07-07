@@ -76,10 +76,14 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
   : Anoma.Action :=
     -- TODO: set nonce and nullifierKeyCommitment properly
     let newObj : Object lab := constr.created args
-    let ephRes : Anoma.Resource := SomeObject.toResource (ephemeral := true) newObj.toSomeObject -- TODO for ephemeral resources, does nullifierKeyCommitment matter?
+    let ephRes : Anoma.Resource := {SomeObject.toResource (ephemeral := true) newObj.toSomeObject with nullifierKeyCommitment := default} -- TODO for ephemeral resources, does nullifierKeyCommitment matter?
+    let nullEph : Anoma.Nullifier := (Anoma.nullify
+      { key := Anoma.NullifierKey.universal
+        resource := ephRes
+        root := Anoma.CommitmentRoot.todo }).getD Anoma.Nullifier.todo
     let newRes : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
     let consumed : ConsumedObject lab := { object := newObj
-                                           nullifier := Anoma.Nullifier.todo
+                                           nullifier := nullEph
                                            resource := ephRes }
     let created : List CreatedObject :=
        [{ object := newObj
@@ -127,7 +131,7 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
   let nullRes : Anoma.RootedNullifiableResource := {
     key := key.getD Anoma.NullifierKey.universal
     resource
-    root := Anoma.CommitmentRoot.placeholder
+    root := Anoma.CommitmentRoot.todo
    }
   let consumed : ConsumedObject lab :=
        { object := self
