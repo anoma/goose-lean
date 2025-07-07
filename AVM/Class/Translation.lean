@@ -143,7 +143,7 @@ def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.M
     -- TODO: set deltaProof properly
     deltaProof := "" }
 
-def logic (lab : Label) (cls : Class lab) (args : Class.Logic.Args lab) : Bool :=
+private def logic' (lab : Label) (cls : Class lab) (args : Class.Logic.Args lab) : Bool :=
   -- Check if the logic is consumed. We should not rely on app data (args.data)
   -- to detect the consumed case, because then someone could simply turn
   -- off the checks by providing malicious app data
@@ -167,3 +167,9 @@ def logic (lab : Label) (cls : Class lab) (args : Class.Logic.Args lab) : Bool :
         Class.Method.logic (cls.methods m) args.data.publicFields args
       | .falseLogicId =>
         false
+
+def logic (lab : Label) (cls : Class lab) (args : Anoma.Logic.Args SomeAppData) : Bool :=
+  match tryCast args.data.appData with
+  | none => false
+  | some appData =>
+    logic' lab cls { args with data := appData }
