@@ -1,8 +1,8 @@
 
 import Anoma
-import Goose.Class
+import AVM.Class
 
-namespace Goose
+namespace AVM
 
 /-- An Intent is parameterised by arguments and provided objects. It includes an
     intent condition which checks if the desired objects were received. Intents
@@ -23,9 +23,8 @@ structure Intent.ResourceData where
   args : Args.type
   provided : List SomeObject
 
-instance Intent.ResourceData.RawInstance : Anoma.Raw Intent.ResourceData where
-  -- NOTE: this should also include a raw representation of the provided objects
-  raw appData := appData.rawArgs.raw appData.args
+instance Intent.ResourceData.hasTypeRep : TypeRep ResourceData where
+  rep := Rep.atomic "AVM.Intent.ResourceData"
 
 instance Intent.ResourceData.hasBEq : BEq Intent.ResourceData where
   beq a b :=
