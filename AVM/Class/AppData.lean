@@ -43,8 +43,8 @@ def SomeObject.fromResource
   : Option SomeObject := do
   let lab : Class.Label ← tryCast res.label
   match SomeType.cast someAppData.appData.publicFields with
+  | none => none
+  | some (publicFields : lab.PublicFields.type) =>
+    match Object.fromResource publicFields res with
     | none => none
-    | some (publicFields : lab.PublicFields.type) =>
-      match Object.fromResource publicFields res with
-      | none => none
-      | some obj => pure {lab := lab, object := obj}
+    | some obj => pure {lab := lab, object := obj}
