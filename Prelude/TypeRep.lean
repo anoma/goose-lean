@@ -23,13 +23,13 @@ partial def Rep.decEq (a b : Rep) : Decidable (Eq a b) :=
         isFalse (fun heq => by cases heq; contradiction)
     | Rep.composite _ _ =>
       isFalse (fun h => by injection h)
-  | Rep.composite nameA constrsA =>
+  | Rep.composite nameA paramsA =>
     match b with
     | Rep.atomic _ =>
       isFalse (fun h => by injection h)
-    | Rep.composite nameB constrsB =>
+    | Rep.composite nameB paramsB =>
       if h : nameA = nameB then
-        let paramsDecEq : Decidable (constrsA = constrsB) := @List.hasDecEq _ Rep.decEq constrsA constrsB
+        let paramsDecEq : Decidable (paramsA = paramsB) := @List.hasDecEq _ Rep.decEq paramsA paramsB
         match paramsDecEq with
         | isTrue heq =>
           isTrue (by rw [heq, h])
@@ -61,6 +61,7 @@ def beq_generic {A B : Type u} [repA : TypeRep A] [repB : TypeRep B] [beqB : BEq
   | some y' => y' == y
   | none => false
 
+/-- Boolean qquality between elements in different types with the same type representation. -/
 infix:50 " === " => beq_generic
 
 instance : TypeRep Unit where

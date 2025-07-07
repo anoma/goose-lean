@@ -12,11 +12,9 @@ instance SomeType.hasTypeRep : TypeRep SomeType where
 instance SomeType.hasBEq : BEq SomeType where
   beq a b := a.instTypeRep.rep == b.instTypeRep.rep
 
-instance {A : SomeType} : TypeRep A.type where
-  rep := A.instTypeRep.rep
+instance {A : SomeType} : TypeRep A.type := A.instTypeRep
 
-instance {A : SomeType} : BEq A.type where
-  beq := A.instBEq.beq
+instance {A : SomeType} : BEq A.type := A.instBEq
 
 def SomeType.cast {A B : SomeType} (a : A.type) : Option B.type :=
   tryCast (repA := A.instTypeRep) (repB := B.instTypeRep) a

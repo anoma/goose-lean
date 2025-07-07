@@ -30,6 +30,12 @@ structure Label : Type (u + 2) where
 inductive Label.MemberId (lab : Label.{u}) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
+  /-- Signifies an "always false" member logic. This is used for the member
+    logic field of app data, in the created case. It is important that "dummy"
+    member logic indicator for the created case always returns false – otherwise
+    one could circumvent method logic checks by providing the dummy member logic
+    indicator. This could also be represented by an `Option` type in app data,
+    but having explicit `falseLogicId` makes its intended behaviour clear. -/
   | falseLogicId : MemberId lab
 
 instance Label.MemberId.hasBEq {lab : Label} : BEq (Label.MemberId lab) where
