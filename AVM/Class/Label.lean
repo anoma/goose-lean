@@ -67,7 +67,7 @@ def Label.MemberId.Args {lab : Label.{u}} (memberId : MemberId lab) : SomeType.{
   match memberId with
   | .constructorId c => lab.ConstructorArgs c
   | .methodId c => lab.MethodArgs c
-  | .falseLogicId => ⟨ULift Unit⟩
+  | .falseLogicId => ⟨UUnit⟩
 
 instance {lab : Label} : CoeHead lab.ConstructorId (Label.MemberId lab) where
   coe := Label.MemberId.constructorId

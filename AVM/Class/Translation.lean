@@ -8,25 +8,25 @@ import AVM.Class.Member.Logic
 namespace AVM.Class
 
 private structure CreatedObject where
-  {lab : Label}
-  object : Object lab
+  {label : Label}
+  object : Object label
   resource : Anoma.Resource
   commitment : Anoma.Commitment
 
-private structure ConsumedObject (sig : Label) where
-  object : Object sig
+private structure ConsumedObject (lab : Label) where
+  object : Object lab
   resource : Anoma.Resource
   nullifier : Anoma.Nullifier
 
 /-- Helper function to create an Action. -/
-private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : memberId.Args.type)
+private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : memberId.Args.type)
   (consumed : ConsumedObject lab)
   (created : List CreatedObject) -- no appdata/logic
   : Anoma.Action :=
   let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
     Std.HashMap.emptyWithCapacity
     |>.insertMany [mkTagDataPairConsumed consumed]
-    |>.insertMany (List.map mkTagDataPair created)
+    |>.insertMany (List.map mkTagDataPairCreated created)
   { Data := Class.SomeAppData,
     consumed := [(Anoma.RootedNullifiableResource.Transparent.fromResource ∘ ConsumedObject.resource) consumed],
     created := List.map CreatedObject.resource created,
@@ -41,13 +41,13 @@ private def Action.create {lab : Label} (memberId : Label.MemberId lab) (args : 
             publicFields := i.object.publicFields
         }})
 
-    mkTagDataPair (i : CreatedObject)
+    mkTagDataPairCreated (i : CreatedObject)
      : Anoma.Tag × Class.SomeAppData :=
       (Anoma.Tag.Created i.commitment,
-        {lab := i.lab,
+        {label := i.label,
          appData := {
           memberId := Label.MemberId.falseLogicId,
-          memberArgs := ULift.up (),
+          memberArgs := UUnit.unit,
           publicFields := i.object.publicFields
         }})
 
@@ -90,7 +90,7 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
        [{ object := newObj
           resource := newRes
           commitment := newRes.commitment }]
-    @Action.create lab constrId args consumed created
+    Action.create lab constrId args consumed created
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
@@ -138,16 +138,17 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
   | none => none
   | (some nullifier) =>
     let consumed : ConsumedObject lab :=
-         { object := self
-           nullifier
-           resource }
+      { object := self
+        nullifier
+        resource := self.toSomeObject.toResource }
     let createObject (o : SomeObject) : CreatedObject  :=
-         { object := o.object
-           resource := o.toResource
-           commitment := o.toResource.commitment }
+      let res := o.toResource
+      { object := o.object
+        resource := res
+        commitment := res.commitment }
     let created : List CreatedObject :=
-         List.map createObject (method.created self args)
-    @Action.create lab methodId args consumed created
+        List.map createObject (method.created self args)
+    Action.create lab methodId args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
 def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Option Anoma.NullifierKey) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do

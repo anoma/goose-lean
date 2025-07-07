@@ -20,22 +20,22 @@ instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
   rep := Rep.atomic ("AVM.Object" ++ lab.name)
 
 structure SomeObject : Type (u + 1) where
-  {lab : Class.Label.{u}}
-  object : Object.{u} lab
+  {label : Class.Label.{u}}
+  object : Object.{u} label
 
 instance SomeObject.hasTypeRep : TypeRep SomeObject where
   rep := Rep.atomic "AVM.SomeObject"
 
 instance SomeObject.hasBEq : BEq SomeObject where
-  beq a b := a.lab === b.lab && a.object === b.object
+  beq a b := a.label === b.label && a.object === b.object
 
 def Object.toSomeObject {lab : Class.Label} (object : Object lab) : SomeObject := {object}
 
 def SomeObject.toResource (sobj : SomeObject)
     (ephemeral := false) (nonce := 0)
     : Anoma.Resource :=
-    let lab := sobj.lab
-    let obj := sobj.object
+  let lab := sobj.label
+  let obj := sobj.object
   { Val := lab.PrivateFields,
     Label := ⟨Class.Label × lab.DynamicLabel.dynLabel⟩,
     label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.publicFields obj.privateFields⟩,
@@ -65,4 +65,4 @@ def SomeObject.fromResource
   let lab' := {lab with PublicFields := PublicFields}
   match @Object.fromResource lab' publicFields res with
   | none => none
-  | some obj => pure {lab := lab', object := obj}
+  | some obj => pure {label := lab', object := obj}

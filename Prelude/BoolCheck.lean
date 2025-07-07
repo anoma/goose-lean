@@ -1,7 +1,5 @@
-/-- Universe polymorphic unit type -/
-inductive UUnit : Type u where
-  | unit : UUnit
-  deriving Inhabited, Repr, BEq
+
+import Prelude.UUnit
 
 namespace BoolCheck
 
