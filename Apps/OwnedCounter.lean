@@ -26,14 +26,14 @@ deriving instance Inhabited for OwnedCounter
 open AVM
 
 def lab : Class.Label where
-  priv := {PrivateFields := Nat}
-  pub := {PublicFields := Unit}
+  PrivateFields := ⟨Nat⟩
+  PublicFields := ⟨Unit⟩
   MethodId := Methods
-  MethodArgsTypes := fun
+  MethodArgs := fun
     | Methods.Incr => {type := Nat}
     | Methods.Transfer => {type := Anoma.NullifierKeyCommitment}
   ConstructorId := Constructors
-  ConstructorArgsTypes := fun
+  ConstructorArgs := fun
     | Constructors.Zero => {type := Unit}
   name := "OwnedCounter"
 
