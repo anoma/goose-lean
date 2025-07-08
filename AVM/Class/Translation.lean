@@ -81,14 +81,7 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
            { key := Anoma.NullifierKey.universal
              resource := ephRes
              root := Anoma.CommitmentRoot.todo }
-    let ⟨null, _⟩ := Anoma.nullifyUniversal rootedEph
-                    (by
-                      unfold rootedEph
-                      unfold ephRes
-                      simp)
-                    (by
-                      unfold rootedEph
-                      simp)
+    let ⟨null, _⟩ := Anoma.nullifyUniversal rootedEph rfl rfl
     let newRes : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
     let consumed : ConsumedObject lab := { object := newObj
                                            nullifier := null
