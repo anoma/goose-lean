@@ -1,32 +1,46 @@
+import Prelude
+
 namespace Anoma
 
 /-- A secret value. Used to assign ownership to a Resource -/
 inductive NullifierKey where
-  | privateMk : NullifierKey
+  /-- Everyone knows this key -/
+  | universal : NullifierKey
+  | secret : Nat → NullifierKey
   deriving Repr, BEq, Hashable
 
-namespace NullifierKey
+/-- Commitment to a nullifierkey. Used to prove that you own a NullifierKey without revealing it -/
+inductive NullifierKeyCommitment where
+  /-- Commitment of the universal NullifierKey -/
+  | universal : NullifierKeyCommitment
+  /-- The commitment of a secret key. Pattern matching on the argument should
+  only be done by internal functions in this file -/
+  | ofSecret : (privateNat : Nat) → NullifierKeyCommitment
+  deriving Repr, BEq, Hashable, DecidableEq
 
-/-- Not a secret. Use this instance when ownership is not relevant -/
-instance NullifierKey.instInhabited : Inhabited NullifierKey where
-  default := NullifierKey.privateMk
+instance NullifierKeyCommitment.instInhabited : Inhabited NullifierKeyCommitment where
+  default := .universal
 
-abbrev universal : NullifierKey := default
+def checkNullifierKey (nk : NullifierKey) (nfc : NullifierKeyCommitment) : Bool :=
+  match nk, nfc with
+   | .universal, .universal => true
+   | .secret k1, .ofSecret k2 => k1 == k2
+   | _, _ => false
 
-end NullifierKey
+/-- Computes the commitment of a NullifierKey -/
+def NullifierKey.commitment (k : NullifierKey) : NullifierKeyCommitment :=
+  match k with
+  | .universal => .universal
+  | (.secret s) => .ofSecret s
 
 /-- A public value derived from a secret NullifierKey and a Resource -/
 inductive Nullifier where
   | privateMk : Nullifier
   deriving Repr, BEq, Hashable
 
-def Nullifier.placeholder : Nullifier := privateMk
+/-- Temporary nullifier that should eventually be replaced with a proper one -/
+def Nullifier.todo : Nullifier := privateMk
 
-/-- Commitment to a nullifierkey. Used to prove that you own a NullifierKey without revealing it -/
-inductive NullifierKeyCommitment where
-  | privateMk : NullifierKeyCommitment
-  deriving Repr, BEq, Hashable
+instance : TypeRep NullifierKeyCommitment where
+  rep := Rep.atomic "NullifierKeyCommitment"
 
-/-- Not a secret. Use this instance when ownership is not relevant -/
-instance NullifierKeyCommitment.instInhabited : Inhabited NullifierKeyCommitment where
-  default := NullifierKeyCommitment.privateMk

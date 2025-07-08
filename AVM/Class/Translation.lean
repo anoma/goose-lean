@@ -74,12 +74,17 @@ def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
 def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId) (args : constrId.Args.type)
   : Anoma.Action :=
-    -- TODO: set nonce and nullifierKeyCommitment properly
+    -- TODO: set nonce properly
     let newObj : Object lab := constr.created args
-    let ephRes : Anoma.Resource := SomeObject.toResource (ephemeral := true) newObj.toSomeObject
+    let ephRes : Anoma.Resource := {SomeObject.toResource (ephemeral := true) newObj.toSomeObject with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal}
+    let rootedEph : Anoma.RootedNullifiableResource :=
+           { key := Anoma.NullifierKey.universal
+             resource := ephRes
+             root := Anoma.CommitmentRoot.todo }
+    let ⟨null, _⟩ := Anoma.nullifyUniversal rootedEph rfl rfl
     let newRes : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
     let consumed : ConsumedObject lab := { object := newObj
-                                           nullifier := Anoma.Nullifier.placeholder
+                                           nullifier := null
                                            resource := ephRes }
     let created : List CreatedObject :=
        [{ object := newObj
@@ -121,27 +126,36 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
       -- TODO: may need to do something more here in general, fine for the counter
       true
 
-def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (args : methodId.Args.type) : Anoma.Action :=
+def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Option Anoma.NullifierKey) (args : methodId.Args.type) : Option Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
-  let consumed : ConsumedObject lab :=
-       { object := self
-         nullifier := Anoma.Nullifier.placeholder
-         resource := self.toSomeObject.toResource }
-  let createObject (o : SomeObject) : CreatedObject  :=
-       { object := o.object
-         resource := o.toResource
-         commitment := o.toResource.commitment }
-  let created : List CreatedObject :=
-       List.map createObject (method.created self args)
-  @Action.create lab methodId args consumed created
+  let resource := self.toSomeObject.toResource
+  let nullRes : Anoma.RootedNullifiableResource := {
+    key := key.getD Anoma.NullifierKey.universal
+    resource
+    root := Anoma.CommitmentRoot.todo
+   }
+  match Anoma.nullify nullRes with
+  | none => none
+  | (some nullifier) =>
+    let consumed : ConsumedObject lab :=
+         { object := self
+           nullifier
+           resource }
+    let createObject (o : SomeObject) : CreatedObject  :=
+         { object := o.object
+           resource := o.toResource
+           commitment := o.toResource.commitment }
+    let created : List CreatedObject :=
+         List.map createObject (method.created self args)
+    @Action.create lab methodId args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
-def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
-  let action := method.action methodId self args
-  { roots := [currentRoot],
-    actions := [action],
-    -- TODO: set deltaProof properly
-    deltaProof := "" }
+def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Option Anoma.NullifierKey) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+  let action ← method.action methodId self key args
+  pure { roots := [currentRoot],
+         actions := [action],
+         -- TODO: set deltaProof properly
+         deltaProof := "" }
 
 private def logic' (lab : Label) (cls : Class lab) (args : Class.Logic.Args lab) : Bool :=
   -- Check if the logic is consumed. We should not rely on app data (args.data)
