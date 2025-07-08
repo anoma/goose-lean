@@ -4,19 +4,34 @@ namespace Anoma
 
 /-- A secret value. Used to assign ownership to a Resource -/
 inductive NullifierKey where
-  | privateMk : NullifierKey
+  /-- Everyone knows this key -/
+  | universal : NullifierKey
+  | secret : Nat → NullifierKey
   deriving Repr, BEq, Hashable
-
-/-- Everyone knows this key -/
-def NullifierKey.universal : NullifierKey := privateMk
 
 /-- Commitment to a nullifierkey. Used to prove that you own a NullifierKey without revealing it -/
 inductive NullifierKeyCommitment where
-  | privateMk : NullifierKeyCommitment
+  /-- Commitment of the universal NullifierKey -/
+  | universal : NullifierKeyCommitment
+  /-- The commitment of a secret key. Pattern matching on the argument should
+  only be done by internal functions in this file -/
+  | ofSecret : (privateNat : Nat) → NullifierKeyCommitment
   deriving Repr, BEq, Hashable, DecidableEq
 
+instance NullifierKeyCommitment.instInhabited : Inhabited NullifierKeyCommitment where
+  default := .universal
+
+def checkNullifierKey (nk : NullifierKey) (nfc : NullifierKeyCommitment) : Bool :=
+  match nk, nfc with
+   | .universal, .universal => true
+   | .secret k1, .ofSecret k2 => k1 == k2
+   | _, _ => false
+
 /-- Computes the commitment of a NullifierKey -/
-def NullifierKey.commitment (_k : NullifierKey) : NullifierKeyCommitment := NullifierKeyCommitment.privateMk
+def NullifierKey.commitment (k : NullifierKey) : NullifierKeyCommitment :=
+  match k with
+  | .universal => .universal
+  | (.secret s) => .ofSecret s
 
 /-- A public value derived from a secret NullifierKey and a Resource -/
 inductive Nullifier where
@@ -29,7 +44,3 @@ def Nullifier.todo : Nullifier := privateMk
 instance : TypeRep NullifierKeyCommitment where
   rep := Rep.atomic "NullifierKeyCommitment"
 
-/-- Use this when the nullifier key is universal -/
-def NullifierKeyCommitment.universal : NullifierKeyCommitment := NullifierKey.universal.commitment
-
-deriving instance Inhabited for NullifierKeyCommitment

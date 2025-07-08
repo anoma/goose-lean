@@ -45,7 +45,21 @@ structure RootedNullifiableResource where
 
 -- TODO placeholder implementation
 /-- If the key matches the resource.nullifierKeyCommitment then it returns the nullifier of the resource -/
-def nullify (_res : RootedNullifiableResource) : Option Nullifier := Nullifier.todo
+def nullify (res : RootedNullifiableResource) : Option Nullifier :=
+  if checkNullifierKey res.key res.resource.nullifierKeyCommitment
+  then some .privateMk
+  else none
+
+def nullifyUniversal (res : RootedNullifiableResource) (p1 : res.resource.nullifierKeyCommitment = .universal) (p2 : res.key = .universal)
+  : Σ n : Nullifier, PLift (nullify res = some n)
+  := by
+  exists .privateMk
+  unfold nullify
+  unfold checkNullifierKey
+  rw [p1, p2]
+  simp
+  constructor
+  simp
 
 def RootedNullifiableResource.Transparent.fromResource (res : Resource) : RootedNullifiableResource  :=
  { key := NullifierKey.universal,
