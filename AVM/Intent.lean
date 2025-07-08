@@ -1,6 +1,6 @@
 
 import Anoma
-import AVM.Class
+import AVM.Object
 
 namespace AVM
 
@@ -18,6 +18,7 @@ structure Intent where
       the resource logic of the resource intent. -/
   condition : Args.type → (provided : List SomeObject) → (received : List SomeObject) → Bool
 
+/-- Intent.ResourceData is stored in the `value` field of the intent resource. -/
 structure Intent.ResourceData where
   Args : SomeType
   args : Args.type
@@ -40,7 +41,7 @@ def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : Li
       args,
       provided
     },
-    ephemeral := false,
+    ephemeral := true,
     nonce,
     nullifierKeyCommitment }
 

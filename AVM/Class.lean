@@ -1,5 +1,6 @@
 
 import AVM.Class.AppData
+import AVM.Intent
 
 namespace AVM
 
@@ -8,6 +9,7 @@ namespace AVM
 structure Class (lab : Class.Label) where
   constructors : (c : lab.ConstructorId) -> Class.Constructor c
   methods : (m : lab.MethodId) -> Class.Method m
+  intents : lab.IntentId -> Intent
   /-- Extra class-specific logic. The whole resource logic function for an
      object consists of the class invariant and the method and constructor logics.
      -/

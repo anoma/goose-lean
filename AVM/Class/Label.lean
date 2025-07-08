@@ -15,32 +15,39 @@ instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) wh
 /-- A class label uniquely identifies and specifies a class. The class
     specification provided by a label consists of unique class name, private and
     public field types, constructor and method ids. -/
-structure Label : Type (max u v + 1) where
+structure Label : Type (u + 1) where
   /-- The name of the class uniquely identifying the class.
       Assumption: lab1.name = lab2.name -> lab1 = lab2. -/
   name : String
 
   PrivateFields : SomeType.{u}
-  PublicFields : SomeType.{v}
+  PublicFields : SomeType.{u}
 
   /-- The dynamic label is used to put dynamic data into the Resource label -/
   DynamicLabel : DynamicLabel.{u} PrivateFields.type := default
 
-  MethodId : Type
-  [methodsFinite : Fintype MethodId]
-  [methodsRepr : Repr MethodId]
-  [methodsBEq : BEq MethodId]
-  MethodArgs : MethodId -> SomeType.{u}
-
-  ConstructorId : Type
+  ConstructorId : Type u
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
   ConstructorArgs : ConstructorId -> SomeType.{u}
 
+  MethodId : Type u
+  [methodsFinite : Fintype MethodId]
+  [methodsRepr : Repr MethodId]
+  [methodsBEq : BEq MethodId]
+  MethodArgs : MethodId -> SomeType.{u}
+
+  IntentId : Type u
+  [intentsFinite : Fintype IntentId]
+  [intentsRepr : Repr IntentId]
+  [intentsBEq : BEq IntentId]
+  IntentArgs : IntentId -> SomeType.{u}
+
 inductive Label.MemberId (lab : Label.{u}) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
+  | intentId (intentId : lab.IntentId) : MemberId lab
   /-- Signifies an "always false" member logic. This is used for the member
     logic field of app data, in the created case. It is important that "dummy"
     member logic indicator for the created case always returns false – otherwise
@@ -54,6 +61,7 @@ instance Label.MemberId.hasBEq {lab : Label} : BEq (Label.MemberId lab) where
     match a, b with
     | .constructorId c1, .constructorId c2 => lab.constructorsBEq.beq c1 c2
     | .methodId m1, .methodId m2 => lab.methodsBEq.beq m1 m2
+    | .intentId i1, .intentId i2 => lab.intentsBEq.beq i1 i2
     | .falseLogicId, .falseLogicId => true
     | _, _ => false
 
@@ -67,6 +75,7 @@ def Label.MemberId.Args {lab : Label.{u}} (memberId : MemberId lab) : SomeType.{
   match memberId with
   | .constructorId c => lab.ConstructorArgs c
   | .methodId c => lab.MethodArgs c
+  | .intentId i => lab.IntentArgs i
   | .falseLogicId => ⟨UUnit⟩
 
 instance {lab : Label} : CoeHead lab.ConstructorId (Label.MemberId lab) where
@@ -74,6 +83,9 @@ instance {lab : Label} : CoeHead lab.ConstructorId (Label.MemberId lab) where
 
 instance {lab : Label} : CoeHead lab.MethodId (Label.MemberId lab) where
   coe := Label.MemberId.methodId
+
+instance {lab : Label} : CoeHead lab.IntentId (Label.MemberId lab) where
+  coe := Label.MemberId.intentId
 
 instance Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"

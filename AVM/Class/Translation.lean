@@ -151,14 +151,34 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
     Action.create lab methodId args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
-def Method.transaction (lab : Label) (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Option Anoma.NullifierKey) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+def Method.transaction {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Option Anoma.NullifierKey) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
   let action ← method.action methodId self key args
   pure { roots := [currentRoot],
          actions := [action],
          -- TODO: set deltaProof properly
          deltaProof := "" }
 
-private def logic' (lab : Label) (cls : Class lab) (args : Class.Logic.Args lab) : Bool :=
+/-- Creates a logic for a given intent. This logic is checked when an object is
+  consumed to create the intent. -/
+def Intent.logic (intent : Intent) (args : Anoma.Logic.Args SomeAppData) : Bool :=
+  if args.isConsumed then
+    -- Check that exactly one resource is created that corresponds to the intent
+    match args.created with
+    | [intentRes] =>
+      match Intent.ResourceData.fromResource intentRes with
+      | some data =>
+        intentRes.label === intent.label
+        && intentRes.quantity == 1
+        && intentRes.ephemeral
+        && Member.Logic.checkResourceData data.provided args.consumed
+      | none =>
+        false
+    | _ =>
+      false
+  else
+    true
+
+private def logic' {lab : Label} (cls : Class lab) (args : Class.Logic.Args lab) (args' : Anoma.Logic.Args SomeAppData) : Bool :=
   -- Check if the logic is consumed. We should not rely on app data (args.data)
   -- to detect the consumed case, because then someone could simply turn
   -- off the checks by providing malicious app data
@@ -169,22 +189,24 @@ private def logic' (lab : Label) (cls : Class lab) (args : Class.Logic.Args lab)
     BoolCheck.run do
       let selfObj : Object lab <- BoolCheck.some (Object.fromResource args.data.publicFields args.self)
       BoolCheck.ret <|
-        checkMemberLogic args.data.memberId args
+        checkMemberLogic args.data.memberId
         && cls.invariant selfObj args
   else
     true
   where
-    checkMemberLogic (memberId : Label.MemberId lab) (args : Class.Logic.Args lab) : Bool :=
+    checkMemberLogic (memberId : Label.MemberId lab) : Bool :=
       match memberId with
       | .constructorId c =>
         Class.Constructor.logic (cls.constructors c) args
       | .methodId m =>
         Class.Method.logic (cls.methods m) args.data.publicFields args
+      | .intentId i =>
+        Class.Intent.logic (cls.intents i) args'
       | .falseLogicId =>
         false
 
-def logic (lab : Label) (cls : Class lab) (args : Anoma.Logic.Args SomeAppData) : Bool :=
+def logic {lab : Label} (cls : Class lab) (args : Anoma.Logic.Args SomeAppData) : Bool :=
   match tryCast args.data.appData with
   | none => false
   | some appData =>
-    logic' lab cls { args with data := appData }
+    logic' cls { args with data := appData } args

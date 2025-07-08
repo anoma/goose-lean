@@ -19,9 +19,9 @@ structure Object (lab : Class.Label) where
 instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
   rep := Rep.atomic ("AVM.Object" ++ lab.name)
 
-structure SomeObject : Type (u + 1) where
-  {label : Class.Label.{u}}
-  object : Object.{u} label
+structure SomeObject where
+  {label : Class.Label}
+  object : Object label
 
 instance SomeObject.hasTypeRep : TypeRep SomeObject where
   rep := Rep.atomic "AVM.SomeObject"

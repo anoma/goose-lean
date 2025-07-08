@@ -14,8 +14,8 @@ def CommitmentRoot.todo : CommitmentRoot := 0
     GOOSE model, the resource logic is determined by the `label` field (which
     contains the unique label of the class). -/
 structure Resource : Type (max u v + 1) where
-  Val : SomeType.{u}
-  Label : SomeType.{v}
+  Val : SomeType.{v}
+  Label : SomeType.{u}
   label : Label.type
   quantity : Nat
   value : Val.type
