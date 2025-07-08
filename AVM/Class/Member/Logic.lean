@@ -13,6 +13,7 @@ def Member.Logic.checkResourceData (objects : List SomeObject) (resources : List
   where
     resourceDataEq (sobj : SomeObject) (res : Anoma.Resource) : Bool :=
       sobj.object.quantity == res.quantity &&
+      sobj.object.nullifierKeyCommitment! == res.nullifierKeyCommitment &&
       sobj.lab === res.label &&
         match tryCast sobj.object.privateFields with
         | some privateFields => res.value == privateFields
