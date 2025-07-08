@@ -59,7 +59,7 @@ def tryCast {A : Type u} {B : Type w} [repA : TypeRep A] [repB : TypeRep B] (x :
     none
 
 /-- Boolean equality between elements in different types. -/
-def beq_generic {A B : Type u} [repA : TypeRep A] [repB : TypeRep B] [beqB : BEq B] (x : A) (y : B) : Bool :=
+def beq_generic {A : Type u} {B : Type w} [repA : TypeRep A] [repB : TypeRep B] [beqB : BEq B] (x : A) (y : B) : Bool :=
   match tryCast x with
   | some y' => y' == y
   | none => false

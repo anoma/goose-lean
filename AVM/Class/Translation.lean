@@ -160,7 +160,7 @@ def Method.transaction {lab : Label} (methodId : lab.MethodId) (method : Class.M
 
 /-- Creates a logic for a given intent. This logic is checked when an object is
   consumed to create the intent. -/
-def Intent.logic (intent : Intent) (args : Anoma.Logic.Args SomeAppData) : Bool :=
+def Intent.logic {lab : Label} (intent : Intent) (args : Class.Logic.Args lab) : Bool :=
   if args.isConsumed then
     -- Check that exactly one resource is created that corresponds to the intent
     match args.created with
@@ -178,7 +178,7 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args SomeAppData) : Bool 
   else
     true
 
-private def logic' {lab : Label} (cls : Class lab) (args : Class.Logic.Args lab) (args' : Anoma.Logic.Args SomeAppData) : Bool :=
+private def logic' {lab : Label} (cls : Class lab) (args : Class.Logic.Args lab) : Bool :=
   -- Check if the logic is consumed. We should not rely on app data (args.data)
   -- to detect the consumed case, because then someone could simply turn
   -- off the checks by providing malicious app data
@@ -201,7 +201,7 @@ private def logic' {lab : Label} (cls : Class lab) (args : Class.Logic.Args lab)
       | .methodId m =>
         Class.Method.logic (cls.methods m) args.data.publicFields args
       | .intentId i =>
-        Class.Intent.logic (cls.intents i) args'
+        Class.Intent.logic (cls.intents i) args
       | .falseLogicId =>
         false
 
@@ -209,4 +209,4 @@ def logic {lab : Label} (cls : Class lab) (args : Anoma.Logic.Args SomeAppData) 
   match tryCast args.data.appData with
   | none => false
   | some appData =>
-    logic' cls { args with data := appData } args
+    logic' cls { args with data := appData }

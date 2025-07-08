@@ -45,5 +45,5 @@ def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : Li
     nonce,
     nullifierKeyCommitment }
 
-def Intent.ResourceData.fromResource (res : Anoma.Resource) : Option Intent.ResourceData :=
+def Intent.ResourceData.fromResource (res : Anoma.Resource.{u,v}) : Option Intent.ResourceData.{u,v} :=
   tryCast res.value
