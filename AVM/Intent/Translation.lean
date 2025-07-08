@@ -42,7 +42,7 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
   where
     mkTagDataPairConsumed (obj : SomeObject) (_res : Anoma.Resource)
      : Anoma.Tag × Class.SomeAppData :=
-      (Anoma.Tag.Consumed Anoma.Nullifier.placeholder,
+      (Anoma.Tag.Consumed Anoma.Nullifier.todo,
         { label := obj.label,
           appData := {
             -- TODO: assigning falseLogicId to memberId is not correct - it will

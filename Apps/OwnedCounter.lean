@@ -9,6 +9,7 @@ structure OwnedCounter where
   count : Nat
   /-- Only someone who knows the NullifierKey can increment the counter -/
   key : Anoma.NullifierKeyCommitment
+  deriving Inhabited, Repr
 
 namespace OwnedCounter
 
@@ -21,11 +22,13 @@ inductive Constructors where
   | Zero : Constructors
   deriving DecidableEq, Fintype, Repr
 
-deriving instance Inhabited for OwnedCounter
+inductive Intents
+  deriving DecidableEq, Fintype, Repr
 
 open AVM
 
 def lab : Class.Label where
+  name := "OwnedCounter"
   PrivateFields := ⟨Nat⟩
   PublicFields := ⟨Unit⟩
   MethodId := Methods
@@ -35,7 +38,8 @@ def lab : Class.Label where
   ConstructorId := Constructors
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
-  name := "OwnedCounter"
+  IntentId := Intents
+  IntentArgs := fun x => nomatch x
 
 def toObject (c : OwnedCounter) : Object lab where
   publicFields := Unit.unit
@@ -76,3 +80,4 @@ def counterClass : Class lab where
   methods := fun
     | Methods.Incr => counterIncr
     | Methods.Transfer => counterTransfer
+  intents := fun x => nomatch x
