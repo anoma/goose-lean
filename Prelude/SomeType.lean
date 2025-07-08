@@ -1,7 +1,7 @@
 
 import Prelude.TypeRep
 
-structure SomeType where
+structure SomeType : Type (u + 1) where
   type : Type u
   [instTypeRep : TypeRep type]
   [instBEq : BEq type]

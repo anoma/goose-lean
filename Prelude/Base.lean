@@ -1,9 +1,7 @@
 /-- Universe polymorphic unit type -/
 inductive UUnit : Type u where
   | unit : UUnit
-
-instance UUnit.instInhabited : Inhabited UUnit where
-  default := unit
+  deriving Inhabited, Repr, BEq
 
 namespace BoolCheck
 

@@ -4,6 +4,14 @@ import Mathlib.Data.Fintype.Basic
 
 namespace AVM.Class
 
+structure DynamicLabel.{u, v} (PublicFields : Type u) (PrivateFields : Type v) : Type (max u v + 1) where
+  {dynLabel : SomeType.{0}}
+  mkDynamicLabel : PublicFields -> PrivateFields -> dynLabel.type
+
+instance DynamicLabel.instInhabited {A : Type u} {B : Type v} : Inhabited (DynamicLabel A B) where
+  default := {dynLabel := ⟨UUnit⟩
+              mkDynamicLabel := fun _ _ => default}
+
 /-- A class label uniquely identifies and specifies a class. The class
     specification provided by a label consists of unique class name, private and
     public field types, constructor and method ids. -/
@@ -14,6 +22,9 @@ structure Label : Type (max u v + 1) where
 
   PrivateFields : SomeType.{u}
   PublicFields : SomeType.{v}
+
+  /-- The dynamic label is used to put dynamic data into the Resource label -/
+  DynamicLabel : DynamicLabel.{v, u} PublicFields.type PrivateFields.type := default
 
   MethodId : Type
   [methodsFinite : Fintype MethodId]
