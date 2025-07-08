@@ -13,9 +13,9 @@ structure Constructor {lab : Label} (constrId : lab.ConstructorId) where
 structure Method {lab : Label} (methodId : lab.MethodId) where
   /-- Extra method logic. The method invariant is combined with auto-generated
       method body constraints to create the method logic. -/
-  invariant : (self : Object lab) → methodId.Args.type -> Bool
+  invariant : (self : Object lab) → methodId.Args.type → Bool
   /-- Objects created in the method call. -/
-  created : (self : Object lab) → methodId.Args.type -> List SomeObject
+  created : (self : Object lab) → methodId.Args.type → List SomeObject
 
 /-- A class member is a method or a constructor. -/
 inductive Member (lab : Label) where
