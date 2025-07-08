@@ -31,14 +31,26 @@ instance SomeObject.hasBEq : BEq SomeObject where
 
 def Object.toSomeObject {lab : Class.Label} (object : Object lab) : SomeObject := {object}
 
+structure Object.Resource.Label where
+  /-- The label of the class -/
+  classLabel : Class.Label
+  /-- The dynamic label is used to put dynamic data into the Resource label -/
+  dynamicLabel : classLabel.DynamicLabel.Label.type
+
+instance : TypeRep Object.Resource.Label where
+  rep := Rep.atomic "Object.Resource.Label"
+
+instance : BEq Object.Resource.Label where
+  beq o1 o2 := o1.classLabel == o2.classLabel && o1.dynamicLabel === o2.dynamicLabel
+
 def SomeObject.toResource (sobj : SomeObject)
     (ephemeral := false) (nonce := 0)
     : Anoma.Resource :=
   let lab := sobj.label
   let obj := sobj.object
   { Val := lab.PrivateFields,
-    Label := ⟨Class.Label × lab.DynamicLabel.dynLabel⟩,
-    label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.publicFields obj.privateFields⟩,
+    Label := ⟨Object.Resource.Label⟩,
+    label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.privateFields⟩,
     quantity := obj.quantity,
     value := obj.privateFields,
     ephemeral := ephemeral,
@@ -61,7 +73,8 @@ def SomeObject.fromResource
   (publicFields : PublicFields.type)
   (res : Anoma.Resource)
   : Option SomeObject := do
-  let lab : Class.Label ← tryCast res.label
+  let resLab : Object.Resource.Label ← tryCast res.label
+  let lab : Class.Label := resLab.classLabel
   let lab' := {lab with PublicFields := PublicFields}
   match @Object.fromResource lab' publicFields res with
   | none => none

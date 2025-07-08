@@ -4,13 +4,13 @@ import Mathlib.Data.Fintype.Basic
 
 namespace AVM.Class
 
-structure DynamicLabel.{u, v} (PublicFields : Type u) (PrivateFields : Type v) : Type (max u v + 1) where
-  {dynLabel : SomeType.{0}}
-  mkDynamicLabel : PublicFields -> PrivateFields -> dynLabel.type
+structure DynamicLabel (PrivateFields : Type u) : Type (u + 1) where
+  {Label : SomeType}
+  mkDynamicLabel : PrivateFields -> Label.type
 
-instance DynamicLabel.instInhabited {A : Type u} {B : Type v} : Inhabited (DynamicLabel A B) where
-  default := {dynLabel := ⟨UUnit⟩
-              mkDynamicLabel := fun _ _ => default}
+instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) where
+  default := {Label := ⟨UUnit⟩
+              mkDynamicLabel := fun _ => default}
 
 /-- A class label uniquely identifies and specifies a class. The class
     specification provided by a label consists of unique class name, private and
@@ -24,7 +24,7 @@ structure Label : Type (max u v + 1) where
   PublicFields : SomeType.{v}
 
   /-- The dynamic label is used to put dynamic data into the Resource label -/
-  DynamicLabel : DynamicLabel.{v, u} PublicFields.type PrivateFields.type := default
+  DynamicLabel : DynamicLabel.{u} PrivateFields.type := default
 
   MethodId : Type
   [methodsFinite : Fintype MethodId]
@@ -33,10 +33,10 @@ structure Label : Type (max u v + 1) where
   MethodArgs : MethodId -> SomeType.{u}
 
   ConstructorId : Type
-  ConstructorArgs : ConstructorId -> SomeType.{u}
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
+  ConstructorArgs : ConstructorId -> SomeType.{u}
 
 inductive Label.MemberId (lab : Label.{u}) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab

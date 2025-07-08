@@ -7,4 +7,4 @@ inductive UUnit : Type u where
 deriving Repr, BEq, Inhabited
 
 instance : TypeRep UUnit where
-  rep := Rep.atomic "Unit"
+  rep := Rep.atomic "UUnit"

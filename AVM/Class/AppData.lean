@@ -41,7 +41,8 @@ def SomeObject.fromResourceWithAppData
   (res : Anoma.Resource)
   (someAppData : SomeAppData)
   : Option SomeObject := do
-  let lab : Class.Label ← tryCast res.label
+  let resLab : Object.Resource.Label ← tryCast res.label
+  let lab : Class.Label := resLab.classLabel
   match SomeType.cast someAppData.appData.publicFields with
   | none => none
   | some (publicFields : lab.PublicFields.type) =>

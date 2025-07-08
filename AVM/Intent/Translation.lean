@@ -10,6 +10,10 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
   if args.isConsumed then
     match Intent.ResourceData.fromResource args.self with
     | some data => BoolCheck.run do
+      -- We use fake values for public fields of created objects. Public fields
+      -- for created resources are not available, because they are stored in app
+      -- data and in RL arguments app data is available only for the `self`
+      -- resource.
       let receivedObjects ← BoolCheck.some <| List.mapSome (SomeObject.fromResource (PublicFields := ⟨Unit⟩) ()) args.created
       BoolCheck.ret <|
         match tryCast data.args with
