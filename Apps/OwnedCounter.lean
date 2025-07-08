@@ -30,11 +30,11 @@ def lab : Class.Label where
   PublicFields := ⟨Unit⟩
   MethodId := Methods
   MethodArgs := fun
-    | Methods.Incr => {type := Nat}
-    | Methods.Transfer => {type := Anoma.NullifierKeyCommitment}
+    | Methods.Incr => ⟨Nat⟩
+    | Methods.Transfer => ⟨Anoma.NullifierKeyCommitment⟩
   ConstructorId := Constructors
   ConstructorArgs := fun
-    | Constructors.Zero => {type := Unit}
+    | Constructors.Zero => ⟨Unit⟩
   name := "OwnedCounter"
 
 def toObject (c : OwnedCounter) : Object lab where
