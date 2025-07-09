@@ -15,6 +15,9 @@ structure Object (lab : Class.Label) where
   /-- `publicFields` go into the `appData` field of the action -/
   publicFields : lab.PublicFields.type
 
+def Object.nullifierKeyCommitment! {lab : Class.Label} (o : Object lab) : Anoma.NullifierKeyCommitment :=
+  o.nullifierKeyCommitment.getD Anoma.NullifierKeyCommitment.universal
+
 structure SomeObject : Type (u + 1) where
   {lab : Class.Label.{u}}
   object : Object.{u} lab
@@ -33,7 +36,7 @@ def SomeObject.toResource (sobj : SomeObject)
     value := obj.privateFields,
     ephemeral := ephemeral,
     nonce,
-    nullifierKeyCommitment := obj.nullifierKeyCommitment.getD Anoma.NullifierKeyCommitment.universal}
+    nullifierKeyCommitment := obj.nullifierKeyCommitment!}
 
 def Object.fromResource
   {lab : Class.Label}
