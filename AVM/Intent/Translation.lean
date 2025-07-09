@@ -6,6 +6,8 @@ import AVM.Class.AppData
 
 namespace AVM
 
+/-- The intent logic which is checked when the intent resource is consumed. The
+  intent logic checks the intent's condition. -/
 def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
   if args.isConsumed then
     match Intent.ResourceData.fromResource args.self with
@@ -49,17 +51,14 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
       match Class.Label.IntentId.fromIntentLabel (lab := obj.label) intent.label with
       | none => none
       | some intentId =>
-        match SomeType.cast args with
-        | none => none
-        | some args' =>
-          some
-            (Anoma.Tag.Consumed Anoma.Nullifier.todo,
-              { label := obj.label,
-                appData := {
-                  memberId := Class.Label.MemberId.intentId intentId,
-                  memberArgs := args',
-                  publicFields := obj.object.publicFields
-              }})
+        some
+          (Anoma.Tag.Consumed Anoma.Nullifier.todo,
+            { label := obj.label,
+              appData := {
+                memberId := Class.Label.MemberId.intentId intentId,
+                memberArgs := UUnit.unit,
+                publicFields := obj.object.publicFields
+            }})
 
 /-- A transaction which consumes the provided objects and creates the intent. -/
 def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do

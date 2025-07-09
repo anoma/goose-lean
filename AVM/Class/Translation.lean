@@ -158,8 +158,13 @@ def Method.transaction {lab : Label} (methodId : lab.MethodId) (method : Class.M
          -- TODO: set deltaProof properly
          deltaProof := "" }
 
-/-- Creates a logic for a given intent. This logic is checked when an object is
-  consumed to create the intent. -/
+/-- Creates a member logic for a given intent. This logic is checked when an
+  object is consumed to create the intent. Note that the intent member logic
+  (defined here) is distinct from the intent logic defined in
+  `AVM/Intent/Translation.lean`. The intent member logic is associated with
+  a resource consumed by the intent and it checks that the right intent is
+  created. The intent logic is checked on consumption of the intent resource
+  and it checks that the the intent's condition is satified. -/
 def Intent.logic {lab : Label} (intent : Intent) (args : Class.Logic.Args lab) : Bool :=
   if args.isConsumed then
     -- Check that exactly one resource is created that corresponds to the intent
@@ -167,6 +172,8 @@ def Intent.logic {lab : Label} (intent : Intent) (args : Class.Logic.Args lab) :
     | [intentRes] =>
       match Intent.ResourceData.fromResource intentRes with
       | some data =>
+        -- NOTE: We should also check that the intent logic hashes of
+        -- `intentRes` and `intent` match.
         intentRes.label === intent.label
         && intentRes.quantity == 1
         && intentRes.ephemeral

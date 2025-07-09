@@ -1,4 +1,5 @@
 import AVM.Object
+import AVM.Intent
 import AVM.Class.Label
 
 namespace AVM.Class
@@ -17,7 +18,10 @@ structure Method {lab : Label} (methodId : lab.MethodId) where
   /-- Objects created in the method call. -/
   created : (self : Object lab) → methodId.Args.type → List SomeObject
 
-/-- A class member is a method or a constructor. -/
+/-- A class member is a method, a constructor or an intent. A single intent can
+  be a member in multiple classes, but each constructor and method is a member
+  of a unique class. -/
 inductive Member (lab : Label) where
   | constructor (constrId : lab.ConstructorId) (constr : Constructor constrId) : Member lab
   | method (methodId : lab.MethodId) (method : Method methodId) : Member lab
+  | intent (intent : Intent) : Member lab

@@ -39,11 +39,11 @@ structure Label : Type (u + 1) where
   [methodsBEq : BEq MethodId]
   MethodArgs : MethodId -> SomeType.{u}
 
+  /-- The arguments for the intent member logic are UUnit.unit. -/
   IntentId : Type u
   [intentsFinite : FinEnum IntentId]
   [intentsRepr : Repr IntentId]
   [intentsBEq : BEq IntentId]
-  IntentArgs : IntentId -> SomeType.{u}
 
 inductive Label.MemberId (lab : Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
@@ -76,7 +76,7 @@ def Label.MemberId.Args {lab : Label.{u}} (memberId : MemberId lab) : SomeType.{
   match memberId with
   | .constructorId c => lab.ConstructorArgs c
   | .methodId c => lab.MethodArgs c
-  | .intentId i => lab.IntentArgs i
+  | .intentId _ => ⟨UUnit⟩
   | .falseLogicId => ⟨UUnit⟩
 
 def Label.IntentId.fromIntentLabel {lab : Label} (intentLabel : String) : Option lab.IntentId :=
