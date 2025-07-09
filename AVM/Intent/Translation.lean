@@ -27,38 +27,45 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
     true
 
 /-- An action which consumes the provided objects and creates the intent. -/
-def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) : Anoma.Action :=
+def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) : Option Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
   let consumedObjects := provided
   let consumedResources := List.map SomeObject.toResource consumedObjects
   let intentResource := Intent.toResource intent args provided
-  let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
-    Std.HashMap.emptyWithCapacity
-    |>.insertMany (List.zipWithExact (mkTagDataPairConsumed) consumedObjects consumedResources)
-  { Data := Class.SomeAppData,
-    consumed := List.map Anoma.RootedNullifiableResource.Transparent.fromResource consumedResources,
-    created := [intentResource],
-    appData }
+  match (List.zipWithExact mkTagDataPairConsumed consumedObjects consumedResources).getSome with
+  | none => none
+  | some appDataPairs =>
+    let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
+      Std.HashMap.emptyWithCapacity
+      |>.insertMany appDataPairs
+    some
+      { Data := ⟨Class.SomeAppData⟩,
+        consumed := List.map Anoma.RootedNullifiableResource.Transparent.fromResource consumedResources,
+        created := [intentResource],
+        appData }
   where
     mkTagDataPairConsumed (obj : SomeObject) (_res : Anoma.Resource)
-     : Anoma.Tag × Class.SomeAppData :=
-      (Anoma.Tag.Consumed Anoma.Nullifier.todo,
-        { label := obj.label,
-          appData := {
-            -- TODO: assigning falseLogicId to memberId is not correct - it will
-            -- make the logic fail. But what should we assign here? It seems
-            -- like the consumed object needs to know about the intent and have
-            -- a method which allows its consumption in the intent. How does
-            -- this actually work in the kudos / spacebucks examples we have?
-            memberId := Class.Label.MemberId.falseLogicId,
-            memberArgs := UUnit.unit,
-            publicFields := obj.object.publicFields
-        }})
+     : Option (Anoma.Tag × Class.SomeAppData) :=
+      match Class.Label.IntentId.fromIntentLabel (lab := obj.label) intent.label with
+      | none => none
+      | some intentId =>
+        match SomeType.cast args with
+        | none => none
+        | some args' =>
+          some
+            (Anoma.Tag.Consumed Anoma.Nullifier.todo,
+              { label := obj.label,
+                appData := {
+                  memberId := Class.Label.MemberId.intentId intentId,
+                  memberArgs := args',
+                  publicFields := obj.object.publicFields
+              }})
 
 /-- A transaction which consumes the provided objects and creates the intent. -/
-def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (currentRoot : Anoma.CommitmentRoot) : Anoma.Transaction :=
-  let action := intent.action args provided
-  { roots := [currentRoot],
-    actions := [action],
-    -- TODO: set deltaProof properly
-    deltaProof := "" }
+def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+  let action ← intent.action args provided
+  some
+    { roots := [currentRoot],
+      actions := [action],
+      -- TODO: set deltaProof properly
+      deltaProof := "" }

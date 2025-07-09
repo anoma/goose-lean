@@ -27,7 +27,7 @@ private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : 
     Std.HashMap.emptyWithCapacity
     |>.insertMany [mkTagDataPairConsumed consumed]
     |>.insertMany (List.map mkTagDataPairCreated created)
-  { Data := Class.SomeAppData,
+  { Data := ⟨Class.SomeAppData⟩,
     consumed := [(Anoma.RootedNullifiableResource.Transparent.fromResource ∘ ConsumedObject.resource) consumed],
     created := List.map CreatedObject.resource created,
     appData }

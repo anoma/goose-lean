@@ -22,3 +22,6 @@ def List.mapSome (f : A → Option B) (l : List A) : Option (List B) :=
     let bs ← mapSome f as
     let b ← f a
     some (b :: bs)
+
+def List.getSome (l : List (Option A)) : Option (List A) :=
+  l.mapSome id

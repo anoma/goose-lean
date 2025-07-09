@@ -12,13 +12,11 @@ inductive Tag where
 abbrev DeltaProof := String
 
 structure Action where
-  Data : Type u
-  [repData : TypeRep Data]
-  [beqData : BEq Data]
+  Data : SomeType.{u}
   consumed : List RootedNullifiableResource
   created : List Resource
   /-- `appData` contains public data for each resource in the action -/
-  appData : Std.HashMap Tag Data
+  appData : Std.HashMap Tag Data.type
 
 structure Transaction where
   roots : List CommitmentRoot

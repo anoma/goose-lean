@@ -67,7 +67,7 @@ def RootedNullifiableResource.Transparent.fromResource (res : Resource) : Rooted
    -- TODO: shouldn't we use a real commitment root?
    root := CommitmentRoot.todo }
 
-inductive Commitment : Type where
+inductive Commitment where
   | privateMk : Commitment
   deriving Inhabited, Repr, BEq, Hashable
 

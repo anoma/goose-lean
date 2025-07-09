@@ -11,7 +11,9 @@ namespace AVM
 structure Intent where
   /-- The type of intent arguments. -/
   Args : SomeType
-  /-- The unique label of the intent. -/
+  /-- The unique label of the intent. The textual representation (via Repr) of
+    the IntentId constructor corresponding to an intent must be equal to the
+    intent's label. -/
   label : String
   /-- The intent condition checks if the desired objects were received. Given
       intent arguments and provided objects, the intent condition is compiled to

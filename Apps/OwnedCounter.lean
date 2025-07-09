@@ -23,7 +23,9 @@ inductive Constructors where
   deriving DecidableEq, Fintype, Repr
 
 inductive Intents
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, Repr
+
+instance : FinEnum Intents := FinEnum.ofList [] (by intro x; cases x)
 
 open AVM
 

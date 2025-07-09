@@ -1,6 +1,7 @@
 import Anoma.Resource
 import Prelude
 import Mathlib.Data.Fintype.Basic
+import Mathlib.Data.FinEnum
 
 namespace AVM.Class
 
@@ -39,12 +40,12 @@ structure Label : Type (u + 1) where
   MethodArgs : MethodId -> SomeType.{u}
 
   IntentId : Type u
-  [intentsFinite : Fintype IntentId]
+  [intentsFinite : FinEnum IntentId]
   [intentsRepr : Repr IntentId]
   [intentsBEq : BEq IntentId]
   IntentArgs : IntentId -> SomeType.{u}
 
-inductive Label.MemberId (lab : Label.{u}) where
+inductive Label.MemberId (lab : Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
   | intentId (intentId : lab.IntentId) : MemberId lab
@@ -77,6 +78,10 @@ def Label.MemberId.Args {lab : Label.{u}} (memberId : MemberId lab) : SomeType.{
   | .methodId c => lab.MethodArgs c
   | .intentId i => lab.IntentArgs i
   | .falseLogicId => ⟨UUnit⟩
+
+def Label.IntentId.fromIntentLabel {lab : Label} (intentLabel : String) : Option lab.IntentId :=
+  (@FinEnum.toList lab.IntentId lab.intentsFinite).find? fun intentId =>
+    (@repr _ (lab.intentsRepr) intentId).pretty == intentLabel
 
 instance {lab : Label} : CoeHead lab.ConstructorId (Label.MemberId lab) where
   coe := Label.MemberId.constructorId
