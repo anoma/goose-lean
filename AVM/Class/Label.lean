@@ -7,7 +7,7 @@ namespace AVM.Class
 
 structure DynamicLabel (PrivateFields : Type u) : Type (u + 1) where
   {Label : SomeType}
-  mkDynamicLabel : PrivateFields -> Label.type
+  mkDynamicLabel : PrivateFields → Label.type
 
 instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) where
   default := {Label := ⟨UUnit⟩
@@ -31,13 +31,13 @@ structure Label : Type (u + 1) where
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
-  ConstructorArgs : ConstructorId -> SomeType.{u}
+  ConstructorArgs : ConstructorId → SomeType.{u}
 
   MethodId : Type u
   [methodsFinite : Fintype MethodId]
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
-  MethodArgs : MethodId -> SomeType.{u}
+  MethodArgs : MethodId → SomeType.{u}
 
   /-- The arguments for the intent member logic are UUnit.unit. -/
   IntentId : Type u

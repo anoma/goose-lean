@@ -50,7 +50,7 @@ def toObject (c : OwnedCounter) : Object lab where
 
 def fromObject (o : Object lab) : Option OwnedCounter := do
   guard (o.quantity == 1)
-  let key <- o.nullifierKeyCommitment
+  let key ← o.nullifierKeyCommitment
   some (OwnedCounter.mk (o.privateFields) key)
 
 instance hasIsObject : IsObject OwnedCounter where

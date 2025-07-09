@@ -65,7 +65,7 @@ def Object.fromResource
   (publicFields : lab.PublicFields.type)
   (res : Anoma.Resource)
   : Option (Object lab) := do
-  let privateFields : lab.PrivateFields.type <- SomeType.cast res.value
+  let privateFields : lab.PrivateFields.type ← SomeType.cast res.value
   pure { quantity := res.quantity,
          nullifierKeyCommitment := res.nullifierKeyCommitment,
          privateFields := privateFields,

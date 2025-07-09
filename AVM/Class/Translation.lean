@@ -194,7 +194,7 @@ private def logic' {lab : Label} (cls : Class lab) (args : Class.Logic.Args lab)
     -- 1. member logic corresponding to the memberId in AppData
     -- 2. class invariant for the object being consumed
     BoolCheck.run do
-      let selfObj : Object lab <- BoolCheck.some (Object.fromResource args.data.publicFields args.self)
+      let selfObj : Object lab ← BoolCheck.some (Object.fromResource args.data.publicFields args.self)
       BoolCheck.ret <|
         checkMemberLogic args.data.memberId
         && cls.invariant selfObj args
