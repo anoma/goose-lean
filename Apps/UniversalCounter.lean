@@ -37,7 +37,6 @@ def lab : Class.Label where
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
   IntentId := Intents
-  IntentArgs := fun x => nomatch x
 
 def toObject (c : Counter) : Object lab where
   publicFields := Unit.unit
