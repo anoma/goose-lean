@@ -13,9 +13,9 @@ def CommitmentRoot.todo : CommitmentRoot := 0
 /-- Representation of Anoma Resource data, without the resource logic. In the
     GOOSE model, the resource logic is determined by the `label` field (which
     contains the unique label of the class). -/
-structure Resource : Type (max u v + 1) where
-  Val : SomeType.{v}
-  Label : SomeType.{u}
+structure Resource where
+  Val : SomeType
+  Label : SomeType
   label : Label.type
   quantity : Nat
   value : Val.type
