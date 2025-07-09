@@ -15,8 +15,8 @@ structure AppData (lab : Label) where
   publicFields : lab.PublicFields.type
 
 structure SomeAppData where
-  {lab : Label}
-  appData : Class.AppData lab
+  {label : Label}
+  appData : Class.AppData label
 
 def AppData.toSomeAppData {lab : Label} (appData : Class.AppData lab) : Class.SomeAppData := {appData}
 
@@ -37,14 +37,15 @@ instance SomeAppData.hasTypeRep : TypeRep Class.SomeAppData where
 
 abbrev Logic.Args (lab : Label) := Anoma.Logic.Args (Class.AppData lab)
 
-def SomeObject.fromResource
-  (someAppData : SomeAppData)
+def SomeObject.fromResourceWithAppData
   (res : Anoma.Resource)
+  (someAppData : SomeAppData)
   : Option SomeObject := do
-  let lab : Class.Label ← tryCast res.label
+  let resLab : Object.Resource.Label ← tryCast res.label
+  let lab : Class.Label := resLab.classLabel
   match SomeType.cast someAppData.appData.publicFields with
   | none => none
   | some (publicFields : lab.PublicFields.type) =>
     match Object.fromResource publicFields res with
     | none => none
-    | some obj => pure {lab := lab, object := obj}
+    | some obj => pure {label := lab, object := obj}

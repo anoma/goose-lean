@@ -43,4 +43,3 @@ def Nullifier.todo : Nullifier := privateMk
 
 instance : TypeRep NullifierKeyCommitment where
   rep := Rep.atomic "NullifierKeyCommitment"
-

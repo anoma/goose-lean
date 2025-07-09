@@ -12,9 +12,12 @@ def Member.Logic.checkResourceData (objects : List SomeObject) (resources : List
     && List.and (List.zipWith resourceDataEq objects resources)
   where
     resourceDataEq (sobj : SomeObject) (res : Anoma.Resource) : Bool :=
-      sobj.object.quantity == res.quantity &&
+      -- NOTE: We should check the whole resource kind (label + logic) instead
+      -- of checking just the label. We should also check that the intent logic
+      -- hashes of `sobj.object` and `res` match.
+      sobj.label === res.label &&
       sobj.object.nullifierKeyCommitment! == res.nullifierKeyCommitment &&
-      sobj.lab === res.label &&
+      sobj.object.quantity == res.quantity &&
         match tryCast sobj.object.privateFields with
         | some privateFields => res.value == privateFields
         | none => false

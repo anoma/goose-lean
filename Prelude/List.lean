@@ -14,3 +14,14 @@ def List.zipWith3Exact (f : A → B → C → D) (l1 : List A) (l2 : List B) (l3
   | [], [], [] => []
   | a :: as, b :: bs, c :: cs => f a b c :: List.zipWith3Exact f as bs cs
   | _, _, _ => panic! "List.zipWith3Exact: lists must have the same length"
+
+def List.mapSome (f : A → Option B) (l : List A) : Option (List B) :=
+  match l with
+  | [] => some []
+  | a :: as => do
+    let bs ← mapSome f as
+    let b ← f a
+    some (b :: bs)
+
+def List.getSome (l : List (Option A)) : Option (List A) :=
+  l.mapSome id

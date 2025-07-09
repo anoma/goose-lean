@@ -7,6 +7,7 @@ open Applib
 
 structure Counter where
   count : Nat
+  deriving Inhabited, Repr
 
 namespace Counter
 
@@ -18,7 +19,10 @@ inductive Constructors where
   | Zero : Constructors
   deriving DecidableEq, Fintype, Repr
 
-deriving instance Inhabited for Counter
+inductive Intents
+  deriving DecidableEq, Repr
+
+instance : FinEnum Intents := FinEnum.ofList [] (by intro x; cases x)
 
 open AVM
 
@@ -32,6 +36,7 @@ def lab : Class.Label where
   ConstructorId := Constructors
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
+  IntentId := Intents
 
 def toObject (c : Counter) : Object lab where
   publicFields := Unit.unit
@@ -66,3 +71,4 @@ def counterClass : Class lab where
     | Constructors.Zero => counterConstructor
   methods := fun
     | Methods.Incr => counterIncr
+  intents := fun x => nomatch x
