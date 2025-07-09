@@ -10,21 +10,16 @@ namespace AVM
   intent logic checks the intent's condition. -/
 def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
   if args.isConsumed then
-    match Intent.ResourceData.fromResource args.self with
-    | some data => BoolCheck.run do
+    BoolCheck.run do
+      let data ← BoolCheck.some <| Intent.ResourceData.fromResource args.self
       -- We use fake values for public fields of created objects. Public fields
       -- for created resources are not available, because they are stored in app
       -- data and in RL arguments app data is available only for the `self`
       -- resource.
       let receivedObjects ← BoolCheck.some <| List.mapSome (SomeObject.fromResource (PublicFields := ⟨Unit⟩) ()) args.created
+      let argsData ← BoolCheck.some <| tryCast data.args
       BoolCheck.ret <|
-        match tryCast data.args with
-        | some argsData =>
-          intent.condition argsData data.provided receivedObjects
-        | none =>
-          false
-    | none =>
-      false
+        intent.condition argsData data.provided receivedObjects
   else
     true
 
