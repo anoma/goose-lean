@@ -27,17 +27,23 @@ structure Label : Type (u + 1) where
   /-- The dynamic label is used to put dynamic data into the Resource label -/
   DynamicLabel : DynamicLabel.{u} PrivateFields.type := default
 
-  ConstructorId : Type u
-  [constructorsFinite : Fintype ConstructorId]
-  [constructorsRepr : Repr ConstructorId]
-  [constructorsBEq : BEq ConstructorId]
-  ConstructorArgs : ConstructorId → SomeType.{u}
-
-  MethodId : Type u
+  MethodId : Type
+  MethodArgs : MethodId -> SomeType.{u}
   [methodsFinite : Fintype MethodId]
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
-  MethodArgs : MethodId → SomeType.{u}
+
+  ConstructorId : Type
+  ConstructorArgs : ConstructorId -> SomeType.{u}
+  [constructorsFinite : Fintype ConstructorId]
+  [constructorsRepr : Repr ConstructorId]
+  [constructorsBEq : BEq ConstructorId]
+
+  DestructorId : Type := Empty
+  DestructorArgs : DestructorId -> SomeType.{u} := fun _ => ⟨UUnit⟩
+  [destructorsFinite : Fintype DestructorId]
+  [destructorsRepr : Repr DestructorId]
+  [destructorsBEq : BEq DestructorId]
 
   /-- The arguments for the intent member logic are UUnit.unit. -/
   IntentId : Type u
@@ -48,6 +54,7 @@ structure Label : Type (u + 1) where
 inductive Label.MemberId (lab : Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
+  | destructorId (destructorId : lab.DestructorId) : MemberId lab
   | intentId (intentId : lab.IntentId) : MemberId lab
   /-- Signifies an "always false" member logic. This is used for the member
     logic field of app data, in the created case. It is important that "dummy"
@@ -72,10 +79,14 @@ def Label.ConstructorId.Args {lab : Label} (constrId : lab.ConstructorId) : Some
 def Label.MethodId.Args {lab : Label} (methodId : lab.MethodId) : SomeType :=
   lab.MethodArgs methodId
 
+def Label.DestructorId.Args {lab : Label} (destructorId : lab.DestructorId) : SomeType :=
+  lab.DestructorArgs destructorId
+
 def Label.MemberId.Args {lab : Label.{u}} (memberId : MemberId lab) : SomeType.{u} :=
   match memberId with
   | .constructorId c => lab.ConstructorArgs c
   | .methodId c => lab.MethodArgs c
+  | .destructorId c => lab.DestructorArgs c
   | .intentId _ => ⟨UUnit⟩
   | .falseLogicId => ⟨UUnit⟩
 
@@ -88,6 +99,9 @@ instance {lab : Label} : CoeHead lab.ConstructorId (Label.MemberId lab) where
 
 instance {lab : Label} : CoeHead lab.MethodId (Label.MemberId lab) where
   coe := Label.MemberId.methodId
+
+instance {lab : Label} : CoeHead lab.DestructorId (Label.MemberId lab) where
+  coe := Label.MemberId.destructorId
 
 instance {lab : Label} : CoeHead lab.IntentId (Label.MemberId lab) where
   coe := Label.MemberId.intentId

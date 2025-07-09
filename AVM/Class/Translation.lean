@@ -97,16 +97,15 @@ def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
     and constructor logics to create the complete resource logic for an object. -/
 def Method.logic {lab : Label} {methodId : lab.MethodId}
   (method : Class.Method methodId)
-  (publicFields : lab.PublicFields.type)
   (args : Class.Logic.Args lab)
   : Bool :=
     if args.isConsumed then
       match SomeType.cast args.data.memberArgs with
       | some argsData =>
-        let mselfObj : Option (Object lab) := Object.fromResource publicFields args.self
+        let mselfObj : Option (Object lab) := Object.fromResource args.data.publicFields args.self
         match mselfObj with
           | none => false
-          | (some selfObj) =>
+          | some selfObj =>
             let createdObjects := method.created selfObj argsData
             Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
               && Class.Member.Logic.checkResourceData createdObjects args.created
@@ -138,6 +137,55 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
 /-- Creates an Anoma Transaction for a given object method. -/
 def Method.transaction {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Anoma.NullifierKey) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
   let action ← method.action methodId self key args
+  pure { roots := [currentRoot],
+         actions := [action],
+         -- TODO: set deltaProof properly
+         deltaProof := "" }
+
+/-- Creates a logic for a given destructor. This logic is combined with other
+    member logics to create the complete resource logic for an object. -/
+def Destructor.logic {lab : Label} {destructorId : lab.DestructorId}
+  (destructor : Class.Destructor destructorId)
+  (args : Class.Logic.Args lab)
+  : Bool :=
+    if args.isConsumed then
+      match SomeType.cast args.data.memberArgs with
+      | some argsData =>
+        let mselfObj : Option (Object lab) := Object.fromResource args.data.publicFields args.self
+        match mselfObj with
+          | none => false
+          | some selfObj =>
+            Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
+              && destructor.invariant selfObj argsData
+      | none =>
+        false
+    else args.self.ephemeral
+
+def Destructor.action {label : Label} (destructorId : label.DestructorId) (_destructor : Class.Destructor destructorId) (self : Object label) (key : Anoma.NullifierKey) (args : destructorId.Args.type) : Option Anoma.Action :=
+  let resource := self.toSomeObject.toResource
+  let nullRes : Anoma.RootedNullifiableResource := {
+    key
+    resource
+    root := Anoma.CommitmentRoot.todo
+   }
+  match Anoma.nullify nullRes with
+  | none => none
+  | (some nullifier) =>
+    let consumed : ConsumedObject label :=
+      { object := self
+        key
+        nullifier
+        resource }
+    let createdObject : CreatedObject :=
+      let ephResource := { resource with ephemeral := true }
+      { object := self
+        resource := ephResource
+        commitment := ephResource.commitment }
+    Action.create label destructorId args consumed [createdObject]
+
+/-- Creates an Anoma Transaction for a given object destructor. -/
+def Destructor.transaction {lab : Label} (destructorId : lab.DestructorId) (destructor : Class.Destructor destructorId) (self : Object lab) (key : Anoma.NullifierKey) (args : destructorId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+  let action ← destructor.action destructorId self key args
   pure { roots := [currentRoot],
          actions := [action],
          -- TODO: set deltaProof properly
@@ -189,7 +237,9 @@ private def logic' {lab : Label} (cls : Class lab) (args : Class.Logic.Args lab)
       | .constructorId c =>
         Class.Constructor.logic (cls.constructors c) args
       | .methodId m =>
-        Class.Method.logic (cls.methods m) args.data.publicFields args
+        Class.Method.logic (cls.methods m) args
+      | .destructorId m =>
+        Class.Destructor.logic (cls.destructors m) args
       | .intentId i =>
         Class.Intent.logic (cls.intents i) args
       | .falseLogicId =>
