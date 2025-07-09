@@ -46,7 +46,7 @@ structure Label : Type (u + 1) where
   [destructorsBEq : BEq DestructorId]
 
   /-- The arguments for the intent member logic are UUnit.unit. -/
-  IntentId : Type u
+  IntentId : Type := Empty
   [intentsFinite : FinEnum IntentId]
   [intentsRepr : Repr IntentId]
   [intentsBEq : BEq IntentId]

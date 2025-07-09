@@ -22,6 +22,10 @@ inductive Constructors where
   | Zero : Constructors
   deriving DecidableEq, Fintype, Repr
 
+inductive Destructors where
+  | Ten : Destructors
+  deriving DecidableEq, Fintype, Repr
+
 open AVM
 
 def lab : Class.Label where
@@ -35,7 +39,7 @@ def lab : Class.Label where
   ConstructorId := Constructors
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
-  IntentId := Empty
+  DestructorId := Destructors
 
 def toObject (c : OwnedCounter) : Object lab where
   publicFields := Unit.unit
@@ -70,11 +74,16 @@ def counterIncr : @Class.Method lab Methods.Incr := defMethod OwnedCounter
 def counterTransfer : @Class.Method lab Methods.Transfer := defMethod OwnedCounter
   (body := fun (self : OwnedCounter) (newOwner : Anoma.NullifierKeyCommitment) => [{self with key := newOwner : OwnedCounter}])
 
+/-- We only allow the counter to be destroyed if its count is at least 10 -/
+def counterDestroy : @Class.Destructor lab Destructors.Ten := defDestructor
+ (invariant := fun (self : OwnedCounter) (_ : UUnit) => self.count >= 10)
+
 def counterClass : Class lab where
   constructors := fun
     | Constructors.Zero => counterConstructor
   methods := fun
     | Methods.Incr => counterIncr
     | Methods.Transfer => counterTransfer
-  destructors := fun x => Empty.elim x
+  destructors := fun
+    | Destructors.Ten => counterDestroy
   intents := fun x => Empty.elim x
