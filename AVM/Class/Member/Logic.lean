@@ -16,6 +16,7 @@ def Member.Logic.checkResourceData (objects : List SomeObject) (resources : List
       -- of checking just the label. We should also check that the intent logic
       -- hashes of `sobj.object` and `res` match.
       sobj.label === res.label &&
+      sobj.object.nullifierKeyCommitment! == res.nullifierKeyCommitment &&
       sobj.object.quantity == res.quantity &&
         match tryCast sobj.object.privateFields with
         | some privateFields => res.value == privateFields

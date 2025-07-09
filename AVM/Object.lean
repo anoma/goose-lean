@@ -17,7 +17,7 @@ structure Object (lab : Class.Label) where
   deriving BEq
 
 instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
-  rep := Rep.atomic ("AVM.Object" ++ lab.name)
+  rep := Rep.atomic ("AVM.Object_" ++ lab.name)
 
 structure SomeObject where
   {label : Class.Label}
@@ -28,6 +28,9 @@ instance SomeObject.hasTypeRep : TypeRep SomeObject where
 
 instance SomeObject.hasBEq : BEq SomeObject where
   beq a b := a.label === b.label && a.object === b.object
+
+def Object.nullifierKeyCommitment! {lab : Class.Label} (o : Object lab) : Anoma.NullifierKeyCommitment :=
+  o.nullifierKeyCommitment.getD Anoma.NullifierKeyCommitment.universal
 
 def Object.toSomeObject {lab : Class.Label} (object : Object lab) : SomeObject := {object}
 
@@ -55,7 +58,7 @@ def SomeObject.toResource (sobj : SomeObject)
     value := obj.privateFields,
     ephemeral := ephemeral,
     nonce,
-    nullifierKeyCommitment := obj.nullifierKeyCommitment.getD Anoma.NullifierKeyCommitment.universal}
+    nullifierKeyCommitment := obj.nullifierKeyCommitment!}
 
 def Object.fromResource
   {lab : Class.Label}
