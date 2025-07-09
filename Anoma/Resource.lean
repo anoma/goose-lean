@@ -23,6 +23,14 @@ structure Resource where
   nonce : Nonce
   nullifierKeyCommitment : NullifierKeyCommitment
 
+instance Resource.instBEq : BEq Resource where
+  beq a b := a.label === b.label
+    && a.quantity == b.quantity
+    && a.value === b.value
+    && a.ephemeral === b.ephemeral
+    && a.nonce === b.nonce
+    && a.nullifierKeyCommitment === b.nullifierKeyCommitment
+
 structure Logic.Args (Data : Type u) where
   self : Resource
   status : ConsumedCreated
@@ -60,12 +68,6 @@ def nullifyUniversal (res : RootedNullifiableResource) (p1 : res.resource.nullif
   simp
   constructor
   simp
-
-def RootedNullifiableResource.Transparent.fromResource (res : Resource) : RootedNullifiableResource  :=
- { key := NullifierKey.universal,
-   resource := res,
-   -- TODO: shouldn't we use a real commitment root?
-   root := CommitmentRoot.todo }
 
 inductive Commitment where
   | privateMk : Commitment

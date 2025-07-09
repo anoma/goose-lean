@@ -2,6 +2,7 @@
 import Prelude
 import Anoma
 import AVM.Class
+import AVM.Object
 import AVM.Class.Member
 import AVM.Class.Member.Logic
 
@@ -13,11 +14,6 @@ private structure CreatedObject where
   resource : Anoma.Resource
   commitment : Anoma.Commitment
 
-private structure ConsumedObject (lab : Label) where
-  object : Object lab
-  resource : Anoma.Resource
-  nullifier : Anoma.Nullifier
-
 /-- Helper function to create an Action. -/
 private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : memberId.Args.type)
   (consumed : ConsumedObject lab)
@@ -28,7 +24,7 @@ private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : 
     |>.insertMany [mkTagDataPairConsumed consumed]
     |>.insertMany (List.map mkTagDataPairCreated created)
   { Data := ⟨Class.SomeAppData⟩,
-    consumed := [(Anoma.RootedNullifiableResource.Transparent.fromResource ∘ ConsumedObject.resource) consumed],
+    consumed := [consumed.toRootedNullifiableResource],
     created := List.map CreatedObject.resource created,
     appData }
   where
@@ -38,8 +34,7 @@ private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : 
         { appData := {
             memberId,
             memberArgs := args,
-            publicFields := i.object.publicFields
-        }})
+            publicFields := i.object.publicFields }})
 
     mkTagDataPairCreated (i : CreatedObject)
      : Anoma.Tag × Class.SomeAppData :=
@@ -48,8 +43,7 @@ private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : 
          appData := {
           memberId := Label.MemberId.falseLogicId,
           memberArgs := UUnit.unit,
-          publicFields := i.object.publicFields
-        }})
+          publicFields := i.object.publicFields }})
 
 /-- Creates a logic for a given constructor. This logic is combined with other
     method and constructor logics to create the complete resource logic for an
@@ -85,6 +79,7 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
     let newRes : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
     let consumed : ConsumedObject lab := { object := newObj
                                            nullifier := null
+                                           key := Anoma.NullifierKey.universal
                                            resource := ephRes }
     let created : List CreatedObject :=
        [{ object := newObj
@@ -126,11 +121,11 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
       -- TODO: may need to do something more here in general, fine for the counter
       true
 
-def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Option Anoma.NullifierKey) (args : methodId.Args.type) : Option Anoma.Action :=
+def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Anoma.NullifierKey) (args : methodId.Args.type) : Option Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
   let resource := self.toSomeObject.toResource
   let nullRes : Anoma.RootedNullifiableResource := {
-    key := key.getD Anoma.NullifierKey.universal
+    key
     resource
     root := Anoma.CommitmentRoot.todo
    }
@@ -139,6 +134,7 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
   | (some nullifier) =>
     let consumed : ConsumedObject lab :=
       { object := self
+        key
         nullifier
         resource := self.toSomeObject.toResource }
     let createObject (o : SomeObject) : CreatedObject  :=
@@ -151,7 +147,7 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
     Action.create lab methodId args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
-def Method.transaction {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Option Anoma.NullifierKey) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+def Method.transaction {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Anoma.NullifierKey) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
   let action ← method.action methodId self key args
   pure { roots := [currentRoot],
          actions := [action],
@@ -177,7 +173,7 @@ def Intent.logic {lab : Label} (intent : Intent) (args : Class.Logic.Args lab) :
         intentRes.label === intent.label
         && intentRes.quantity == 1
         && intentRes.ephemeral
-        && Member.Logic.checkResourceData data.provided args.consumed
+        && Member.Logic.checkResourceData (List.map SomeConsumedObject.toSomeObject data.provided) args.consumed
     | _ =>
       false
   else

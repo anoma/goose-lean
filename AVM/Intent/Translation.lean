@@ -30,12 +30,12 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
         Class.Member.Logic.checkResourceData data.provided args.consumed
 
 /-- An action which consumes the provided objects and creates the intent. -/
-def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) : Option Anoma.Action :=
-  -- TODO: set nonce and nullifierKeyCommitment properly
-  let consumedObjects := provided
-  let consumedResources := List.map SomeObject.toResource consumedObjects
+def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeConsumedObject) : Option Anoma.Action :=
+  -- TODO: set nonce properly
+  -- let consumedObjects := provided
+  -- let consumedResources := List.map SomeObject.toResource consumedObjects
   let intentResource := Intent.toResource intent args provided
-  match (List.zipWithExact mkTagDataPairConsumed consumedObjects consumedResources).getSome with
+  match (List.map mkTagDataPairConsumed provided).getSome with
   | none => none
   | some appDataPairs =>
     let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
@@ -43,11 +43,11 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
       |>.insertMany appDataPairs
     some
       { Data := ⟨Class.SomeAppData⟩,
-        consumed := List.map Anoma.RootedNullifiableResource.Transparent.fromResource consumedResources,
+        consumed := List.map SomeConsumedObject.toRootedNullifiableResource provided,
         created := [intentResource],
         appData }
   where
-    mkTagDataPairConsumed (obj : SomeObject) (_res : Anoma.Resource)
+    mkTagDataPairConsumed (obj : SomeConsumedObject)
      : Option (Anoma.Tag × Class.SomeAppData) :=
       match Class.Label.IntentId.fromIntentLabel (lab := obj.label) intent.label with
       | none => none
@@ -58,11 +58,10 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
               appData := {
                 memberId := Class.Label.MemberId.intentId intentId,
                 memberArgs := UUnit.unit,
-                publicFields := obj.object.publicFields
-            }})
+                publicFields := obj.consumed.object.publicFields }})
 
 /-- A transaction which consumes the provided objects and creates the intent. -/
-def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeConsumedObject) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
   let action ← intent.action args provided
   some
     { roots := [currentRoot],

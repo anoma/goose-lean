@@ -20,13 +20,13 @@ structure Intent where
   /-- The intent condition checks if the desired objects were received. Given
       intent arguments and provided objects, the intent condition is compiled to
       the resource logic of the resource intent. -/
-  condition : Args.type → (provided : List SomeObject) → (received : List SomeObject) → Bool
+  condition : Args.type → (provided : List SomeConsumedObject) → (received : List SomeObject) → Bool
 
 /-- Intent.ResourceData is stored in the `value` field of the intent resource. -/
-structure Intent.ResourceData where
-  Args : SomeType
+structure Intent.ResourceData.{u} where
+  Args : SomeType.{u}
   args : Args.type
-  provided : List SomeObject
+  provided : List SomeConsumedObject.{u, u}
 
 instance Intent.ResourceData.hasTypeRep : TypeRep ResourceData where
   rep := Rep.atomic "AVM.Intent.ResourceData"
@@ -35,7 +35,7 @@ instance Intent.ResourceData.hasBEq : BEq Intent.ResourceData where
   beq a b :=
     a.args === b.args && a.provided == b.provided
 
-def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (nonce := 0) (nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default) : Anoma.Resource :=
+def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : List SomeConsumedObject) (nonce := 0) (nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default) : Anoma.Resource :=
   { Val := ⟨Intent.ResourceData⟩,
     Label := ⟨String⟩,
     label := intent.label,
@@ -49,5 +49,5 @@ def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : Li
     nonce,
     nullifierKeyCommitment }
 
-def Intent.ResourceData.fromResource (res : Anoma.Resource.{u,v}) : Option Intent.ResourceData.{u,v} :=
+def Intent.ResourceData.fromResource (res : Anoma.Resource.{u,v}) : Option Intent.ResourceData.{u, u} :=
   tryCast res.value
