@@ -32,8 +32,6 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
 /-- An action which consumes the provided objects and creates the intent. -/
 def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeConsumedObject) : Option Anoma.Action :=
   -- TODO: set nonce properly
-  -- let consumedObjects := provided
-  -- let consumedResources := List.map SomeObject.toResource consumedObjects
   let intentResource := Intent.toResource intent args provided
   match (List.map mkTagDataPairConsumed provided).getSome with
   | none => none
