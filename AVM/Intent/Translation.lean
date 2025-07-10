@@ -21,7 +21,13 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
       BoolCheck.ret <|
         intent.condition argsData data.provided receivedObjects
   else
-    true
+    -- In the created case, we need to check that the list of provided objects
+    -- corresponds to the list consumed resources. See:
+    -- https://github.com/anoma/goose-lean/issues/32.
+    BoolCheck.run do
+      let data ← BoolCheck.some <| Intent.ResourceData.fromResource args.self
+      BoolCheck.ret <|
+        Class.Member.Logic.checkResourceData data.provided args.consumed
 
 /-- An action which consumes the provided objects and creates the intent. -/
 def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) : Option Anoma.Action :=
