@@ -30,7 +30,7 @@ private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : 
   where
     mkTagDataPairConsumed (i : ConsumedObject lab)
      : Anoma.Tag × Class.SomeAppData :=
-      (Anoma.Tag.Consumed i.nullifier,
+      (Anoma.Tag.Consumed i.nullifierProof.nullifier,
         { appData := {
             memberId,
             memberArgs := args,
@@ -70,21 +70,16 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
   : Anoma.Action :=
     -- TODO: set nonce properly
     let newObj : Object lab := constr.created args
-    let ephRes : Anoma.Resource := {SomeObject.toResource (ephemeral := true) newObj.toSomeObject with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal}
-    let rootedEph : Anoma.RootedNullifiableResource :=
-           { key := Anoma.NullifierKey.universal
-             resource := ephRes
-             root := Anoma.CommitmentRoot.todo }
-    let ⟨null, _⟩ := Anoma.nullifyUniversal rootedEph rfl rfl
-    let newRes : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
-    let consumed : ConsumedObject lab := { object := newObj
-                                           nullifier := null
-                                           key := Anoma.NullifierKey.universal
-                                           resource := ephRes }
+    let consumable : ConsumableObject lab :=
+       { object := {newObj with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal}
+         ephemeral := true
+         key := Anoma.NullifierKey.universal }
+    let consumed : ConsumedObject lab := { consumable with nullifierProof := Anoma.nullifyUniversal consumable.resource consumable.key rfl rfl }
+    let createdResource : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
     let created : List CreatedObject :=
        [{ object := newObj
-          resource := newRes
-          commitment := newRes.commitment }]
+          resource := createdResource
+          commitment := createdResource.commitment }]
     Action.create lab constrId args consumed created
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
@@ -123,22 +118,15 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
 
 def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Anoma.NullifierKey) (args : methodId.Args.type) : Option Anoma.Action :=
   -- TODO: set nonce and nullifierKeyCommitment properly
-  let resource := self.toSomeObject.toResource
-  let nullRes : Anoma.RootedNullifiableResource := {
-    key
-    resource
-    root := Anoma.CommitmentRoot.todo
-   }
-  match Anoma.nullify nullRes with
+  let consumable : ConsumableObject lab :=
+      { key
+        object := self
+        ephemeral := false }
+  match consumable.consume with
   | none => none
-  | (some nullifier) =>
-    let consumed : ConsumedObject lab :=
-      { object := self
-        key
-        nullifier
-        resource := self.toSomeObject.toResource }
-    let createObject (o : SomeObject) : CreatedObject  :=
-      let res := o.toResource
+  | some consumed =>
+    let createObject (o : SomeObject) : CreatedObject :=
+      let res : Anoma.Resource := o.toResource false
       { object := o.object
         resource := res
         commitment := res.commitment }

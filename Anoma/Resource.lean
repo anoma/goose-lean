@@ -46,28 +46,45 @@ structure ResourceWithLogic (Data : Type u) where
   val : Resource
   logic : Logic.Args Data → Bool
 
+/-- A proof that `key` can nullify the resources `res`
+ TODO should the commitment root be a parameter also? -/
+structure NullifierProof (key : NullifierKey) (res : Resource) : Prop where
+  proof : NullifierKeyProof key res.nullifierKeyCommitment
+
+/-- Cast from a NullifierProof to a Nullifier. This is a no-op -/
+def NullifierProof.nullifier {key : NullifierKey} {res : Resource} (_proof : NullifierProof key res) : Nullifier := Nullifier.privateMk
+
 structure RootedNullifiableResource where
   key : NullifierKey
   resource : Resource
   root : CommitmentRoot
+  -- The nullifierProof field is not part of the specs.
+  -- However, it is useful to keep it in the model in order
+  -- to make the relation between key and resource explicit
+  nullifierProof : NullifierProof key resource
 
 -- TODO placeholder implementation
 /-- If the key matches the resource.nullifierKeyCommitment then it returns the nullifier of the resource -/
-def nullify (res : RootedNullifiableResource) : Option Nullifier :=
-  if checkNullifierKey res.key res.resource.nullifierKeyCommitment
-  then some .privateMk
-  else none
+def nullify (key : Anoma.NullifierKey) (res : Resource) : Decidable (NullifierProof key res) :=
+  match checkNullifierKey key res.nullifierKeyCommitment with
+  | isTrue p => isTrue
+     (by
+       constructor
+       exact p)
+  | isFalse n => isFalse
+     (by
+       intro h
+       cases h
+       contradiction)
 
-def nullifyUniversal (res : RootedNullifiableResource) (p1 : res.resource.nullifierKeyCommitment = .universal) (p2 : res.key = .universal)
-  : Σ n : Nullifier, PLift (nullify res = some n)
+def nullifyUniversal (res : Resource) (key : Anoma.NullifierKey)
+  (p1 : key = .universal)
+  (p2 : res.nullifierKeyCommitment = .universal)
+  : NullifierProof key res
   := by
-  exists .privateMk
-  unfold nullify
-  unfold checkNullifierKey
-  rw [p1, p2]
-  simp
   constructor
-  simp
+  rw [p1, p2]
+  constructor
 
 inductive Commitment where
   | privateMk : Commitment

@@ -27,7 +27,7 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
     BoolCheck.run do
       let data ← BoolCheck.some <| Intent.ResourceData.fromResource args.self
       BoolCheck.ret <|
-        Class.Member.Logic.checkResourceData data.provided args.consumed
+        Class.Member.Logic.checkResourceData (List.map SomeConsumedObject.toSomeObject data.provided) args.consumed
 
 /-- An action which consumes the provided objects and creates the intent. -/
 def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeConsumedObject) : Option Anoma.Action :=
