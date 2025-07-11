@@ -11,6 +11,8 @@ structure Class (lab : Class.Label) where
   constructors : (c : lab.ConstructorId) → Class.Constructor c
   /-- The methods of the class. -/
   methods : (m : lab.MethodId) → Class.Method m
+  /-- The destructors of the class. -/
+  destructors : (m : lab.DestructorId) -> Class.Destructor m
   /-- The intents known by and allowed for the class. The intents are not
     uniquely associated with a class. In contrast to constructors and methods,
     an intent can be a member of multiple different classes. -/

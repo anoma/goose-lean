@@ -72,3 +72,4 @@ def counterClass : Class lab where
   methods := fun
     | Methods.Incr => counterIncr
   intents := fun x => nomatch x
+  destructors := fun x => Empty.elim x
