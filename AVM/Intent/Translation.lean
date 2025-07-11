@@ -3,6 +3,7 @@ import Prelude
 import AVM.Intent
 import AVM.Class.Member.Logic
 import AVM.Class.AppData
+import AVM.Object.Consumable
 
 namespace AVM
 
@@ -30,40 +31,40 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
         Class.Member.Logic.checkResourceData data.provided args.consumed
 
 /-- An action which consumes the provided objects and creates the intent. -/
-def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) : Option Anoma.Action :=
-  -- TODO: set nonce and nullifierKeyCommitment properly
-  let consumedObjects := provided
-  let consumedResources := List.map SomeObject.toResource consumedObjects
+def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) : Option Anoma.Action := do
+  -- TODO: set nonce properly
   let intentResource := Intent.toResource intent args provided
-  match (List.zipWithExact mkTagDataPairConsumed consumedObjects consumedResources).getSome with
+  match (List.map (fun p => (p.toConsumable false key).consume) provided).getSome with
   | none => none
-  | some appDataPairs =>
-    let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
-      Std.HashMap.emptyWithCapacity
-      |>.insertMany appDataPairs
-    some
-      { Data := ⟨Class.SomeAppData⟩,
-        consumed := List.map Anoma.RootedNullifiableResource.Transparent.fromResource consumedResources,
-        created := [intentResource],
-        appData }
-  where
-    mkTagDataPairConsumed (obj : SomeObject) (_res : Anoma.Resource)
-     : Option (Anoma.Tag × Class.SomeAppData) :=
-      match Class.Label.IntentId.fromIntentLabel (lab := obj.label) intent.label with
-      | none => none
-      | some intentId =>
-        some
-          (Anoma.Tag.Consumed Anoma.Nullifier.todo,
-            { label := obj.label,
-              appData := {
-                memberId := Class.Label.MemberId.intentId intentId,
-                memberArgs := UUnit.unit,
-                publicFields := obj.object.publicFields
-            }})
+  | some providedConsumed =>
+    match (List.map mkTagDataPairConsumed providedConsumed).getSome with
+    | none => none
+    | some appDataPairs =>
+      let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
+        Std.HashMap.emptyWithCapacity
+        |>.insertMany appDataPairs
+      some
+        { Data := ⟨Class.SomeAppData⟩,
+          consumed := List.map SomeConsumedObject.toRootedNullifiableResource providedConsumed,
+          created := [intentResource],
+          appData }
+    where
+      mkTagDataPairConsumed (c : SomeConsumedObject)
+       : Option (Anoma.Tag × Class.SomeAppData) :=
+        match Class.Label.IntentId.fromIntentLabel (lab := c.label) intent.label with
+        | none => none
+        | some intentId =>
+          some
+            (Anoma.Tag.Consumed c.consumed.nullifierProof.nullifier,
+              { label := c.label,
+                appData := {
+                  memberId := Class.Label.MemberId.intentId intentId,
+                  memberArgs := UUnit.unit,
+                  publicFields := c.consumed.object.publicFields }})
 
 /-- A transaction which consumes the provided objects and creates the intent. -/
-def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
-  let action ← intent.action args provided
+def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+  let action ← intent.action args provided key
   some
     { roots := [currentRoot],
       actions := [action],

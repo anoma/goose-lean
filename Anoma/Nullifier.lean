@@ -21,11 +21,19 @@ inductive NullifierKeyCommitment where
 instance NullifierKeyCommitment.instInhabited : Inhabited NullifierKeyCommitment where
   default := .universal
 
-def checkNullifierKey (nk : NullifierKey) (nfc : NullifierKeyCommitment) : Bool :=
-  match nk, nfc with
-   | .universal, .universal => true
-   | .secret k1, .ofSecret k2 => k1 == k2
-   | _, _ => false
+/-- A proof that a NullifierKey matches a NullifierKeyCommitment -/
+inductive NullifierKeyProof : (key : NullifierKey) → (nfc : NullifierKeyCommitment) → Prop where
+  | universal : NullifierKeyProof .universal .universal
+  | secret : {n m : Nat} → n = m → NullifierKeyProof (.secret n) (.ofSecret m)
+
+def checkNullifierKey (key : NullifierKey) (nfc : NullifierKeyCommitment) : Decidable (NullifierKeyProof key nfc) :=
+  match key, nfc with
+   | .universal, .universal => isTrue .universal
+   | .secret n, .ofSecret m => match decEq n m with
+     | isTrue p => isTrue (.secret p)
+     | isFalse np => isFalse (fun h => match h with | .secret p' => np p')
+   | .universal, .ofSecret _ => isFalse (fun h => nomatch h)
+   | .secret _, .universal => isFalse (fun h => nomatch h)
 
 /-- Computes the commitment of a NullifierKey -/
 def NullifierKey.commitment (k : NullifierKey) : NullifierKeyCommitment :=
@@ -37,9 +45,6 @@ def NullifierKey.commitment (k : NullifierKey) : NullifierKeyCommitment :=
 inductive Nullifier where
   | privateMk : Nullifier
   deriving Repr, BEq, Hashable
-
-/-- Temporary nullifier that should eventually be replaced with a proper one -/
-def Nullifier.todo : Nullifier := privateMk
 
 instance : TypeRep NullifierKeyCommitment where
   rep := Rep.atomic "NullifierKeyCommitment"

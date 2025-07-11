@@ -23,10 +23,10 @@ structure Intent where
   condition : Args.type → (provided : List SomeObject) → (received : List SomeObject) → Bool
 
 /-- Intent.ResourceData is stored in the `value` field of the intent resource. -/
-structure Intent.ResourceData where
-  Args : SomeType
+structure Intent.ResourceData.{u} where
+  Args : SomeType.{u}
   args : Args.type
-  provided : List SomeObject
+  provided : List SomeObject.{u}
 
 instance Intent.ResourceData.hasTypeRep : TypeRep ResourceData where
   rep := Rep.atomic "AVM.Intent.ResourceData"
@@ -49,5 +49,5 @@ def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : Li
     nonce,
     nullifierKeyCommitment }
 
-def Intent.ResourceData.fromResource (res : Anoma.Resource.{u,v}) : Option Intent.ResourceData.{u,v} :=
+def Intent.ResourceData.fromResource (res : Anoma.Resource.{u,v}) : Option Intent.ResourceData.{u} :=
   tryCast res.value

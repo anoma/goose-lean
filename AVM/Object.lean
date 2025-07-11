@@ -19,6 +19,9 @@ structure Object (lab : Class.Label) where
 instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
   rep := Rep.atomic ("AVM.Object_" ++ lab.name)
 
+def Object.nullifierKeyCommitment! {lab : Class.Label} (o : Object lab) : Anoma.NullifierKeyCommitment :=
+  o.nullifierKeyCommitment.getD Anoma.NullifierKeyCommitment.universal
+
 structure SomeObject where
   {label : Class.Label}
   object : Object label
@@ -28,9 +31,6 @@ instance SomeObject.hasTypeRep : TypeRep SomeObject where
 
 instance SomeObject.hasBEq : BEq SomeObject where
   beq a b := a.label === b.label && a.object === b.object
-
-def Object.nullifierKeyCommitment! {lab : Class.Label} (o : Object lab) : Anoma.NullifierKeyCommitment :=
-  o.nullifierKeyCommitment.getD Anoma.NullifierKeyCommitment.universal
 
 def Object.toSomeObject {lab : Class.Label} (object : Object lab) : SomeObject := {object}
 
@@ -47,10 +47,10 @@ instance : BEq Object.Resource.Label where
   beq o1 o2 := o1.classLabel == o2.classLabel && o1.dynamicLabel === o2.dynamicLabel
 
 def SomeObject.toResource (sobj : SomeObject)
-    (ephemeral := false) (nonce := 0)
+    (ephemeral : Bool) (nonce := 0)
     : Anoma.Resource :=
   let lab := sobj.label
-  let obj := sobj.object
+  let obj : Object lab := sobj.object
   { Val := lab.PrivateFields,
     Label := ⟨Object.Resource.Label⟩,
     label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.privateFields⟩,
@@ -59,6 +59,9 @@ def SomeObject.toResource (sobj : SomeObject)
     ephemeral := ephemeral,
     nonce,
     nullifierKeyCommitment := obj.nullifierKeyCommitment!}
+
+def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) : Anoma.Resource
+ := obj.toSomeObject.toResource ephemeral
 
 def Object.fromResource
   {lab : Class.Label}
