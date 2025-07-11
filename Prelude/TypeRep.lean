@@ -6,8 +6,8 @@ open Lean Elab Command Meta
 
 inductive Rep where
   /-- `Rep.atomic` is used for types without parameters (these can be uniquely
-    identified by the type name) -/
-  | atomic (name : String)
+    identified by the type name) or parameter values. -/
+  | atomic (encoding : String)
   /-- `Rep.composite` is used for parameterised data types -/
   | composite (name : String) (params : List Rep)
 deriving Inhabited, Repr, BEq

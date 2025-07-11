@@ -27,7 +27,7 @@ instance AppData.hasBEq {lab : Label} : BEq (Class.AppData lab) where
     && a.memberArgs === b.memberArgs
 
 instance AppData.hasTypeRep {lab : Label} : TypeRep (Class.AppData lab) where
-  rep := Rep.atomic ("AVM.Class.AppData_" ++ lab.name)
+  rep := Rep.composite "AVM.Class.AppData" [Rep.atomic lab.name]
 
 instance SomeAppData.hasBeq : BEq Class.SomeAppData where
   beq a b := a.appData === b.appData
