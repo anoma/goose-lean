@@ -4,6 +4,11 @@ namespace Applib
 
 open AVM
 
+def noIntents {A : Type u} : Empty -> A := Empty.elim
+
+macro "noDestructors" : term => `(fun x => Empty.elim x)
+macro "noMethods" : term => `(fun x => Empty.elim x)
+
 class IsObject (s : Type) where
   lab : Class.Label
   toObject : s → Object lab
@@ -49,3 +54,4 @@ def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.lab.Destructor
     match i.fromObject self with
     | none => false
     | some self' => invariant self' args
+

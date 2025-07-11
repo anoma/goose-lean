@@ -86,4 +86,4 @@ def counterClass : Class lab where
     | Methods.Transfer => counterTransfer
   destructors := fun
     | Destructors.Ten => counterDestroy
-  intents := fun x => Empty.elim x
+  intents := noIntents
