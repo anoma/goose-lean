@@ -14,7 +14,7 @@ structure Class (lab : Class.Label) where
   /-- The destructors of the class. -/
   destructors : (m : lab.DestructorId) -> Class.Destructor m
   /-- The intents known by and allowed for the class. The intents are not
-    uniquely associated with a class. In contrast to constructors and methods,
+    uniquely associated with a class. In contrast to constructors, destructors and methods,
     an intent can be a member of multiple different classes. -/
   intents : lab.IntentId → Intent
   /-- Extra class-specific logic. The whole resource logic function for an
