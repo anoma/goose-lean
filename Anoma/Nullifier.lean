@@ -31,19 +31,9 @@ def checkNullifierKey (key : NullifierKey) (nfc : NullifierKeyCommitment) : Deci
    | .universal, .universal => isTrue .universal
    | .secret n, .ofSecret m => match decEq n m with
      | isTrue p => isTrue (.secret p)
-     | isFalse np => isFalse
-        (by
-          intro h
-          cases h
-          contradiction)
-   | .universal, .ofSecret m => isFalse
-        (by
-          intro h
-          cases h)
-   | .secret n, .universal => isFalse
-        (by
-          intro h
-          cases h)
+     | isFalse np => isFalse (fun h => match h with | .secret p' => np p')
+   | .universal, .ofSecret _ => isFalse (fun h => nomatch h)
+   | .secret _, .universal => isFalse (fun h => nomatch h)
 
 /-- Computes the commitment of a NullifierKey -/
 def NullifierKey.commitment (k : NullifierKey) : NullifierKeyCommitment :=
