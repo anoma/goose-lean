@@ -22,7 +22,7 @@ structure Destructor {lab : Label} (destructorId : lab.DestructorId) where
   /-- Extra destructor logic. -/
   invariant : (self : Object lab) → destructorId.Args.type → Bool
 
-/-- A class member is a method, a constructor or an intent. A single intent can
+/-- A class member is a constructor, a destructor, a method or an intent. A single intent can
   be a member in multiple classes, but each constructor and method is a member
   of a unique class. -/
 inductive Member (lab : Label) where
