@@ -28,12 +28,12 @@ def defMethod (cl : Type) [i : IsObject cl] {methodId : i.lab.MethodId}
  : Class.Method methodId where
     invariant (self : Object i.lab) (args : methodId.Args.type) :=
       match i.fromObject self with
-        | none => false
-        | (some self') => invariant self' args
+      | none => false
+      | some self' => invariant self' args
     created (self : Object i.lab) (args : methodId.Args.type) :=
       match i.fromObject self with
-        | none => []
-        | (some self') => List.map AnObject.toSomeObject (body self' args)
+      | none => []
+      | some self' => List.map AnObject.toSomeObject (body self' args)
 
 def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.lab.ConstructorId}
  (body : constrId.Args.type → cl)
@@ -41,3 +41,11 @@ def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.lab.ConstructorId
  : Class.Constructor constrId where
     invariant (args : constrId.Args.type) := invariant args
     created (args : constrId.Args.type) := i.toObject (body args)
+
+def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.lab.DestructorId}
+ (invariant : (self : cl) -> destructorId.Args.type → Bool := fun _ _ => true)
+ : Class.Destructor destructorId  where
+    invariant (self : Object i.lab) (args : destructorId.Args.type) :=
+    match i.fromObject self with
+    | none => false
+    | some self' => invariant self' args
