@@ -69,10 +69,7 @@ structure ConsumableObject (lab : Class.Label) where
   key : Anoma.NullifierKey
   deriving BEq
 
-structure ConsumedObject (lab : Class.Label) where
-  object : Object lab
-  ephemeral : Bool
-  key : Anoma.NullifierKey
+structure ConsumedObject (lab : Class.Label) extends ConsumableObject lab where
   nullifierProof : Anoma.NullifierProof key (object.toResource ephemeral)
 
 def ConsumedObject.toConsumable {lab : Class.Label} (c : ConsumedObject lab) : ConsumableObject lab :=
