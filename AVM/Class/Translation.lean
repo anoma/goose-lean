@@ -162,22 +162,15 @@ def Destructor.logic {lab : Label} {destructorId : lab.DestructorId}
     else args.self.ephemeral
 
 def Destructor.action {label : Label} (destructorId : label.DestructorId) (_destructor : Class.Destructor destructorId) (self : Object label) (key : Anoma.NullifierKey) (args : destructorId.Args.type) : Option Anoma.Action :=
-  let resource := self.toSomeObject.toResource
-  let nullRes : Anoma.RootedNullifiableResource := {
-    key
-    resource
-    root := Anoma.CommitmentRoot.todo
-   }
-  match Anoma.nullify nullRes with
+  let consumable : ConsumableObject label :=
+       { key
+         object := self
+         ephemeral := false }
+  match consumable.consume with
   | none => none
-  | (some nullifier) =>
-    let consumed : ConsumedObject label :=
-      { object := self
-        key
-        nullifier
-        resource }
+  | some consumed =>
     let createdObject : CreatedObject :=
-      let ephResource := { resource with ephemeral := true }
+      let ephResource := { consumed.resource with ephemeral := true }
       { object := self
         resource := ephResource
         commitment := ephResource.commitment }
