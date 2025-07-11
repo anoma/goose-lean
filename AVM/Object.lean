@@ -17,7 +17,7 @@ structure Object (lab : Class.Label) where
   deriving BEq
 
 instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
-  rep := Rep.atomic ("AVM.Object_" ++ lab.name)
+  rep := Rep.composite "AVM.Object" [Rep.atomic lab.name]
 
 def Object.nullifierKeyCommitment! {lab : Class.Label} (o : Object lab) : Anoma.NullifierKeyCommitment :=
   o.nullifierKeyCommitment.getD Anoma.NullifierKeyCommitment.universal

@@ -34,10 +34,10 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
 def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) : Option Anoma.Action := do
   -- TODO: set nonce properly
   let intentResource := Intent.toResource intent args provided
-  match (List.map (fun p => (p.toConsumable false key).consume) provided).getSome with
+  match provided.map (fun p => p.toConsumable false key |>.consume) |>.getSome with
   | none => none
   | some providedConsumed =>
-    match (List.map mkTagDataPairConsumed providedConsumed).getSome with
+    match providedConsumed.map mkTagDataPairConsumed |>.getSome with
     | none => none
     | some appDataPairs =>
       let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=

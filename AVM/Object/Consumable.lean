@@ -34,7 +34,7 @@ instance ConsumedObject.instBEq {lab : Class.Label} : BEq (ConsumedObject lab) w
   beq a b := BEq.beq a.toConsumable b.toConsumable
 
 instance ConsumedObject.hasTypeRep (lab : Class.Label) : TypeRep (ConsumedObject lab) where
-  rep := Rep.atomic ("AVM.ConsumedObject_" ++ lab.name)
+  rep := Rep.composite "AVM.ConsumedObject" [Rep.atomic lab.name]
 
 structure SomeConsumedObject where
   {label : Class.Label}
