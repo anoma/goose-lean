@@ -19,11 +19,6 @@ inductive Constructors where
   | Zero : Constructors
   deriving DecidableEq, Fintype, Repr
 
-inductive Intents
-  deriving DecidableEq, Repr
-
-instance : FinEnum Intents := FinEnum.ofList [] (by intro x; cases x)
-
 open AVM
 
 def lab : Class.Label where
@@ -36,7 +31,6 @@ def lab : Class.Label where
   ConstructorId := Constructors
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
-  IntentId := Intents
 
 def toObject (c : Counter) : Object lab where
   publicFields := Unit.unit
@@ -71,5 +65,5 @@ def counterClass : Class lab where
     | Constructors.Zero => counterConstructor
   methods := fun
     | Methods.Incr => counterIncr
-  intents := fun x => nomatch x
+  intents := fun x => Empty.elim x
   destructors := fun x => Empty.elim x
