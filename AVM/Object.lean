@@ -130,11 +130,11 @@ def ConsumableObject.consume {lab : Class.Label} (c : ConsumableObject lab) : Op
   let resource := c.object.toResource c.ephemeral
   match Anoma.nullify c.key resource with
   | isFalse _ => none
-  | isTrue null => pure
+  | isTrue nullifier => pure
        { object := c.object
          ephemeral := c.ephemeral
          key := c.key
-         nullifierProof := null }
+         nullifierProof := nullifier }
 
 def ConsumedObject.toRootedNullifiableResource {lab : Class.Label} (c : ConsumedObject lab) : Anoma.RootedNullifiableResource where
   key := c.key
