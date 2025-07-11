@@ -6,11 +6,8 @@ open AVM
 
 def noIntents {A : Type u} : Empty -> A := Empty.elim
 
-syntax (name := noDestructors) "noDestructors" : term
-syntax (name := noMethods) "noMethods" : term
-macro_rules
-  | `(noDestructors) => `(fun x => Empty.elim x)
-  | `(noMethods) => `(fun x => Empty.elim x)
+macro "noDestructors" : term => `(fun x => Empty.elim x)
+macro "noMethods" : term => `(fun x => Empty.elim x)
 
 class IsObject (s : Type) where
   lab : Class.Label
