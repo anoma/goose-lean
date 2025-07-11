@@ -3,6 +3,7 @@ import Prelude
 import Anoma
 import AVM.Class
 import AVM.Object
+import AVM.Object.Consumable
 import AVM.Class.Member
 import AVM.Class.Member.Logic
 

@@ -3,6 +3,7 @@ import Prelude
 import AVM.Intent
 import AVM.Class.Member.Logic
 import AVM.Class.AppData
+import AVM.Object.Consumable
 
 namespace AVM
 

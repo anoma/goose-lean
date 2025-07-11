@@ -63,50 +63,6 @@ def SomeObject.toResource (sobj : SomeObject)
 def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) : Anoma.Resource
  := obj.toSomeObject.toResource ephemeral
 
-structure ConsumableObject (lab : Class.Label) where
-  object : Object lab
-  ephemeral : Bool
-  key : Anoma.NullifierKey
-  deriving BEq
-
-structure SomeConsumableObject where
-  {label : Class.Label}
-  consumable : ConsumableObject label
-
-def SomeObject.toConsumable (sobj : SomeObject) (ephemeral : Bool) (key : Anoma.NullifierKey) : SomeConsumableObject :=
-  { label := sobj.label
-    consumable :=
-     { object := sobj.object
-       ephemeral
-       key }}
-
-structure ConsumedObject (lab : Class.Label) extends ConsumableObject lab where
-  nullifierProof : Anoma.NullifierProof key (object.toResource ephemeral)
-
-def ConsumedObject.toConsumable {lab : Class.Label} (c : ConsumedObject lab) : ConsumableObject lab :=
- { object := c.object
-   ephemeral := c.ephemeral
-   key := c.key }
-
-instance ConsumedObject.instBEq {lab : Class.Label} : BEq (ConsumedObject lab) where
-  beq a b := BEq.beq a.toConsumable b.toConsumable
-
-instance ConsumedObject.hasTypeRep (lab : Class.Label) : TypeRep (ConsumedObject lab) where
-  rep := Rep.atomic ("AVM.ConsumedObject_" ++ lab.name)
-
-structure SomeConsumedObject where
-  {label : Class.Label}
-  consumed : ConsumedObject label
-
-instance SomeConsumedObject.hasBEq : BEq SomeConsumedObject where
-  beq a b := a.label === b.label && a.consumed === b.consumed
-
-instance SomeConsumedObject.hasTypeRep : TypeRep SomeConsumedObject where
-  rep := Rep.atomic "AVM.SomeConsumedObject"
-
-def ConsumedObject.resource {lab : Class.Label} (c : ConsumedObject lab) : Anoma.Resource :=
-  c.object.toResource c.ephemeral
-
 def Object.fromResource
   {lab : Class.Label}
   (publicFields : lab.PublicFields.type)
@@ -129,38 +85,3 @@ def SomeObject.fromResource
   match @Object.fromResource lab' publicFields res with
   | none => none
   | some obj => pure {label := lab', object := obj}
-
-def Object.toConsumable {lab : Class.Label} (object : Object lab) (ephemeral : Bool) (key : Anoma.NullifierKey) : ConsumableObject lab where
-  object
-  key
-  ephemeral
-
-def ConsumableObject.resource {lab : Class.Label} (c : ConsumableObject lab) : Anoma.Resource := c.object.toResource c.ephemeral
-
-def ConsumableObject.consume {lab : Class.Label} (c : ConsumableObject lab) : Option (ConsumedObject lab) :=
-  let resource := c.object.toResource c.ephemeral
-  match Anoma.nullify c.key resource with
-  | isFalse _ => none
-  | isTrue nullifier => pure
-       { object := c.object
-         ephemeral := c.ephemeral
-         key := c.key
-         nullifierProof := nullifier }
-
-def SomeConsumableObject.consume (c : SomeConsumableObject) : Option SomeConsumedObject := do
-  match c.consumable.consume with
-  | none => none
-  | some consumed => pure { label := c.label
-                            consumed }
-
-def ConsumedObject.toRootedNullifiableResource {lab : Class.Label} (c : ConsumedObject lab) : Anoma.RootedNullifiableResource where
-  key := c.key
-  resource := c.resource
-  nullifierProof := c.nullifierProof
-  root := Anoma.CommitmentRoot.todo
-
-def SomeConsumedObject.toRootedNullifiableResource (sconsumed : SomeConsumedObject) : Anoma.RootedNullifiableResource :=
-  sconsumed.consumed.toRootedNullifiableResource
-
-def SomeConsumedObject.toSomeObject (sconsumed : SomeConsumedObject) : SomeObject :=
-  ⟨sconsumed.consumed.object⟩
