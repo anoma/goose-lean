@@ -47,7 +47,7 @@ inductive Nullifier where
   deriving Repr, BEq, Hashable
 
 /-- Temporary nullifier that should eventually be replaced with a proper one -/
-def Nullifier.todo : Nullifier := privateMk
+-- def Nullifier.todo : Nullifier := privateMk
 
 instance : TypeRep NullifierKeyCommitment where
   rep := Rep.atomic "NullifierKeyCommitment"

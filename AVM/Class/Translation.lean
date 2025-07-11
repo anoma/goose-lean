@@ -161,7 +161,7 @@ def Intent.logic {lab : Label} (intent : Intent) (args : Class.Logic.Args lab) :
         intentRes.label === intent.label
         && intentRes.quantity == 1
         && intentRes.ephemeral
-        && Member.Logic.checkResourceData (List.map SomeConsumedObject.toSomeObject data.provided) args.consumed
+        && Member.Logic.checkResourceData data.provided args.consumed
     | _ =>
       false
   else

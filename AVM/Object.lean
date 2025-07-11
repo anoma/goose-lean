@@ -69,6 +69,17 @@ structure ConsumableObject (lab : Class.Label) where
   key : Anoma.NullifierKey
   deriving BEq
 
+structure SomeConsumableObject where
+  {label : Class.Label}
+  consumable : ConsumableObject label
+
+def SomeObject.toConsumable (sobj : SomeObject) (ephemeral : Bool) (key : Anoma.NullifierKey) : SomeConsumableObject :=
+  { label := sobj.label
+    consumable :=
+     { object := sobj.object
+       ephemeral
+       key }}
+
 structure ConsumedObject (lab : Class.Label) extends ConsumableObject lab where
   nullifierProof : Anoma.NullifierProof key (object.toResource ephemeral)
 
@@ -135,6 +146,12 @@ def ConsumableObject.consume {lab : Class.Label} (c : ConsumableObject lab) : Op
          ephemeral := c.ephemeral
          key := c.key
          nullifierProof := nullifier }
+
+def SomeConsumableObject.consume (c : SomeConsumableObject) : Option SomeConsumedObject := do
+  match c.consumable.consume with
+  | none => none
+  | some consumed => pure { label := c.label
+                            consumed }
 
 def ConsumedObject.toRootedNullifiableResource {lab : Class.Label} (c : ConsumedObject lab) : Anoma.RootedNullifiableResource where
   key := c.key

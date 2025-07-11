@@ -26,7 +26,7 @@ structure Intent where
 structure Intent.ResourceData.{u} where
   Args : SomeType.{u}
   args : Args.type
-  provided : List SomeConsumedObject.{u}
+  provided : List SomeObject.{u}
 
 instance Intent.ResourceData.hasTypeRep : TypeRep ResourceData where
   rep := Rep.atomic "AVM.Intent.ResourceData"
@@ -35,7 +35,7 @@ instance Intent.ResourceData.hasBEq : BEq Intent.ResourceData where
   beq a b :=
     a.args === b.args && a.provided == b.provided
 
-def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : List SomeConsumedObject) (nonce := 0) (nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default) : Anoma.Resource :=
+def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (nonce := 0) (nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default) : Anoma.Resource :=
   { Val := ⟨Intent.ResourceData⟩,
     Label := ⟨String⟩,
     label := intent.label,
