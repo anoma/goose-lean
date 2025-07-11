@@ -19,7 +19,7 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
       let receivedObjects ← BoolCheck.some <| List.mapSome (SomeObject.fromResource (PublicFields := ⟨Unit⟩) ()) args.created
       let argsData ← BoolCheck.some <| tryCast data.args
       BoolCheck.ret <|
-        intent.condition argsData data.provided receivedObjects
+        intent.condition argsData (List.map SomeConsumedObject.toSomeObject data.provided) receivedObjects
   else
     -- In the created case, we need to check that the list of provided objects
     -- corresponds to the list consumed resources. See:

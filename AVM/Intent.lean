@@ -20,7 +20,7 @@ structure Intent where
   /-- The intent condition checks if the desired objects were received. Given
       intent arguments and provided objects, the intent condition is compiled to
       the resource logic of the resource intent. -/
-  condition : Args.type → (provided : List SomeConsumedObject) → (received : List SomeObject) → Bool
+  condition : Args.type → (provided : List SomeObject) → (received : List SomeObject) → Bool
 
 /-- Intent.ResourceData is stored in the `value` field of the intent resource. -/
 structure Intent.ResourceData.{u} where
