@@ -25,9 +25,11 @@ def lab : Class.Label where
   name := "UniversalCounter"
   PrivateFields := ⟨Nat⟩
   PublicFields := ⟨Unit⟩
+
   MethodId := Methods
   MethodArgs := fun
     | Methods.Incr => ⟨Nat⟩
+
   ConstructorId := Constructors
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
@@ -65,5 +67,5 @@ def counterClass : Class lab where
     | Constructors.Zero => counterConstructor
   methods := fun
     | Methods.Incr => counterIncr
-  intents := fun x => Empty.elim x
-  destructors := fun x => Empty.elim x
+  intents := noIntents
+  destructors := noDestructors
