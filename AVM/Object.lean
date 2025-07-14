@@ -7,6 +7,8 @@ namespace AVM
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
 structure Object (lab : Class.Label) where
+  /-- The nonce should be available for objects fetched from Anoma. -/
+  nonce : Option Anoma.Nonce := none
   /-- Used to prove ownership -/
   nullifierKeyCommitment : Option Anoma.NullifierKeyCommitment
   quantity : Nat
@@ -44,8 +46,9 @@ instance : TypeRep Object.Resource.Label where
 instance : BEq Object.Resource.Label where
   beq o1 o2 := o1.classLabel == o2.classLabel && o1.dynamicLabel === o2.dynamicLabel
 
+/-- Converts SomeObject to a Resource. -/
 def SomeObject.toResource (sobj : SomeObject)
-    (ephemeral : Bool) (nonce := 0)
+    (ephemeral : Bool) (nonce : Anoma.Nonce)
     : Anoma.Resource :=
   let lab := sobj.label
   let obj : Object lab := sobj.object
@@ -58,8 +61,9 @@ def SomeObject.toResource (sobj : SomeObject)
     nonce,
     nullifierKeyCommitment := obj.nullifierKeyCommitment!}
 
-def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) : Anoma.Resource
- := obj.toSomeObject.toResource ephemeral
+/-- Converts Object to a Resource. Requires object's `nonce` to be set beforehand. -/
+def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) (nonce : Anoma.Nonce) : Anoma.Resource
+ := obj.toSomeObject.toResource ephemeral nonce
 
 def Object.fromResource
   {lab : Class.Label}
@@ -68,6 +72,7 @@ def Object.fromResource
   let privateFields : lab.PrivateFields.type ← SomeType.cast res.value
   pure { quantity := res.quantity,
          nullifierKeyCommitment := res.nullifierKeyCommitment,
+         nonce := res.nonce,
          privateFields := privateFields }
 
 def SomeObject.fromResource

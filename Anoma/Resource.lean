@@ -2,10 +2,9 @@
 import Prelude
 import Anoma.ConsumedCreated
 import Anoma.Nullifier
+import Anoma.Nonce
 
 namespace Anoma
-
-abbrev Nonce := Nat
 
 /-- Representation of Anoma Resource data, without the resource logic. In the
     GOOSE model, the resource logic is determined by the `label` field (which

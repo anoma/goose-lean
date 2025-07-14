@@ -6,6 +6,7 @@ import AVM.Object
 namespace AVM
 
 structure ConsumableObject (lab : Class.Label) where
+  /-- `object` is assumed to have `nonce` set to `some` -/
   object : Object lab
   ephemeral : Bool
   key : Anoma.NullifierKey
@@ -22,8 +23,11 @@ def SomeObject.toConsumable (sobj : SomeObject) (ephemeral : Bool) (key : Anoma.
        ephemeral
        key }}
 
+def ConsumableObject.toResource {lab : Class.Label} (c : ConsumableObject lab) : Anoma.Resource :=
+  c.object.toResource c.ephemeral c.object.nonce.get!
+
 structure ConsumedObject (lab : Class.Label) extends ConsumableObject lab where
-  nullifierProof : Anoma.NullifierProof key (object.toResource ephemeral)
+  nullifierProof : Anoma.NullifierProof key (object.toResource ephemeral object.nonce.get!)
 
 def ConsumedObject.toConsumable {lab : Class.Label} (c : ConsumedObject lab) : ConsumableObject lab :=
  { object := c.object
@@ -47,16 +51,17 @@ instance SomeConsumedObject.hasTypeRep : TypeRep SomeConsumedObject where
   rep := Rep.atomic "AVM.SomeConsumedObject"
 
 def ConsumedObject.resource {lab : Class.Label} (c : ConsumedObject lab) : Anoma.Resource :=
-  c.object.toResource c.ephemeral
+  c.toResource
+
 def Object.toConsumable {lab : Class.Label} (object : Object lab) (ephemeral : Bool) (key : Anoma.NullifierKey) : ConsumableObject lab where
   object
   key
   ephemeral
 
-def ConsumableObject.resource {lab : Class.Label} (c : ConsumableObject lab) : Anoma.Resource := c.object.toResource c.ephemeral
+def ConsumableObject.resource {lab : Class.Label} (c : ConsumableObject lab) : Anoma.Resource := c.toResource
 
 def ConsumableObject.consume {lab : Class.Label} (c : ConsumableObject lab) : Option (ConsumedObject lab) :=
-  let resource := c.object.toResource c.ephemeral
+  let resource := c.toResource
   match Anoma.nullify c.key resource with
   | isFalse _ => none
   | isTrue nullifier => pure

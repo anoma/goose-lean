@@ -80,7 +80,7 @@ def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
       true
 
 def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
-  (constr : Class.Constructor constrId) (args : constrId.Args.type)
+  (constr : Class.Constructor constrId) (key : Anoma.NullifierKey) (args : constrId.Args.type)
   : Anoma.Action :=
     -- TODO: set nonce properly
     let newObj : Object lab := constr.created args
@@ -89,7 +89,7 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
          ephemeral := true
          key := Anoma.NullifierKey.universal }
     let consumed : ConsumedObject lab := { consumable with nullifierProof := Anoma.nullifyUniversal consumable.resource consumable.key rfl rfl }
-    let createdResource : Anoma.Resource := SomeObject.toResource (ephemeral := false) newObj.toSomeObject
+    let createdResource : Anoma.Resource := newObj.toSomeObject.toResource (ephemeral := false) (nonce := Anoma.computeCreatedNonce key)
     let created : List CreatedObject :=
        [{ object := newObj
           resource := createdResource
@@ -98,9 +98,9 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
-  (constr : Class.Constructor constrId) (args : constrId.Args.type)
+  (constr : Class.Constructor constrId) (key : Anoma.NullifierKey) (args : constrId.Args.type)
   : Anoma.Transaction :=
-    let action := constr.action args
+    let action := constr.action key args
     { actions := [action],
       -- TODO: automatically generate deltaProof that verifies that the transaction is balanced
       deltaProof := "" }
@@ -138,7 +138,7 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
   | none => none
   | some consumed =>
     let createObject (o : SomeObject) : CreatedObject :=
-      let res : Anoma.Resource := o.toResource false
+      let res : Anoma.Resource := o.toResource (ephemeral := false) (nonce := Anoma.computeCreatedNonce key)
       { object := o.object
         resource := res
         commitment := res.commitment }
