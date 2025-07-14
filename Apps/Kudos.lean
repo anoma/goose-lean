@@ -20,6 +20,7 @@ abbrev PublicIden := Anoma.NullifierKeyCommitment
 /- 1. Minting: Any user with public key K can mint any quantity of tokens with originator = owner = K -/
 /- 2. Transfer: The onwer of a kudos token can transfer it to another user -/
 /- 3. Split: The onwer of a kudos can partition a kudos token into a list of tokens with smaller quantities -/
+/-           such that the aggregate quantity is equal to the original -/
 /- 4. Burn: The owner of a kudos token can destroy it if themself is the originator of the token -/
 
 structure Kudos where
