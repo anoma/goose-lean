@@ -106,10 +106,10 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
         match mselfObj with
           | none => false
           | some selfObj =>
-            let createdObjects := method.created selfObj argsData
-            Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
-              && Class.Member.Logic.checkResourceData createdObjects args.created
-              && method.invariant selfObj argsData
+            method.invariant selfObj argsData
+            && Class.Member.Logic.checkResourceData [selfObj.toSomeObject] args.consumed
+            && let createdObjects := method.created selfObj argsData
+               Class.Member.Logic.checkResourceData createdObjects args.created
       | none =>
         false
     else
