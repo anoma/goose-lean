@@ -17,7 +17,10 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
       -- for created resources are not available, because they are stored in app
       -- data and in RL arguments app data is available only for the `self`
       -- resource.
-      let receivedObjects ← BoolCheck.some <| List.mapSome (SomeObject.fromResource (PublicFields := ⟨Unit⟩) ()) args.created
+      let receivedObjects ←
+        BoolCheck.some <|
+          List.mapSome (SomeObject.fromResource (PublicFields := ⟨Unit⟩) ()) <|
+          Class.Member.Logic.filterOutDummy args.created
       let argsData ← BoolCheck.some <| tryCast data.args
       BoolCheck.ret <|
         intent.condition argsData data.provided receivedObjects
@@ -47,11 +50,11 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
         providedConsumed.map (fun obj =>
           Anoma.ComplianceUnit.create
             { consumedResource := obj.consumed.resource,
-              createdResource := {obj.consumed.resource with ephemeral := true, quantity := 0},
+              createdResource := Class.dummyResource,
               nfKey := obj.consumed.key })
       let createdUnit : Anoma.ComplianceUnit :=
         Anoma.ComplianceUnit.create
-          { consumedResource := {intentResource with ephemeral := true, quantity := 0},
+          { consumedResource := Class.dummyResource,
             createdResource := intentResource,
             nfKey := key }
       some

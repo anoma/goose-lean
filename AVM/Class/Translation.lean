@@ -29,11 +29,11 @@ private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : 
   let consumedUnit : Anoma.ComplianceUnit :=
     Anoma.ComplianceUnit.create
       { consumedResource := consumedResource
-        createdResource := {consumedResource with ephemeral := true, quantity := 0}
+        createdResource := dummyResource
         nfKey := consumed.key }
   let createdUnits : List Anoma.ComplianceUnit :=
     List.map (fun res => Anoma.ComplianceUnit.create
-      { consumedResource := {res with ephemeral := true, quantity := 0}
+      { consumedResource := dummyResource
         createdResource := res
         nfKey := Anoma.NullifierKey.universal }) createdResources
   { complianceUnits := consumedUnit :: createdUnits,
@@ -206,7 +206,7 @@ def Destructor.transaction {lab : Label} (destructorId : lab.DestructorId) (dest
 def Intent.logic {lab : Label} (intent : Intent) (args : Class.Logic.Args lab) : Bool :=
   if args.isConsumed then
     -- Check that exactly one resource is created that corresponds to the intent
-    match args.created with
+    match Class.Member.Logic.filterOutDummy args.created with
     | [intentRes] => BoolCheck.run do
       let data ← BoolCheck.some <| Intent.ResourceData.fromResource intentRes
       BoolCheck.ret <|
