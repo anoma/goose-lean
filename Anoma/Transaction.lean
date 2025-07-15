@@ -22,5 +22,3 @@ structure Transaction where
   roots : List CommitmentRoot
   actions : List Action
   deltaProof : DeltaProof
-
-end Anoma
