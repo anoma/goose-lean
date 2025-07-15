@@ -6,9 +6,6 @@ import Anoma.Nullifier
 namespace Anoma
 
 abbrev Nonce := Nat
-abbrev CommitmentRoot := Nat
-
-def CommitmentRoot.todo : CommitmentRoot := 0
 
 /-- Representation of Anoma Resource data, without the resource logic. In the
     GOOSE model, the resource logic is determined by the `label` field (which
