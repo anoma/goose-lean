@@ -40,15 +40,29 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
     match providedConsumed.map mkTagDataPairConsumed |>.getSome with
     | none => none
     | some appDataPairs =>
-      let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
+      let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
         Std.HashMap.emptyWithCapacity
-        |>.insertMany appDataPairs
+        |>.insertMany (appDataPairs.map (fun (tag, data) => (tag, mkLogicVerifierInput Consumed data)))
+      let consumedUnits : List Anoma.ComplianceUnit :=
+        providedConsumed.map (fun obj =>
+          Anoma.ComplianceUnit.create
+            { consumedResource := obj.consumed.resource,
+              createdResource := {obj.consumed.resource with ephemeral := true, quantity := 0},
+              nfKey := obj.consumed.key })
+      let createdUnit : Anoma.ComplianceUnit :=
+        Anoma.ComplianceUnit.create
+          { consumedResource := {intentResource with ephemeral := true, quantity := 0},
+            createdResource := intentResource,
+            nfKey := key }
       some
-        { Data := ⟨Class.SomeAppData⟩,
-          consumed := List.map SomeConsumedObject.toRootedNullifiableResource providedConsumed,
-          created := [intentResource],
-          appData }
+        { complianceUnits := createdUnit :: consumedUnits,
+          logicVerifierInputs }
     where
+      mkLogicVerifierInput (status : ConsumedCreated) (data : Class.SomeAppData) : Anoma.LogicVerifierInput :=
+        { Data := ⟨Class.SomeAppData⟩,
+          status,
+          appData := data }
+
       mkTagDataPairConsumed (c : SomeConsumedObject)
        : Option (Anoma.Tag × Class.SomeAppData) :=
         match Class.Label.IntentId.fromIntentLabel (lab := c.label) intent.label with
@@ -63,10 +77,9 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
                   publicFields := c.consumed.object.publicFields }})
 
 /-- A transaction which consumes the provided objects and creates the intent. -/
-def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) : Option Anoma.Transaction := do
   let action ← intent.action args provided key
   some
-    { roots := [currentRoot],
-      actions := [action],
+    { actions := [action],
       -- TODO: set deltaProof properly
       deltaProof := "" }

@@ -54,15 +54,6 @@ structure NullifierProof (key : NullifierKey) (res : Resource) : Prop where
 /-- Cast from a NullifierProof to a Nullifier. This is a no-op -/
 def NullifierProof.nullifier {key : NullifierKey} {res : Resource} (_proof : NullifierProof key res) : Nullifier := Nullifier.privateMk
 
-structure RootedNullifiableResource where
-  key : NullifierKey
-  resource : Resource
-  root : CommitmentRoot
-  -- The nullifierProof field is not part of the specs.
-  -- However, it is useful to keep it in the model in order
-  -- to make the relation between key and resource explicit
-  nullifierProof : NullifierProof key resource
-
 -- TODO placeholder implementation
 /-- If the key matches the resource.nullifierKeyCommitment then it returns the nullifier of the resource -/
 def nullify (key : Anoma.NullifierKey) (res : Resource) : Decidable (NullifierProof key res) :=

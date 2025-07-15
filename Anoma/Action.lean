@@ -18,9 +18,9 @@ inductive DeletionCriterion where
 structure LogicVerifierInput where
   Data : SomeType
   status : ConsumedCreated
-  logicVKOuter : LogicVKOuterHash
-  applicationData : List (Data.type × DeletionCriterion)
-  proof: String
+  appData : Data.type
+  logicVKOuter : LogicVKOuterHash := ""
+  proof: String := ""
 
 structure Action where
   complianceUnits : List ComplianceUnit
