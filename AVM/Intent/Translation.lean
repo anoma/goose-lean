@@ -58,7 +58,7 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
             createdResource := intentResource,
             nfKey := key }
       some
-        { complianceUnits := createdUnit :: consumedUnits,
+        { complianceUnits := consumedUnits ++ [createdUnit],
           logicVerifierInputs }
     where
       mkLogicVerifierInput (status : ConsumedCreated) (data : Class.SomeAppData) : Anoma.LogicVerifierInput :=
