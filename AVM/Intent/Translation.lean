@@ -13,11 +13,7 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
   if args.isConsumed then
     BoolCheck.run do
       let data ← BoolCheck.some <| Intent.ResourceData.fromResource args.self
-      -- We use fake values for public fields of created objects. Public fields
-      -- for created resources are not available, because they are stored in app
-      -- data and in RL arguments app data is available only for the `self`
-      -- resource.
-      let receivedObjects ← BoolCheck.some <| List.mapSome (SomeObject.fromResource (PublicFields := ⟨Unit⟩) ()) args.created
+      let receivedObjects ← BoolCheck.some <| List.mapSome SomeObject.fromResource args.created
       let argsData ← BoolCheck.some <| tryCast data.args
       BoolCheck.ret <|
         intent.condition argsData data.provided receivedObjects
@@ -59,8 +55,7 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
               { label := c.label,
                 appData := {
                   memberId := Class.Label.MemberId.intentId intentId,
-                  memberArgs := UUnit.unit,
-                  publicFields := c.consumed.object.publicFields }})
+                  memberArgs := UUnit.unit }})
 
 /-- A transaction which consumes the provided objects and creates the intent. -/
 def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do

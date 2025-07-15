@@ -31,7 +31,6 @@ open AVM
 def lab : Class.Label where
   name := "OwnedCounter"
   PrivateFields := ⟨Nat⟩
-  PublicFields := ⟨Unit⟩
   MethodId := Methods
   MethodArgs := fun
     | Methods.Incr => ⟨Nat⟩
@@ -42,7 +41,6 @@ def lab : Class.Label where
   DestructorId := Destructors
 
 def toObject (c : OwnedCounter) : Object lab where
-  publicFields := Unit.unit
   quantity := 1
   privateFields := c.count
   nullifierKeyCommitment := c.key

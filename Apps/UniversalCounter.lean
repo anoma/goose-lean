@@ -24,7 +24,6 @@ open AVM
 def lab : Class.Label where
   name := "UniversalCounter"
   PrivateFields := ⟨Nat⟩
-  PublicFields := ⟨Unit⟩
 
   MethodId := Methods
   MethodArgs := fun
@@ -35,7 +34,6 @@ def lab : Class.Label where
     | Constructors.Zero => ⟨Unit⟩
 
 def toObject (c : Counter) : Object lab where
-  publicFields := Unit.unit
   quantity := 1
   privateFields := c.count
   nullifierKeyCommitment := none

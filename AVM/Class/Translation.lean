@@ -34,8 +34,7 @@ private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : 
       (Anoma.Tag.Consumed i.nullifierProof.nullifier,
         { appData := {
             memberId,
-            memberArgs := args,
-            publicFields := i.object.publicFields }})
+            memberArgs := args }})
 
     mkTagDataPairCreated (i : CreatedObject)
      : Anoma.Tag × Class.SomeAppData :=
@@ -43,8 +42,7 @@ private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : 
         {label := i.label,
          appData := {
           memberId := Label.MemberId.falseLogicId,
-          memberArgs := UUnit.unit,
-          publicFields := i.object.publicFields }})
+          memberArgs := UUnit.unit }})
 
 /-- Creates a logic for a given constructor. This logic is combined with other
     method and constructor logics to create the complete resource logic for an
@@ -102,7 +100,7 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
     if args.isConsumed then
       match SomeType.cast args.data.memberArgs with
       | some argsData =>
-        let mselfObj : Option (Object lab) := Object.fromResource args.data.publicFields args.self
+        let mselfObj : Option (Object lab) := Object.fromResource args.self
         match mselfObj with
           | none => false
           | some selfObj =>
@@ -151,7 +149,7 @@ def Destructor.logic {lab : Label} {destructorId : lab.DestructorId}
     if args.isConsumed then
       match SomeType.cast args.data.memberArgs with
       | some argsData =>
-        let mselfObj : Option (Object lab) := Object.fromResource args.data.publicFields args.self
+        let mselfObj : Option (Object lab) := Object.fromResource args.self
         match mselfObj with
           | none => false
           | some selfObj =>
@@ -218,7 +216,7 @@ private def logic' {lab : Label} (cls : Class lab) (args : Class.Logic.Args lab)
     -- 1. member logic corresponding to the memberId in AppData
     -- 2. class invariant for the object being consumed
     BoolCheck.run do
-      let selfObj : Object lab ← BoolCheck.some (Object.fromResource args.data.publicFields args.self)
+      let selfObj : Object lab ← BoolCheck.some (Object.fromResource args.self)
       BoolCheck.ret <|
         checkMemberLogic args.data.memberId
         && cls.invariant selfObj args
