@@ -14,15 +14,14 @@ instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) wh
               mkDynamicLabel := fun _ => default}
 
 /-- A class label uniquely identifies and specifies a class. The class
-    specification provided by a label consists of unique class name, private and
-    public field types, constructor and method ids. -/
+    specification provided by a label consists of unique class name, private
+    field types, constructor and method ids. -/
 structure Label : Type (u + 1) where
   /-- The name of the class uniquely identifying the class.
       Assumption: lab1.name = lab2.name -> lab1 = lab2. -/
   name : String
 
   PrivateFields : SomeType.{u}
-  PublicFields : SomeType.{u}
 
   /-- The dynamic label is used to put dynamic data into the Resource label -/
   DynamicLabel : DynamicLabel.{u} PrivateFields.type := default
@@ -113,4 +112,3 @@ instance Label.hasBEq : BEq Label where
   beq a b :=
     a.name == b.name
     && a.PrivateFields == b.PrivateFields
-    && a.PublicFields == b.PublicFields
