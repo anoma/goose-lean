@@ -12,8 +12,6 @@ structure Object (lab : Class.Label) where
   quantity : Nat
   /-- `privateFields` go into the `value` field of the resource -/
   privateFields : lab.PrivateFields.type
-  /-- `publicFields` go into the `appData` field of the action -/
-  publicFields : lab.PublicFields.type
   deriving BEq
 
 instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
@@ -65,23 +63,18 @@ def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) 
 
 def Object.fromResource
   {lab : Class.Label}
-  (publicFields : lab.PublicFields.type)
   (res : Anoma.Resource)
   : Option (Object lab) := do
   let privateFields : lab.PrivateFields.type ← SomeType.cast res.value
   pure { quantity := res.quantity,
          nullifierKeyCommitment := res.nullifierKeyCommitment,
-         privateFields := privateFields,
-         publicFields := publicFields }
+         privateFields := privateFields }
 
 def SomeObject.fromResource
-  {PublicFields : SomeType}
-  (publicFields : PublicFields.type)
   (res : Anoma.Resource)
   : Option SomeObject := do
   let resLab : Object.Resource.Label ← tryCast res.label
   let lab : Class.Label := resLab.classLabel
-  let lab' := {lab with PublicFields := PublicFields}
-  match @Object.fromResource lab' publicFields res with
+  match @Object.fromResource lab res with
   | none => none
-  | some obj => pure {label := lab', object := obj}
+  | some obj => pure {label := lab, object := obj}
