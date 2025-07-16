@@ -27,7 +27,7 @@ def ConsumableObject.toResource {lab : Class.Label} (c : ConsumableObject lab) :
   c.object.toResource c.ephemeral c.object.nonce.get!
 
 structure ConsumedObject (lab : Class.Label) extends ConsumableObject lab where
-  nullifierProof : Anoma.NullifierProof key (object.toResource ephemeral object.nonce.get!)
+  can_nullify : Anoma.CanNullifyResource key (object.toResource ephemeral object.nonce.get!)
 
 def ConsumedObject.toConsumable {lab : Class.Label} (c : ConsumedObject lab) : ConsumableObject lab :=
  { object := c.object
@@ -64,11 +64,11 @@ def ConsumableObject.consume {lab : Class.Label} (c : ConsumableObject lab) : Op
   let resource := c.toResource
   match Anoma.nullify c.key resource with
   | isFalse _ => none
-  | isTrue nullifier => pure
+  | isTrue can_nullify => pure
        { object := c.object
          ephemeral := c.ephemeral
          key := c.key
-         nullifierProof := nullifier }
+         can_nullify }
 
 def SomeConsumableObject.consume (c : SomeConsumableObject) : Option SomeConsumedObject := do
   match c.consumable.consume with

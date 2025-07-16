@@ -1,11 +1,7 @@
 
 import Prelude
-import Anoma.Nullifier
+import Anoma.NullifierKey
 
 namespace Anoma
 
 abbrev Nonce := Nat
-
-def computeCreatedNonce (_nk : NullifierKey) : Nonce :=
-  -- TODO
-  0

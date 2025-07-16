@@ -42,17 +42,16 @@ structure ResourceWithLogic (Data : Type u) where
   val : Resource
   logic : Logic.Args Data → Bool
 
-/-- A proof that `key` can nullify the resources `res`
- TODO should the commitment root be a parameter also? -/
-structure NullifierProof (key : NullifierKey) (res : Resource) : Prop where
-  proof : NullifierKeyProof key res.nullifierKeyCommitment
+/-- A proof that `key` can nullify the resources `res` -/
+structure CanNullifyResource (key : NullifierKey) (res : Resource) : Prop where
+  proof : NullifierKeyMatchesCommitment key res.nullifierKeyCommitment
 
-/-- Cast from a NullifierProof to a Nullifier. This is a no-op -/
-def NullifierProof.nullifier {key : NullifierKey} {res : Resource} (_proof : NullifierProof key res) : Nullifier := Nullifier.privateMk
+/-- Cast from CanNullifyResource to a Nullifier. This is a no-op -/
+def CanNullifyResource.nullifier {key : NullifierKey} {res : Resource} (_proof : CanNullifyResource key res) : Nullifier := Nullifier.privateMk
 
 -- TODO placeholder implementation
 /-- If the key matches the resource.nullifierKeyCommitment then it returns the nullifier of the resource -/
-def nullify (key : Anoma.NullifierKey) (res : Resource) : Decidable (NullifierProof key res) :=
+def nullify (key : Anoma.NullifierKey) (res : Resource) : Decidable (CanNullifyResource key res) :=
   match checkNullifierKey key res.nullifierKeyCommitment with
   | isTrue p => isTrue (by constructor; exact p)
   | isFalse n => isFalse (by intro h; cases h; contradiction)
@@ -60,7 +59,7 @@ def nullify (key : Anoma.NullifierKey) (res : Resource) : Decidable (NullifierPr
 def nullifyUniversal (res : Resource) (key : Anoma.NullifierKey)
   (p1 : key = .universal)
   (p2 : res.nullifierKeyCommitment = .universal)
-  : NullifierProof key res
+  : CanNullifyResource key res
   := by
   constructor
   rw [p1, p2]
