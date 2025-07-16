@@ -206,14 +206,14 @@ def Intent.logic {lab : Label} (intent : Intent) (args : Class.Logic.Args lab) :
     -- Check that exactly one resource is created that corresponds to the intent
     match Class.Member.Logic.filterOutDummy args.created with
     | [intentRes] => BoolCheck.run do
-      let data ← BoolCheck.some <| Intent.ResourceData.fromResource intentRes
+      let labelData ← BoolCheck.some <| Intent.LabelData.fromResource intentRes
       BoolCheck.ret <|
         -- NOTE: We should also check that the intent logic hashes of
         -- `intentRes` and `intent` match.
-        intentRes.label === intent.label
+        labelData.label === intent.label
         && intentRes.quantity == 1
         && intentRes.ephemeral
-        && Member.Logic.checkResourceData data.provided args.consumed
+        && Member.Logic.checkResourceData labelData.data.provided args.consumed
     | _ =>
       false
   else
