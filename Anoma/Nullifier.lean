@@ -22,11 +22,11 @@ instance NullifierKeyCommitment.instInhabited : Inhabited NullifierKeyCommitment
   default := .universal
 
 /-- A proof that a NullifierKey matches a NullifierKeyCommitment -/
-inductive NullifierKeyProof : (key : NullifierKey) → (nfc : NullifierKeyCommitment) → Prop where
-  | universal : NullifierKeyProof .universal .universal
-  | secret : {n m : Nat} → n = m → NullifierKeyProof (.secret n) (.ofSecret m)
+inductive NullifierKeyMatchesCommitment : (key : NullifierKey) → (nfc : NullifierKeyCommitment) → Prop where
+  | universal : NullifierKeyMatchesCommitment .universal .universal
+  | secret : {n m : Nat} → n = m → NullifierKeyMatchesCommitment (.secret n) (.ofSecret m)
 
-def checkNullifierKey (key : NullifierKey) (nfc : NullifierKeyCommitment) : Decidable (NullifierKeyProof key nfc) :=
+def checkNullifierKey (key : NullifierKey) (nfc : NullifierKeyCommitment) : Decidable (NullifierKeyMatchesCommitment key nfc) :=
   match key, nfc with
    | .universal, .universal => isTrue .universal
    | .secret n, .ofSecret m => match decEq n m with

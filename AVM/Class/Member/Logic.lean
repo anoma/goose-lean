@@ -4,18 +4,18 @@ import AVM.Class.Member
 
 namespace AVM.Class
 
-def dummyResource : Anoma.Resource :=
+def dummyResource (nonce : Anoma.Nonce): Anoma.Resource :=
   { Val := ⟨Unit⟩,
     Label := ⟨String⟩,
     label := "dummy-resource",
     quantity := 0,
     value := (),
     ephemeral := true,
-    nonce := 0,
+    nonce,
     nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal }
 
 def Member.Logic.filterOutDummy (resources : List Anoma.Resource) : List Anoma.Resource :=
-  resources.filter (fun res => res != dummyResource)
+  resources.filter (fun res => res.label !== "dummy-resource")
 
 /-- Checks that the number of objects and resources match, and that the
     resources' private data and labels match the objects' private data and
