@@ -66,4 +66,4 @@ def Intent.LabelData.fromResource (res : Anoma.Resource.{u,v}) : Option Intent.L
 
 def Intent.ResourceData.fromResource (res : Anoma.Resource.{u,v}) : Option Intent.ResourceData.{u} := do
   let labelData : Intent.LabelData.{u} ← Intent.LabelData.fromResource res
-  tryCast labelData.data
+  some labelData.data
