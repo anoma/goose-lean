@@ -20,15 +20,30 @@ private def Action.create (lab : Label) (memberId : Label.MemberId lab) (args : 
   (consumed : ConsumedObject lab)
   (created : List CreatedObject) -- no appdata/logic
   : Anoma.Action :=
-  let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
+  let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
     Std.HashMap.emptyWithCapacity
-    |>.insertMany [mkTagDataPairConsumed consumed]
-    |>.insertMany (List.map mkTagDataPairCreated created)
-  { Data := ⟨Class.SomeAppData⟩,
-    consumed := [consumed.toRootedNullifiableResource],
-    created := List.map CreatedObject.resource created,
-    appData }
+    |>.insertMany [Prod.map id (mkLogicVerifierInput Consumed) (mkTagDataPairConsumed consumed)]
+    |>.insertMany (List.map (Prod.map id (mkLogicVerifierInput Created) ∘ mkTagDataPairCreated) created)
+  let consumedResource : Anoma.Resource := consumed.resource
+  let createdResources := List.map CreatedObject.resource created
+  let consumedUnit : Anoma.ComplianceUnit :=
+    Anoma.ComplianceUnit.create
+      { consumedResource := consumedResource
+        createdResource := dummyResource
+        nfKey := consumed.key }
+  let createdUnits : List Anoma.ComplianceUnit :=
+    List.map (fun res => Anoma.ComplianceUnit.create
+      { consumedResource := dummyResource
+        createdResource := res
+        nfKey := Anoma.NullifierKey.universal }) createdResources
+  { complianceUnits := consumedUnit :: createdUnits,
+    logicVerifierInputs }
   where
+    mkLogicVerifierInput (status : ConsumedCreated) (data : Class.SomeAppData) : Anoma.LogicVerifierInput :=
+      { Data := ⟨Class.SomeAppData⟩,
+        status,
+        appData := data }
+
     mkTagDataPairConsumed (i : ConsumedObject lab)
      : Anoma.Tag × Class.SomeAppData :=
       (Anoma.Tag.Consumed i.nullifierProof.nullifier,
@@ -83,11 +98,10 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
-  (constr : Class.Constructor constrId) (args : constrId.Args.type) (currentRoot : Anoma.CommitmentRoot)
+  (constr : Class.Constructor constrId) (args : constrId.Args.type)
   : Anoma.Transaction :=
     let action := constr.action args
-    { roots := [currentRoot],
-      actions := [action],
+    { actions := [action],
       -- TODO: automatically generate deltaProof that verifies that the transaction is balanced
       deltaProof := "" }
 
@@ -133,10 +147,9 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
     Action.create lab methodId args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
-def Method.transaction {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Anoma.NullifierKey) (args : methodId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+def Method.transaction {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Anoma.NullifierKey) (args : methodId.Args.type) : Option Anoma.Transaction := do
   let action ← method.action methodId self key args
-  pure { roots := [currentRoot],
-         actions := [action],
+  pure { actions := [action],
          -- TODO: set deltaProof properly
          deltaProof := "" }
 
@@ -175,10 +188,9 @@ def Destructor.action {label : Label} (destructorId : label.DestructorId) (_dest
     Action.create label destructorId args consumed [createdObject]
 
 /-- Creates an Anoma Transaction for a given object destructor. -/
-def Destructor.transaction {lab : Label} (destructorId : lab.DestructorId) (destructor : Class.Destructor destructorId) (self : Object lab) (key : Anoma.NullifierKey) (args : destructorId.Args.type) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+def Destructor.transaction {lab : Label} (destructorId : lab.DestructorId) (destructor : Class.Destructor destructorId) (self : Object lab) (key : Anoma.NullifierKey) (args : destructorId.Args.type) : Option Anoma.Transaction := do
   let action ← destructor.action destructorId self key args
-  pure { roots := [currentRoot],
-         actions := [action],
+  pure { actions := [action],
          -- TODO: set deltaProof properly
          deltaProof := "" }
 
@@ -192,7 +204,7 @@ def Destructor.transaction {lab : Label} (destructorId : lab.DestructorId) (dest
 def Intent.logic {lab : Label} (intent : Intent) (args : Class.Logic.Args lab) : Bool :=
   if args.isConsumed then
     -- Check that exactly one resource is created that corresponds to the intent
-    match args.created with
+    match Class.Member.Logic.filterOutDummy args.created with
     | [intentRes] => BoolCheck.run do
       let data ← BoolCheck.some <| Intent.ResourceData.fromResource intentRes
       BoolCheck.ret <|

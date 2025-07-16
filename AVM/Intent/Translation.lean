@@ -13,7 +13,10 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
   if args.isConsumed then
     BoolCheck.run do
       let data ← BoolCheck.some <| Intent.ResourceData.fromResource args.self
-      let receivedObjects ← BoolCheck.some <| List.mapSome SomeObject.fromResource args.created
+      let receivedObjects ←
+        BoolCheck.some <|
+          List.mapSome SomeObject.fromResource <|
+          Class.Member.Logic.filterOutDummy args.created
       let argsData ← BoolCheck.some <| tryCast data.args
       BoolCheck.ret <|
         intent.condition argsData data.provided receivedObjects
@@ -36,15 +39,29 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
     match providedConsumed.map mkTagDataPairConsumed |>.getSome with
     | none => none
     | some appDataPairs =>
-      let appData : Std.HashMap Anoma.Tag Class.SomeAppData :=
+      let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
         Std.HashMap.emptyWithCapacity
-        |>.insertMany appDataPairs
+        |>.insertMany (appDataPairs.map (fun (tag, data) => (tag, mkLogicVerifierInput Consumed data)))
+      let consumedUnits : List Anoma.ComplianceUnit :=
+        providedConsumed.map (fun obj =>
+          Anoma.ComplianceUnit.create
+            { consumedResource := obj.consumed.resource,
+              createdResource := Class.dummyResource,
+              nfKey := obj.consumed.key })
+      let createdUnit : Anoma.ComplianceUnit :=
+        Anoma.ComplianceUnit.create
+          { consumedResource := Class.dummyResource,
+            createdResource := intentResource,
+            nfKey := key }
       some
-        { Data := ⟨Class.SomeAppData⟩,
-          consumed := List.map SomeConsumedObject.toRootedNullifiableResource providedConsumed,
-          created := [intentResource],
-          appData }
+        { complianceUnits := consumedUnits ++ [createdUnit],
+          logicVerifierInputs }
     where
+      mkLogicVerifierInput (status : ConsumedCreated) (data : Class.SomeAppData) : Anoma.LogicVerifierInput :=
+        { Data := ⟨Class.SomeAppData⟩,
+          status,
+          appData := data }
+
       mkTagDataPairConsumed (c : SomeConsumedObject)
        : Option (Anoma.Tag × Class.SomeAppData) :=
         match Class.Label.IntentId.fromIntentLabel (lab := c.label) intent.label with
@@ -58,10 +75,9 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
                   memberArgs := UUnit.unit }})
 
 /-- A transaction which consumes the provided objects and creates the intent. -/
-def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) (currentRoot : Anoma.CommitmentRoot) : Option Anoma.Transaction := do
+def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) : Option Anoma.Transaction := do
   let action ← intent.action args provided key
   some
-    { roots := [currentRoot],
-      actions := [action],
+    { actions := [action],
       -- TODO: set deltaProof properly
       deltaProof := "" }

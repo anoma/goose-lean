@@ -71,14 +71,5 @@ def SomeConsumableObject.consume (c : SomeConsumableObject) : Option SomeConsume
   | some consumed => pure { label := c.label
                             consumed }
 
-def ConsumedObject.toRootedNullifiableResource {lab : Class.Label} (c : ConsumedObject lab) : Anoma.RootedNullifiableResource where
-  key := c.key
-  resource := c.resource
-  nullifierProof := c.nullifierProof
-  root := Anoma.CommitmentRoot.todo
-
-def SomeConsumedObject.toRootedNullifiableResource (sconsumed : SomeConsumedObject) : Anoma.RootedNullifiableResource :=
-  sconsumed.consumed.toRootedNullifiableResource
-
 def SomeConsumedObject.toSomeObject (sconsumed : SomeConsumedObject) : SomeObject :=
   ⟨sconsumed.consumed.object⟩
