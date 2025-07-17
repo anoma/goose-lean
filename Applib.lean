@@ -20,6 +20,8 @@ structure AnObject where
   [isObject : IsObject ty]
   obj : ty
 
+def IsObject.toAnObject {cl : Type} [i : IsObject cl] (o : cl) : AnObject := ⟨o⟩
+
 def AnObject.toSomeObject (g : AnObject) : SomeObject :=
   let i : IsObject g.ty := g.isObject
   (i.toObject g.obj).toSomeObject
@@ -40,14 +42,14 @@ def defMethod (cl : Type) [i : IsObject cl] {methodId : i.lab.MethodId}
       | none => []
       | some self' => List.map AnObject.toSomeObject (body self' args)
 
-def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.lab.ConstructorId}
+def defConstructor (cl : Type) [i : IsObject cl] {constrId : i.lab.ConstructorId}
  (body : constrId.Args.type → cl)
  (invariant : constrId.Args.type → Bool := fun _ => true)
  : Class.Constructor constrId where
     invariant (args : constrId.Args.type) := invariant args
     created (args : constrId.Args.type) := i.toObject (body args)
 
-def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.lab.DestructorId}
+def defDestructor (cl : Type) [i : IsObject cl] {destructorId : i.lab.DestructorId}
  (invariant : (self : cl) -> destructorId.Args.type → Bool := fun _ _ => true)
  : Class.Destructor destructorId  where
     invariant (self : Object i.lab) (args : destructorId.Args.type) :=
