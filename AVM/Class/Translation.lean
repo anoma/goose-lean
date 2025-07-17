@@ -135,7 +135,6 @@ def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
     let (action, witness) ← constr.action args
     pure <|
       { actions := [action],
-        -- TODO: automatically generate deltaProof that verifies that the transaction is balanced
         deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
 
 /-- Creates a logic for a given method. This logic is combined with other method
@@ -147,6 +146,7 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
     if args.isConsumed then
       match SomeType.cast args.data.memberArgs with
       | some argsData =>
+        -- TODO: what if args.self is the ephemeral dummy resource?
         let mselfObj : Option (Object lab) := Object.fromResource args.self
         match mselfObj with
           | none => false
@@ -167,7 +167,6 @@ def Method.action {lab : Label} (methodId : lab.MethodId)
   (key : Anoma.NullifierKey)
   (args : methodId.Args.type)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
-  -- TODO: set nonce and nullifierKeyCommitment properly
   let consumable : ConsumableObject lab :=
       { key
         object := self
@@ -208,6 +207,7 @@ def Destructor.logic {lab : Label} {destructorId : lab.DestructorId}
     if args.isConsumed then
       match SomeType.cast args.data.memberArgs with
       | some argsData =>
+        -- TODO: this doesn't work when args.self is the ephemeral dummy resource
         let mselfObj : Option (Object lab) := Object.fromResource args.self
         match mselfObj with
           | none => false
