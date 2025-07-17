@@ -5,7 +5,6 @@ Just FYI (TODO, remove for final clean up)
 
 - risc0 is using the term `digest`; this allows to avoid confusion with the function `hash`,
 which computes the digest
-
 ---
 
 risc0_zkvm background https://docs.rs/risc0-zkvm/latest/risc0_zkvm/struct.Digest.html
@@ -17,27 +16,27 @@ risc0_zkvm background https://docs.rs/risc0-zkvm/latest/risc0_zkvm/struct.Digest
 
 /-- The `HashLike` class is a slight generalization of the FixedSize class in the Anoma specification.
 -/
-class HashLike (α : Type) (τ : Type) where
+class HashLike (α : Type) (δ : Type) where
   -- the generation of a new digest like (https://github.com/anoma/nspec/blob/55c77654d5a3f783704ba6ffe94d7b4ff0e57ef2/docs/arch/system/state/resource_machine/primitive_interfaces/fixed_size_type/fixed_size_type.juvix.md?plain=1#L41)
-  digest : α → τ
+  digest : α → δ
   -- the equality on τ (https://github.com/anoma/nspec/blob/55c77654d5a3f783704ba6ffe94d7b4ff0e57ef2/docs/arch/system/state/resource_machine/primitive_interfaces/fixed_size_type/fixed_size_type.juvix.md?plain=1#L42)
-  equal : τ → τ → Bool
+  equal : δ → δ → Bool
   -- equality coincides with equality of terms -- probably this is superfluous
-  precise_equality : ∀ b : τ, ∀ b' : τ, b = b' ↔ equal b b'
+  precise_equality : ∀ b : δ, ∀ b' : δ, b = b' ↔ equal b b'
   -- TODO: probably want to have an axiom if we do not want hash collisions (for formal verification purposes)
 
 -- TODO: fix the fixedSize -- could not resist the pun
-class FixedSize (α : Type) (τ : Type) extends HashLike α τ where
+class FixedSize (α : Type) (δ : Type) extends HashLike α δ where
   /-- The `encoding` is an injective mapping from `τ` to an initial segment of the natural numbers.
   -/
-  encoding : τ → Nat
+  encoding : δ → Nat
 
-  invertible : (∃ (r : Nat → τ), id = r ∘ encoding)
+  invertible : (∃ (r : Nat → δ), id = r ∘ encoding)
 
-  bounded : ∃ (n : Nat), (∀ (t : τ), encoding t < n)
+  bounded : ∃ (n : Nat), (∀ (t : δ), encoding t < n)
 
   -- probably we want
-  contiguous : ∀ (t : τ), (encoding t > 0) → (∃ (t' : τ), encoding t' = encoding t - 1)
+  contiguous : ∀ (t : δ), (encoding t > 0) → (∃ (t' : δ), encoding t' = encoding t - 1)
 
 noncomputable
 -- TODO: well, we could actually compute it based of contigous (and this has a spurious Ω(exp) factor ^_^)
