@@ -14,5 +14,6 @@ instance : TypeRep NullifierKeyCommitment where
   rep := Rep.atomic "NullifierKeyCommitment"
 
 def Nullifier.toNonce (_nullif : Nullifier) : Nonce :=
-  -- Placeholder implementation
+  -- TODO: Implement a proper conversion from Nullifier to Nonce to avoid collisions.
+  -- For now, this is a placeholder implementation that always returns 0.
   0
