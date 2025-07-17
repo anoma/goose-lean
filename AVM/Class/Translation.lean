@@ -104,7 +104,7 @@ def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
       true
 
 def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
-  (constr : Class.Constructor constrId) (key : Anoma.NullifierKey) (args : constrId.Args.type)
+  (constr : Class.Constructor constrId) (args : constrId.Args.type)
   : Rand Anoma.Action :=
     -- TODO: set nonce properly
     let newObj : Object lab := constr.created args
@@ -122,9 +122,9 @@ def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
-  (constr : Class.Constructor constrId) (key : Anoma.NullifierKey) (args : constrId.Args.type)
+  (constr : Class.Constructor constrId) (args : constrId.Args.type)
   : Rand Anoma.Transaction := do
-    let action ← constr.action key args
+    let action ← constr.action args
     pure <|
       { actions := [action],
         -- TODO: automatically generate deltaProof that verifies that the transaction is balanced
@@ -153,17 +153,22 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
       -- TODO: may need to do something more here in general, fine for the counter
       true
 
-def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Anoma.NullifierKey) (args : methodId.Args.type) : Option Anoma.Action :=
+def Method.action {lab : Label} (methodId : lab.MethodId)
+  (method : Class.Method methodId)
+  (self : Object lab)
+  (key : Anoma.NullifierKey)
+  (args : methodId.Args.type)
+  : Rand (Option Anoma.Action) :=
   -- TODO: set nonce and nullifierKeyCommitment properly
   let consumable : ConsumableObject lab :=
       { key
         object := self
         ephemeral := false }
   match consumable.consume with
-  | none => none
+  | none => pure none
   | some consumed =>
     let createObject (o : SomeObject) : CreatedObject :=
-      let res : Anoma.Resource := o.toResource (ephemeral := false) (nonce := Anoma.computeCreatedNonce key)
+      let res : Anoma.Resource := o.toResource (ephemeral := false) (nonce := consumed.can_nullify.nullifier.toNonce)
       { object := o.object
         resource := res
         commitment := res.commitment }
@@ -172,11 +177,20 @@ def Method.action {lab : Label} (methodId : lab.MethodId) (method : Class.Method
     Action.create lab methodId args consumed created
 
 /-- Creates an Anoma Transaction for a given object method. -/
-def Method.transaction {lab : Label} (methodId : lab.MethodId) (method : Class.Method methodId) (self : Object lab) (key : Anoma.NullifierKey) (args : methodId.Args.type) : Option Anoma.Transaction := do
-  let action ← method.action methodId self key args
-  pure { actions := [action],
-         -- TODO: set deltaProof properly
-         deltaProof := "" }
+def Method.transaction {lab : Label} (methodId : lab.MethodId)
+  (method : Class.Method methodId)
+  (self : Object lab)
+  (key : Anoma.NullifierKey)
+  (args : methodId.Args.type)
+  : Rand (Option Anoma.Transaction) := do
+  match ← method.action methodId self key args with
+  | none => pure none
+  | some action =>
+    pure <|
+      some
+        { actions := [action],
+          -- TODO: set deltaProof properly
+          deltaProof := "" }
 
 /-- Creates a logic for a given destructor. This logic is combined with other
     member logics to create the complete resource logic for an object. -/
@@ -197,13 +211,18 @@ def Destructor.logic {lab : Label} {destructorId : lab.DestructorId}
         false
     else args.self.ephemeral
 
-def Destructor.action {label : Label} (destructorId : label.DestructorId) (_destructor : Class.Destructor destructorId) (self : Object label) (key : Anoma.NullifierKey) (args : destructorId.Args.type) : Option Anoma.Action :=
+def Destructor.action {label : Label} (destructorId : label.DestructorId)
+  (_destructor : Class.Destructor destructorId)
+  (self : Object label)
+  (key : Anoma.NullifierKey)
+  (args : destructorId.Args.type)
+  : Rand (Option Anoma.Action) :=
   let consumable : ConsumableObject label :=
        { key
          object := self
          ephemeral := false }
   match consumable.consume with
-  | none => none
+  | none => pure none
   | some consumed =>
     let createdObject : CreatedObject :=
       let ephResource := { consumed.resource with ephemeral := true }
@@ -213,11 +232,20 @@ def Destructor.action {label : Label} (destructorId : label.DestructorId) (_dest
     Action.create label destructorId args consumed [createdObject]
 
 /-- Creates an Anoma Transaction for a given object destructor. -/
-def Destructor.transaction {lab : Label} (destructorId : lab.DestructorId) (destructor : Class.Destructor destructorId) (self : Object lab) (key : Anoma.NullifierKey) (args : destructorId.Args.type) : Option Anoma.Transaction := do
-  let action ← destructor.action destructorId self key args
-  pure { actions := [action],
-         -- TODO: set deltaProof properly
-         deltaProof := "" }
+def Destructor.transaction {lab : Label} (destructorId : lab.DestructorId)
+  (destructor : Class.Destructor destructorId)
+  (self : Object lab)
+  (key : Anoma.NullifierKey)
+  (args : destructorId.Args.type)
+  : Rand (Option Anoma.Transaction) := do
+  match ← destructor.action destructorId self key args with
+  | none => pure none
+  | some action =>
+    pure <|
+      some
+        { actions := [action],
+          -- TODO: set deltaProof properly
+          deltaProof := "" }
 
 /-- Creates a member logic for a given intent. This logic is checked when an
   object is consumed to create the intent. Note that the intent member logic

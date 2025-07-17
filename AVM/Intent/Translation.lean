@@ -1,5 +1,6 @@
 
 import Prelude
+import Mathlib.Control.Random
 import AVM.Intent
 import AVM.Class.Member.Logic
 import AVM.Class.AppData
@@ -29,15 +30,22 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
       BoolCheck.ret <|
         Class.Member.Logic.checkResourceData data.provided args.consumed
 
-/-- An action which consumes the provided objects and creates the intent. -/
-def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) : Option Anoma.Action := do
+/-- An action which consumes the provided objects and creates the intent. Helper
+  function which handles the random number generator explicitly to avoid
+  universe level inconsistencies with monadic notation. -/
+def Intent.action' (g : StdGen)
+  (intent : Intent)
+  (args : intent.Args.type)
+  (provided : List SomeObject)
+  (key : Anoma.NullifierKey)
+  : Option Anoma.Action × StdGen :=
   -- TODO: set nonce properly
   let intentResource := Intent.toResource intent args provided
   match provided.map (fun p => p.toConsumable false key |>.consume) |>.getSome with
-  | none => none
+  | none => (none, g)
   | some providedConsumed =>
     match providedConsumed.map mkTagDataPairConsumed |>.getSome with
-    | none => none
+    | none => (none, g)
     | some appDataPairs =>
       let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
         Std.HashMap.emptyWithCapacity
@@ -46,16 +54,18 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
         providedConsumed.map (fun obj =>
           Anoma.ComplianceUnit.create
             { consumedResource := obj.consumed.resource,
-              createdResource := Class.dummyResource,
+              createdResource := Class.dummyResource obj.consumed.can_nullify.nullifier.toNonce,
               nfKey := obj.consumed.key })
+      let (r, g') := stdNext g
       let createdUnit : Anoma.ComplianceUnit :=
         Anoma.ComplianceUnit.create
-          { consumedResource := Class.dummyResource,
+          { consumedResource := Class.dummyResource r,
             createdResource := intentResource,
             nfKey := key }
-      some
-        { complianceUnits := consumedUnits ++ [createdUnit],
-          logicVerifierInputs }
+      let action :=
+          { complianceUnits := consumedUnits ++ [createdUnit],
+            logicVerifierInputs }
+      (some action, g')
     where
       mkLogicVerifierInput (status : ConsumedCreated) (data : Class.SomeAppData) : Anoma.LogicVerifierInput :=
         { Data := ⟨Class.SomeAppData⟩,
@@ -68,16 +78,34 @@ def Intent.action (intent : Intent) (args : intent.Args.type) (provided : List S
         | none => none
         | some intentId =>
           some
-            (Anoma.Tag.Consumed c.consumed.nullifierProof.nullifier,
+            (Anoma.Tag.Consumed c.consumed.can_nullify.nullifier,
               { label := c.label,
                 appData := {
                   memberId := Class.Label.MemberId.intentId intentId,
                   memberArgs := UUnit.unit }})
 
+/-- An action which consumes the provided objects and creates the intent. -/
+def Intent.action (intent : Intent)
+  (args : intent.Args.type)
+  (provided : List SomeObject)
+  (key : Anoma.NullifierKey)
+  : Rand (Option Anoma.Action) := do
+  let g ← get
+  let (action, g') := Intent.action' g.down intent args provided key
+  set (ULift.up g')
+  pure action
+
 /-- A transaction which consumes the provided objects and creates the intent. -/
-def Intent.transaction (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) : Option Anoma.Transaction := do
-  let action ← intent.action args provided key
-  some
-    { actions := [action],
-      -- TODO: set deltaProof properly
-      deltaProof := "" }
+def Intent.transaction (intent : Intent)
+  (args : intent.Args.type)
+  (provided : List SomeObject)
+  (key : Anoma.NullifierKey)
+  : Rand (Option Anoma.Transaction) := do
+  match ← intent.action args provided key with
+  | none => pure none
+  | some action =>
+    pure <|
+      some
+        { actions := [action],
+          -- TODO: set deltaProof properly
+          deltaProof := "" }
