@@ -6,13 +6,31 @@ risc0_zkvm background https://docs.rs/risc0-zkvm/latest/risc0_zkvm/struct.Digest
 > Digest represents the results of a hashing function.
 -/
 
-class HashLike {τ α : Type} where
+class HashLike (α : Type) (τ : Type) where
   -- the generation of a new digest like (https://github.com/anoma/nspec/blob/55c77654d5a3f783704ba6ffe94d7b4ff0e57ef2/docs/arch/system/state/resource_machine/primitive_interfaces/fixed_size_type/fixed_size_type.juvix.md?plain=1#L41)
-  digestLike : α → τ
+  digest : α → τ
   -- the equality on τ (https://github.com/anoma/nspec/blob/55c77654d5a3f783704ba6ffe94d7b4ff0e57ef2/docs/arch/system/state/resource_machine/primitive_interfaces/fixed_size_type/fixed_size_type.juvix.md?plain=1#L42)
   equal : τ → τ → Bool
   -- equality coincides with equality of terms -- probably this is superfluous
   precise_equality : ∀ b : τ, ∀ b' : τ, b = b' ↔ equal b b'
+  -- TODO: probably want to have an axiom if we do not want hash collisions (for formal verification purposes)
+
+class FixedSize (α : Type) (τ : Type) extends HashLike α τ where
+  /-- the bitsize of all
+  -/
+  encoding : τ → Nat
+
+  invertible : (∃ (r : Nat → τ), id = r ∘ encoding)
+
+  bounded : ∃ (n : Nat), (∀ (t : τ), encoding t < n)
+
+  -- probably we want
+  contiguous : ∀ (t : τ), (encoding t > 0) → (∃ (t' : τ), encoding t' = encoding t - 1)
+
+
+noncomputable
+def bitsize {α τ}  (d : FixedSize α τ) : Nat := Exists.choose d.bounded
+-- TODO: well, we could actually compute it based of contigous (and this has a spurious Ω(exp) factor ^_^)
 
 -- TODO Hashes: have type classes instead of arbitrary `Type u`
 def LogicRef : Type (u+1) := Type u
@@ -44,3 +62,6 @@ structure Piece where
 -- TODO define the corresponding piece (and move it to the high-level RM)
 
 def kindOf (x : Resource) : LogicRef × LabelRef := ⟨x.logicRef, x.labelRef⟩
+
+
+end RM
