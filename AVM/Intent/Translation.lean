@@ -30,9 +30,9 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
       BoolCheck.ret <|
         Class.Member.Logic.checkResourceData data.provided args.consumed
 
-/-- An action which consumes the provided objects and creates the intent. Helper
-  function which handles the random number generator explicitly to avoid
-  universe level inconsistencies with monadic notation. -/
+/-- An action which consumes the provided objects and creates the intent. This
+  is a helper function which handles the random number generator explicitly to
+  avoid universe level inconsistencies with monadic notation. -/
 def Intent.action' (g : StdGen)
   (intent : Intent)
   (args : intent.Args.type)
@@ -95,7 +95,8 @@ def Intent.action (intent : Intent)
   set (ULift.up g')
   pure action
 
-/-- A transaction which consumes the provided objects and creates the intent. -/
+/-- A (partial) transaction which consumes the provided objects and creates the
+  intent. -/
 def Intent.transaction (intent : Intent)
   (args : intent.Args.type)
   (provided : List SomeObject)
