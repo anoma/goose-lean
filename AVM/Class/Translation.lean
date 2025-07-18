@@ -10,9 +10,7 @@ import AVM.Object.Consumable
 import AVM.Class.Member
 import AVM.Logic
 
-namespace AVM.Class
-
-open Ecosystem
+namespace AVM.Ecosystem
 
 structure CreatedObject where
   {label : Class.Label}
@@ -90,7 +88,7 @@ def Action.create'
             memberArgs := UUnit.unit }})
 
 /-- Helper function to create an Action. -/
-private def Action.create
+def Action.create
   (lab : EcosystemLabel)
   (memberId : lab.MemberId)
   (args : memberId.Args.type)
@@ -101,6 +99,12 @@ private def Action.create
   let (action, witness, g') := Action.create' g.down lab memberId args consumed created
   set (ULift.up g')
   return (action, witness)
+
+end AVM.Ecosystem
+
+namespace AVM.Class
+
+open Ecosystem
 
 /-- Creates a logic for a given constructor. This logic is combined with other
     method and constructor logics to create the complete resource logic for an

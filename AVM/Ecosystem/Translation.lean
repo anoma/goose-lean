@@ -87,10 +87,10 @@ def Function.action
   (funId : lab.FunctionId)
   (fargs : funId.Args.type)
   (keys : funId.ObjectArgNames → Anoma.NullifierKey)
-  : Option Anoma.Action :=
+  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
   let fn : Function funId := eco.functions funId
   match Function.parseObjectArgs args funId with
-  | none => none
+  | none => pure none
   | some (consumedObjects : funId.Selfs) =>
   let mconsumedList : Option (List SomeConsumedObject) :=
     (List.map (fun arg =>
@@ -99,11 +99,13 @@ def Function.action
       |> SomeConsumableObject.consume)
     (lab.objectArgNamesEnum funId).toList).getSome
   let createdObjects : List CreatedObject := fn.created consumedObjects fargs |>
-      List.map (fun o => CreatedObject.fromSomeObject o false)
+      List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false)
+        (nonce := sorry))
   match mconsumedList with
-  | none => none
-  | some consumedList =>
-  some (Action.create lab (.functionId funId) fargs consumedList createdObjects)
+  | none => pure none
+  | some (consumedList : List SomeConsumedObject) => do
+  let r ← Action.create lab (.functionId funId) fargs consumedList createdObjects
+  pure (some r)
 
 private def logic'
   {lab : EcosystemLabel}
