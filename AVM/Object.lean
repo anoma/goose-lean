@@ -6,7 +6,7 @@ namespace AVM
 
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
-structure Object (lab : Class.Label) where
+structure Object (lab : Class.Label) : Type u where
   /-- Used to prove ownership -/
   nullifierKeyCommitment : Option Anoma.NullifierKeyCommitment
   quantity : Nat

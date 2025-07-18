@@ -15,7 +15,7 @@ structure SomeConsumableObject where
   {label : Class.Label}
   consumable : ConsumableObject label
 
-def SomeObject.toConsumable (sobj : SomeObject) (ephemeral : Bool) (key : Anoma.NullifierKey) : SomeConsumableObject :=
+def SomeObject.toConsumable (ephemeral : Bool) (key : Anoma.NullifierKey) (sobj : SomeObject) : SomeConsumableObject :=
   { label := sobj.label
     consumable :=
      { object := sobj.object
@@ -46,6 +46,11 @@ instance SomeConsumedObject.hasBEq : BEq SomeConsumedObject where
 instance SomeConsumedObject.hasTypeRep : TypeRep SomeConsumedObject where
   rep := Rep.atomic "AVM.SomeConsumedObject"
 
+def ConsumedObject.toSomeConsumedObject {lab : Class.Label} (c : ConsumedObject lab) : SomeConsumedObject := ⟨c⟩
+
+instance ConsumedObject.coeToSomeConsumedObject {lab : Class.Label} : CoeHead (ConsumedObject lab) SomeConsumedObject where
+  coe := toSomeConsumedObject
+
 def ConsumedObject.resource {lab : Class.Label} (c : ConsumedObject lab) : Anoma.Resource :=
   c.object.toResource c.ephemeral
 def Object.toConsumable {lab : Class.Label} (object : Object lab) (ephemeral : Bool) (key : Anoma.NullifierKey) : ConsumableObject lab where
@@ -70,15 +75,6 @@ def SomeConsumableObject.consume (c : SomeConsumableObject) : Option SomeConsume
   | none => none
   | some consumed => pure { label := c.label
                             consumed }
-
-def ConsumedObject.toRootedNullifiableResource {lab : Class.Label} (c : ConsumedObject lab) : Anoma.RootedNullifiableResource where
-  key := c.key
-  resource := c.resource
-  nullifierProof := c.nullifierProof
-  root := Anoma.CommitmentRoot.todo
-
-def SomeConsumedObject.toRootedNullifiableResource (sconsumed : SomeConsumedObject) : Anoma.RootedNullifiableResource :=
-  sconsumed.consumed.toRootedNullifiableResource
 
 def SomeConsumedObject.toSomeObject (sconsumed : SomeConsumedObject) : SomeObject :=
   ⟨sconsumed.consumed.object⟩

@@ -1,6 +1,5 @@
 
 import Lean
-import Prelude.List
 
 open Lean Elab Command Meta
 

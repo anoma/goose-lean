@@ -22,7 +22,7 @@ structure Intent where
       the resource logic of the resource intent. -/
   condition : Args.type → (provided : List SomeObject) → (received : List SomeObject) → Bool
 
-/-- Intent.ResourceData is stored in the `value` field of the intent resource. -/
+/-- Intent.ResourceData is stored in the `label` field of the intent resource. -/
 structure Intent.ResourceData.{u} where
   Args : SomeType.{u}
   args : Args.type
@@ -35,19 +35,35 @@ instance Intent.ResourceData.hasBEq : BEq Intent.ResourceData where
   beq a b :=
     a.args === b.args && a.provided == b.provided
 
+structure Intent.LabelData where
+  /-- The unique label of the intent. -/
+  label : String
+  data : Intent.ResourceData
+  deriving BEq
+
+instance Intent.LabelData.hasTypeRep : TypeRep Intent.LabelData where
+  rep := Rep.atomic "AVM.Intent.LabelData"
+
 def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (nonce := 0) (nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default) : Anoma.Resource :=
-  { Val := ⟨Intent.ResourceData⟩,
-    Label := ⟨String⟩,
-    label := intent.label,
-    quantity := 1,
-    value := {
-      Args := intent.Args,
-      args,
-      provided
+  { Val := ⟨Unit⟩,
+    Label := ⟨Intent.LabelData⟩,
+    label := {
+      label := intent.label,
+      data := {
+        Args := ⟨intent.Args⟩,
+        args,
+        provided
+      }
     },
+    quantity := 1,
+    value := (),
     ephemeral := true,
     nonce,
     nullifierKeyCommitment }
 
-def Intent.ResourceData.fromResource (res : Anoma.Resource.{u,v}) : Option Intent.ResourceData.{u} :=
-  tryCast res.value
+def Intent.LabelData.fromResource (res : Anoma.Resource.{u,v}) : Option Intent.LabelData.{u} :=
+  tryCast res.label
+
+def Intent.ResourceData.fromResource (res : Anoma.Resource.{u,v}) : Option Intent.ResourceData.{u} := do
+  let labelData : Intent.LabelData.{u} ← Intent.LabelData.fromResource res
+  some labelData.data

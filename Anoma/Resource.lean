@@ -6,9 +6,6 @@ import Anoma.Nullifier
 namespace Anoma
 
 abbrev Nonce := Nat
-abbrev CommitmentRoot := Nat
-
-def CommitmentRoot.todo : CommitmentRoot := 0
 
 /-- Representation of Anoma Resource data, without the resource logic. In the
     GOOSE model, the resource logic is determined by the `label` field (which
@@ -39,7 +36,7 @@ structure Logic.Args (Data : Type u) where
   /-- `data` is the action's appData for self -/
   data : Data
 
-def Logic.Args.isConsumed {Data : Type u} (d : Logic.Args Data) :=  d.status.isConsumed
+def Logic.Args.isConsumed {Data : Type u} (d : Logic.Args Data) := d.status.isConsumed
 
 /-- Corresponds to Anoma Resource (with resource logic). -/
 structure ResourceWithLogic (Data : Type u) where
@@ -53,15 +50,6 @@ structure NullifierProof (key : NullifierKey) (res : Resource) : Prop where
 
 /-- Cast from a NullifierProof to a Nullifier. This is a no-op -/
 def NullifierProof.nullifier {key : NullifierKey} {res : Resource} (_proof : NullifierProof key res) : Nullifier := Nullifier.privateMk
-
-structure RootedNullifiableResource where
-  key : NullifierKey
-  resource : Resource
-  root : CommitmentRoot
-  -- The nullifierProof field is not part of the specs.
-  -- However, it is useful to keep it in the model in order
-  -- to make the relation between key and resource explicit
-  nullifierProof : NullifierProof key resource
 
 -- TODO placeholder implementation
 /-- If the key matches the resource.nullifierKeyCommitment then it returns the nullifier of the resource -/
