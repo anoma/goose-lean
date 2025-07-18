@@ -124,6 +124,18 @@ structure Resource where
   -/
   randSeed: RandSeed
 
+/-
+NOTES
+
+- `create` resource creation: the (default?) implementation generates a random seed, using rusts rand crate
+  https://github.com/anoma/arm-risc0/blob/6f66697c827f0cb6db0abcc5912ac98c1852c3de/arm/src/resource.rs#L52
+- the `quantity` is just a scalar ℤ_p for some p
+  https://github.com/anoma/arm-risc0/blob/6f66697c827f0cb6db0abcc5912ac98c1852c3de/arm/src/resource.rs#L76
+- kind is a projective point, based of logicRef and labelRef
+  https://github.com/anoma/arm-risc0/blob/6f66697c827f0cb6db0abcc5912ac98c1852c3de/arm/src/resource.rs#L76
+- TODO: cryptography of `psi` `rcm` ... cf. delta hash
+  ...
+-/
 
 structure Piece where
 -- TODO: Rename the current version of Resource in Anoma.lean `Anoma.Resource` to `Piece`.
