@@ -38,8 +38,7 @@ def Intent.action' (g : StdGen)
   (args : intent.Args.type)
   (provided : List SomeObject)
   (key : Anoma.NullifierKey)
-  : Option Anoma.Action × StdGen :=
-  -- TODO: set nonce properly
+  : Option (Anoma.Action × Anoma.DeltaWitness) × StdGen :=
   let intentResource := Intent.toResource intent args provided
   match provided.map (fun p => p.toConsumable false key |>.consume) |>.getSome with
   | none => (none, g)
@@ -50,23 +49,36 @@ def Intent.action' (g : StdGen)
       let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
         Std.HashMap.emptyWithCapacity
         |>.insertMany (appDataPairs.map (fun (tag, data) => (tag, mkLogicVerifierInput Consumed data)))
+      let (consumedWitnesses, g1) : List Anoma.ComplianceWitness × StdGen :=
+        providedConsumed.foldr mkConsumedComplianceWitness ([], g)
       let consumedUnits : List Anoma.ComplianceUnit :=
-        providedConsumed.map (fun obj =>
-          Anoma.ComplianceUnit.create
-            { consumedResource := obj.consumed.resource,
-              createdResource := Class.dummyResource obj.consumed.can_nullify.nullifier.toNonce,
-              nfKey := obj.consumed.key })
-      let (r, g') := stdNext g
+        consumedWitnesses.map Anoma.ComplianceUnit.create
+      let (r, g2) := stdNext g1
+      let (r', g3) := stdNext g2
+      let createdWitness : Anoma.ComplianceWitness :=
+        { consumedResource := Class.dummyResource r,
+          createdResource := intentResource,
+          nfKey := key,
+          rcv := r'.repr }
       let createdUnit : Anoma.ComplianceUnit :=
-        Anoma.ComplianceUnit.create
-          { consumedResource := Class.dummyResource r,
-            createdResource := intentResource,
-            nfKey := key }
+        Anoma.ComplianceUnit.create createdWitness
       let action :=
           { complianceUnits := consumedUnits ++ [createdUnit],
             logicVerifierInputs }
-      (some action, g')
+      let witness : Anoma.DeltaWitness :=
+        Anoma.DeltaWitness.fromComplianceWitnesses (consumedWitnesses ++ [createdWitness])
+      (some (action, witness), g3)
     where
+      mkConsumedComplianceWitness (obj : SomeConsumedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+        | (acc, g) =>
+          let (r, g') := stdNext g
+          let complianceWitness :=
+            { consumedResource := obj.consumed.resource,
+              createdResource := Class.dummyResource obj.consumed.can_nullify.nullifier.toNonce,
+              nfKey := obj.consumed.key
+              rcv := r.repr }
+          (complianceWitness :: acc, g')
+
       mkLogicVerifierInput (status : ConsumedCreated) (data : Class.SomeAppData) : Anoma.LogicVerifierInput :=
         { Data := ⟨Class.SomeAppData⟩,
           status,
@@ -89,11 +101,11 @@ def Intent.action (intent : Intent)
   (args : intent.Args.type)
   (provided : List SomeObject)
   (key : Anoma.NullifierKey)
-  : Rand (Option Anoma.Action) := do
+  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let g ← get
-  let (action, g') := Intent.action' g.down intent args provided key
+  let (p, g') := Intent.action' g.down intent args provided key
   set (ULift.up g')
-  pure action
+  pure p
 
 /-- A (partial) transaction which consumes the provided objects and creates the
   intent. -/
@@ -104,9 +116,8 @@ def Intent.transaction (intent : Intent)
   : Rand (Option Anoma.Transaction) := do
   match ← intent.action args provided key with
   | none => pure none
-  | some action =>
+  | some (action, witness) =>
     pure <|
       some
         { actions := [action],
-          -- TODO: set deltaProof properly
-          deltaProof := "" }
+          deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
