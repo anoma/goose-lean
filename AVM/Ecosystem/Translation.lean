@@ -100,7 +100,7 @@ def Function.action
     (lab.objectArgNamesEnum funId).toList).getSome
   let createdObjects : List CreatedObject := fn.created consumedObjects fargs |>
       List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false)
-        (nonce := Nonce.todo))
+        (nonce := Anoma.Nonce.todo)) -- FIXME the Nonce.todo should be replaced with the fix of https://github.com/anoma/goose-lean/issues/51
   match mconsumedList with
   | none => pure none
   | some (consumedList : List SomeConsumedObject) => do

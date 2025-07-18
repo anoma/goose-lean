@@ -61,7 +61,7 @@ def Intent.action'
       let (r, g2) := stdNext g1
       let (r', g3) := stdNext g2
       let createdWitness : Anoma.ComplianceWitness :=
-        { consumedResource := dummyResource r,
+        { consumedResource := dummyResource ⟨r⟩,
           createdResource := intentResource,
           nfKey := key,
           rcv := r'.repr }

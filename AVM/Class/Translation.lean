@@ -61,7 +61,7 @@ def Action.create'
         let (r, g') := stdNext g
         let (r', g'') := stdNext g'
         let complianceWitness :=
-            { consumedResource := dummyResource r
+            { consumedResource := dummyResource ⟨r⟩
               createdResource := res
               nfKey := Anoma.NullifierKey.universal,
               rcv := r'.repr }
