@@ -2,10 +2,51 @@ import Mathlib.Data.FinEnum
 
 namespace FinEnum
 
-def decImage {A : Type u} [FinEnum A] {B : (a : A) → Type v} {P : {a : A} → B a → Prop}
+def decImageFin {c : Nat} {B : (a : Fin c) → Type v} {P : {a : Fin c} → B a → Prop}
+  (f : (a : Fin c) → B a)
+  (dec : {a : Fin c} → (b : B a) → Decidable (P b))
+  : (∀ a : Fin c, PLift (P (f a))) ⊕ (Σ a : Fin c, PLift (¬ (P (f a)))) := by
+  induction c; constructor; intro a
+  match a with
+  | ⟨0, k⟩ => contradiction
+  next n ih =>
+    cases dec (f (Fin.last n))
+    next neg => exact Sum.inr ⟨_, ⟨neg⟩⟩
+    next pos =>
+      replace ih := @ih _ _ (fun x => f x.castSucc) (fun x => dec x)
+      cases ih
+      next ih_pos =>
+        left; intro fa
+        have ⟨a, pa⟩ := fa
+        if h1 : a < n
+        then constructor; exact (ih_pos ⟨a, h1⟩).down
+        else
+          constructor
+          have e : a = n := by omega
+          have eq : ⟨a, pa⟩ = Fin.last n := Fin.ext_iff.mpr e
+          rw [eq]
+          assumption
+      next ih_neg =>
+        have ⟨x, px⟩ := ih_neg
+        exact Sum.inr ⟨x.castSucc, px⟩
+
+def decImage {A : Type u} [enum : FinEnum A] {B : (a : A) → Type v} {P : {a : A} → B a → Prop}
   (f : (a : A) → B a)
   (dec : {a : A} → (b : B a) → Decidable (P b))
-  : (∀ a : A, PLift (P (f a))) ⊕ (Σ a : A, PLift (¬ (P (f a)))) := sorry
+  : (∀ a : A, PLift (P (f a))) ⊕ (Σ a : A, PLift (¬ (P (f a)))) :=
+  let inv := enum.equiv.invFun
+  let toFun := enum.equiv.toFun
+  let c := enum.card
+  let B' (a : Fin c) : Type v := B (inv a)
+  let P' {a : Fin c} (b : B' a) : Prop := P b
+  let f' (a : Fin c) : B' a := f (inv a)
+  let dec' {a : Fin c} (b : B' a) : Decidable (P' b) := dec b
+  match decImageFin f' dec' with
+  | .inl p => by
+    left; intro a; constructor
+    replace p := (p (toFun a)).down
+    rw [← enum.equiv.left_inv a]; exact p
+  | .inr ⟨n, ⟨p⟩⟩ => by right; refine ⟨inv n, ?_⟩; constructor; intro; contradiction
 
 def decImageOption {A : Type u} [FinEnum A] {B : (a : A) → Type v}
   (f : (a : A) -> Option (B a))
