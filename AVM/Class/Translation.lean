@@ -114,7 +114,6 @@ def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
 def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId) (args : constrId.Args.type)
   : Rand (Anoma.Action × Anoma.DeltaWitness) :=
-    -- TODO: set nonce properly
     let newObj : Object lab := constr.created args
     let consumable : ConsumableObject lab :=
        { object := {newObj with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal}
@@ -146,7 +145,9 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
     if args.isConsumed then
       match SomeType.cast args.data.memberArgs with
       | some argsData =>
-        -- TODO: what if args.self is the ephemeral dummy resource?
+        -- Note that this logic is triggered only for objects of the class
+        -- described by `lab`. So `args.self` should always correspond a valid
+        -- object of the class.
         let mselfObj : Option (Object lab) := Object.fromResource args.self
         match mselfObj with
           | none => false
@@ -207,7 +208,6 @@ def Destructor.logic {lab : Label} {destructorId : lab.DestructorId}
     if args.isConsumed then
       match SomeType.cast args.data.memberArgs with
       | some argsData =>
-        -- TODO: this doesn't work when args.self is the ephemeral dummy resource
         let mselfObj : Option (Object lab) := Object.fromResource args.self
         match mselfObj with
           | none => false

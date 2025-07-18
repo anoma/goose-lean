@@ -14,6 +14,11 @@ def dummyResource (nonce : Anoma.Nonce) : Anoma.Resource.{u, v} :=
     nonce,
     nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal }
 
+/-- The resource logic of any dummyResource. -/
+def dummyResourceLogic (args : Anoma.Logic.Args.{u, v} Unit) : Bool :=
+  let res : Anoma.Resource.{u, v} := args.self
+  res.label === ULift.up.{v} "dummy-resource" && res.ephemeral && res.quantity == 0
+
 def Member.Logic.filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
   resources.filter (fun res => res.label !== ULift.up.{v} "dummy-resource")
 

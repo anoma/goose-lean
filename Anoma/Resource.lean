@@ -27,11 +27,11 @@ instance Resource.instBEq : BEq Resource where
     && a.nonce === b.nonce
     && a.nullifierKeyCommitment === b.nullifierKeyCommitment
 
-structure Logic.Args (Data : Type u) where
-  self : Resource
+structure Logic.Args.{u, v, w} (Data : Type w) : Type (max u v w + 1) where
+  self : Resource.{u, v}
   status : ConsumedCreated
-  consumed : List Resource
-  created : List Resource
+  consumed : List Resource.{u, v}
+  created : List Resource.{u, v}
   /-- `data` is the action's appData for self -/
   data : Data
 
