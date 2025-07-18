@@ -14,8 +14,8 @@ instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) wh
               mkDynamicLabel := fun _ => default}
 
 /-- A class label uniquely identifies and specifies a class. The class
-    specification provided by a label consists of unique class name, private
-    field types, constructor and method ids. -/
+  specification provided by a label consists of unique class name, private
+  field types, constructor, destructor and method ids, and allowed intent ids. -/
 structure Label : Type (u + 1) where
   /-- The name of the class uniquely identifying the class.
       Assumption: lab1.name = lab2.name -> lab1 = lab2. -/

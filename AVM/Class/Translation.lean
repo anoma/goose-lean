@@ -114,7 +114,6 @@ def Constructor.logic {lab : Label} {constrId : lab.ConstructorId}
 def Constructor.action {lab : Label} {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId) (args : constrId.Args.type)
   : Rand (Anoma.Action × Anoma.DeltaWitness) :=
-    -- TODO: set nonce properly
     let newObj : Object lab := constr.created args
     let consumable : ConsumableObject lab :=
        { object := {newObj with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal}
@@ -135,7 +134,6 @@ def Constructor.transaction {lab : Label} {constrId : lab.ConstructorId}
     let (action, witness) ← constr.action args
     pure <|
       { actions := [action],
-        -- TODO: automatically generate deltaProof that verifies that the transaction is balanced
         deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
 
 /-- Creates a logic for a given method. This logic is combined with other method
@@ -147,6 +145,9 @@ def Method.logic {lab : Label} {methodId : lab.MethodId}
     if args.isConsumed then
       match SomeType.cast args.data.memberArgs with
       | some argsData =>
+        -- Note that this logic is triggered only for objects of the class
+        -- described by `lab`. So `args.self` should always correspond a valid
+        -- object of the class.
         let mselfObj : Option (Object lab) := Object.fromResource args.self
         match mselfObj with
           | none => false
@@ -167,7 +168,6 @@ def Method.action {lab : Label} (methodId : lab.MethodId)
   (key : Anoma.NullifierKey)
   (args : methodId.Args.type)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
-  -- TODO: set nonce and nullifierKeyCommitment properly
   let consumable : ConsumableObject lab :=
       { key
         object := self
