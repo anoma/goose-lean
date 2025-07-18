@@ -206,6 +206,7 @@ def Method.action
   | none => pure none
   | some consumed =>
     let createObject (o : SomeObject) : CreatedObject :=
+      -- FIXME see https://github.com/anoma/goose-lean/issues/51
       let res : Anoma.Resource := o.toResource (ephemeral := false) (nonce := consumed.can_nullify.nullifier.toNonce)
       { object := o.object
         resource := res

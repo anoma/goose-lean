@@ -100,7 +100,7 @@ def Function.action
     (lab.objectArgNamesEnum funId).toList).getSome
   let createdObjects : List CreatedObject := fn.created consumedObjects fargs |>
       List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false)
-        (nonce := sorry))
+        (nonce := Nonce.todo))
   match mconsumedList with
   | none => pure none
   | some (consumedList : List SomeConsumedObject) => do
