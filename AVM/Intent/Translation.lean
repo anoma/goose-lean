@@ -1,4 +1,5 @@
 import Prelude
+import Mathlib.Control.Random
 import AVM.Intent
 import AVM.Class.Label
 import AVM.Logic
@@ -32,36 +33,59 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
       BoolCheck.ret <|
         Logic.checkResourceData data.provided args.consumed
 
-/-- An action which consumes the provided objects and creates the intent. -/
-def Intent.action (label : EcosystemLabel) (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) : Option Anoma.Action := do
-  -- TODO: set nonce properly
+/-- An action which consumes the provided objects and creates the intent. This
+  is a helper function which handles the random number generator explicitly to
+  avoid universe level inconsistencies with monadic notation. -/
+def Intent.action'
+  (g : StdGen)
+  (label : EcosystemLabel)
+  (intent : Intent)
+  (args : intent.Args.type)
+  (provided : List SomeObject)
+  (key : Anoma.NullifierKey)
+  : Option (Anoma.Action × Anoma.DeltaWitness) × StdGen :=
   let intentResource := Intent.toResource intent args provided
   match provided.map (fun p => p.toConsumable false key |>.consume) |>.getSome with
-  | none => none
+  | none => (none, g)
   | some providedConsumed =>
     match providedConsumed.map mkTagDataPairConsumed |>.getSome with
-    | none => none
+    | none => (none, g)
     | some appDataPairs =>
       let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
         Std.HashMap.emptyWithCapacity
         |>.insertMany (appDataPairs.map (fun (tag, data) => (tag, mkLogicVerifierInput Consumed data)))
+      let (consumedWitnesses, g1) : List Anoma.ComplianceWitness × StdGen :=
+        providedConsumed.foldr mkConsumedComplianceWitness ([], g)
       let consumedUnits : List Anoma.ComplianceUnit :=
-        providedConsumed.map (fun obj =>
-          Anoma.ComplianceUnit.create
-            { consumedResource := obj.consumed.resource,
-              createdResource := dummyResource,
-              nfKey := obj.consumed.key })
+        consumedWitnesses.map Anoma.ComplianceUnit.create
+      let (r, g2) := stdNext g1
+      let (r', g3) := stdNext g2
+      let createdWitness : Anoma.ComplianceWitness :=
+        { consumedResource := Class.dummyResource r,
+          createdResource := intentResource,
+          nfKey := key,
+          rcv := r'.repr }
       let createdUnit : Anoma.ComplianceUnit :=
-        Anoma.ComplianceUnit.create
-          { consumedResource := dummyResource,
-            createdResource := intentResource,
-            nfKey := key }
-      some
-        { complianceUnits := consumedUnits ++ [createdUnit],
-          logicVerifierInputs }
+        Anoma.ComplianceUnit.create createdWitness
+      let action :=
+          { complianceUnits := consumedUnits ++ [createdUnit],
+            logicVerifierInputs }
+      let witness : Anoma.DeltaWitness :=
+        Anoma.DeltaWitness.fromComplianceWitnesses (consumedWitnesses ++ [createdWitness])
+      (some (action, witness), g3)
     where
-      mkLogicVerifierInput (status : ConsumedCreated) (data : SomeAppData) : Anoma.LogicVerifierInput :=
-        { Data := ⟨SomeAppData⟩,
+      mkConsumedComplianceWitness (obj : SomeConsumedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+        | (acc, g) =>
+          let (r, g') := stdNext g
+          let complianceWitness :=
+            { consumedResource := obj.consumed.resource,
+              createdResource := Class.dummyResource obj.consumed.can_nullify.nullifier.toNonce,
+              nfKey := obj.consumed.key
+              rcv := r.repr }
+          (complianceWitness :: acc, g')
+
+      mkLogicVerifierInput (status : ConsumedCreated) (data : Class.SomeAppData) : Anoma.LogicVerifierInput :=
+        { Data := ⟨Class.SomeAppData⟩,
           status,
           appData := data }
 
@@ -71,16 +95,34 @@ def Intent.action (label : EcosystemLabel) (intent : Intent) (args : intent.Args
         | none => none
         | some intentId =>
           some
-            (Anoma.Tag.Consumed c.consumed.nullifierProof.nullifier,
-              { label := label,
-                appData :=
-                 { memberId := intentId,
-                   memberArgs := UUnit.unit }})
+            (Anoma.Tag.Consumed c.consumed.can_nullify.nullifier,
+              { label := c.label,
+                appData := {
+                  memberId := Class.Label.MemberId.intentId intentId,
+                  memberArgs := UUnit.unit }})
 
-/-- A transaction which consumes the provided objects and creates the intent. -/
-def Intent.transaction (label : EcosystemLabel) (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (key : Anoma.NullifierKey) : Option Anoma.Transaction := do
-  let action ← intent.action label args provided key
-  some
-    { actions := [action],
-      -- TODO: set deltaProof properly
-      deltaProof := "" }
+/-- An action which consumes the provided objects and creates the intent. -/
+def Intent.action (intent : Intent)
+  (args : intent.Args.type)
+  (provided : List SomeObject)
+  (key : Anoma.NullifierKey)
+  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
+  let g ← get
+  let (p, g') := Intent.action' g.down intent args provided key
+  set (ULift.up g')
+  pure p
+
+/-- A (partial) transaction which consumes the provided objects and creates the
+  intent. -/
+def Intent.transaction (intent : Intent)
+  (args : intent.Args.type)
+  (provided : List SomeObject)
+  (key : Anoma.NullifierKey)
+  : Rand (Option Anoma.Transaction) := do
+  match ← intent.action args provided key with
+  | none => pure none
+  | some (action, witness) =>
+    pure <|
+      some
+        { actions := [action],
+          deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }

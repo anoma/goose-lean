@@ -1,4 +1,5 @@
 
+import Mathlib.Control.Random
 import Prelude
 import Anoma
 import AVM.Class
@@ -26,37 +27,57 @@ def CreatedObject.fromSomeObject (o : SomeObject) (ephemeral : Bool) : CreatedOb
     commitment := res.commitment }
 
 def Action.create
+  (g : StdGen)
   (lab : EcosystemLabel)
   (memberId : lab.MemberId)
   (args : memberId.Args.type)
   (sconsumed : List SomeConsumedObject)
   (created : List CreatedObject) -- no appdata/logic
-  : Anoma.Action :=
+  : Anoma.Action × Anoma.DeltaWitness × StdGen :=
+  let createdResources : List Anoma.Resource := created.map CreatedObject.resource
+  let (createdWitnesses, g') : List Anoma.ComplianceWitness × StdGen :=
+    createdResources.foldr mkCreatedComplianceWitness ([], g)
+  let createdUnits : List Anoma.ComplianceUnit :=
+    createdWitnesses.map Anoma.ComplianceUnit.create
   let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
     Std.HashMap.emptyWithCapacity
-    |>.insertMany (List.map (fun c => Prod.map id (mkLogicVerifierInput Consumed) (mkTagDataPairConsumed c)) sconsumed)
+    |>.insertMany [Prod.map id (mkLogicVerifierInput Consumed) (mkTagDataPairConsumed consumed)]
     |>.insertMany (List.map (Prod.map id (mkLogicVerifierInput Created) ∘ mkTagDataPairCreated) created)
-  let createdResources := List.map CreatedObject.resource created
-  let consumedUnits : List Anoma.ComplianceUnit :=
-    List.map (fun ⟨c⟩ => Anoma.ComplianceUnit.create
-      { consumedResource := c.resource
-        createdResource := dummyResource
-        nfKey := c.key }) sconsumed
-  let createdUnits : List Anoma.ComplianceUnit :=
-    List.map (fun res => Anoma.ComplianceUnit.create
-      { consumedResource := dummyResource
-        createdResource := res
-        nfKey := Anoma.NullifierKey.universal }) createdResources
-  { complianceUnits := consumedUnits ++ createdUnits,
-    logicVerifierInputs }
+  let consumedResource : Anoma.Resource := consumed.resource
+  let (r, g'') := stdNext g'
+  let consumedWitness : Anoma.ComplianceWitness :=
+      { consumedResource := consumedResource
+        createdResource := dummyResource consumed.can_nullify.nullifier.toNonce
+        nfKey := consumed.key,
+        rcv := r.repr }
+  let consumedUnit : Anoma.ComplianceUnit :=
+    Anoma.ComplianceUnit.create consumedWitness
+  let action : Anoma.Action :=
+    { complianceUnits := consumedUnit :: createdUnits,
+      logicVerifierInputs }
+  let deltaWitness : Anoma.DeltaWitness :=
+    Anoma.DeltaWitness.fromComplianceWitnesses (consumedWitness :: createdWitnesses)
+  (action, deltaWitness, g'')
   where
-    mkLogicVerifierInput (status : ConsumedCreated) (data : SomeAppData) : Anoma.LogicVerifierInput :=
-      { Data := ⟨SomeAppData⟩,
+    mkCreatedComplianceWitness  (res : Anoma.Resource) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+      | (acc, g) =>
+        let (r, g') := stdNext g
+        let (r', g'') := stdNext g'
+        let complianceWitness :=
+            { consumedResource := dummyResource r
+              createdResource := res
+              nfKey := Anoma.NullifierKey.universal,
+              rcv := r'.repr }
+        (complianceWitness :: acc, g'')
+
+    mkLogicVerifierInput (status : ConsumedCreated) (data : Class.SomeAppData) : Anoma.LogicVerifierInput :=
+      { Data := ⟨Class.SomeAppData⟩,
         status,
         appData := data }
 
-    mkTagDataPairConsumed : SomeConsumedObject → Anoma.Tag × SomeAppData := fun ⟨i⟩ =>
-      (Anoma.Tag.Consumed i.nullifierProof.nullifier,
+    mkTagDataPairConsumed (i : ConsumedObject lab)
+     : Anoma.Tag × Class.SomeAppData :=
+      (Anoma.Tag.Consumed i.can_nullify.nullifier,
         { appData := {
             memberId := memberId,
             memberArgs := args }})
@@ -64,61 +85,23 @@ def Action.create
     mkTagDataPairCreated (i : CreatedObject)
      : Anoma.Tag × SomeAppData :=
       (Anoma.Tag.Created i.commitment,
-        {label := lab,
-         appData := {
-          memberId := .falseLogicId,
-          memberArgs := UUnit.unit }})
+        { label := i.label,
+          appData := {
+            memberId := Label.MemberId.falseLogicId,
+            memberArgs := UUnit.unit }})
 
-end AVM.Ecosystem
-
-namespace AVM.Class
-
-open Ecosystem
-
+/-- Helper function to create an Action. -/
 private def Action.create
-  (lab : EcosystemLabel)
-  (classId : lab.ClassId)
-  (memberId : classId.MemberId)
+  (lab : Label)
+  (memberId : Label.MemberId lab)
   (args : memberId.Args.type)
-  (sconsumed : List SomeConsumedObject)
+  (consumed : ConsumedObject lab)
   (created : List CreatedObject) -- no appdata/logic
-  : Anoma.Action :=
-  let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
-    Std.HashMap.emptyWithCapacity
-    |>.insertMany (List.map (fun c => Prod.map id (mkLogicVerifierInput Consumed) (mkTagDataPairConsumed c)) sconsumed)
-    |>.insertMany (List.map (Prod.map id (mkLogicVerifierInput Created) ∘ mkTagDataPairCreated) created)
-  let createdResources := List.map CreatedObject.resource created
-  let consumedUnits : List Anoma.ComplianceUnit :=
-    List.map (fun ⟨c⟩ => Anoma.ComplianceUnit.create
-      { consumedResource := c.resource
-        createdResource := dummyResource
-        nfKey := c.key }) sconsumed
-  let createdUnits : List Anoma.ComplianceUnit :=
-    List.map (fun res => Anoma.ComplianceUnit.create
-      { consumedResource := dummyResource
-        createdResource := res
-        nfKey := Anoma.NullifierKey.universal }) createdResources
-  { complianceUnits := consumedUnits ++ createdUnits,
-    logicVerifierInputs }
-  where
-    mkLogicVerifierInput (status : ConsumedCreated) (data : SomeAppData) : Anoma.LogicVerifierInput :=
-      { Data := ⟨SomeAppData⟩,
-        status,
-        appData := data }
-
-    mkTagDataPairConsumed : SomeConsumedObject → Anoma.Tag × SomeAppData := fun ⟨i⟩ =>
-      (Anoma.Tag.Consumed i.nullifierProof.nullifier,
-        { appData := {
-            memberId := .classMember memberId,
-            memberArgs := args }})
-
-    mkTagDataPairCreated (i : CreatedObject)
-     : Anoma.Tag × SomeAppData :=
-      (Anoma.Tag.Created i.commitment,
-        {label := lab,
-         appData := {
-          memberId := .falseLogicId,
-          memberArgs := UUnit.unit }})
+  : Rand (Anoma.Action × Anoma.DeltaWitness) := do
+  let g ← get
+  let (action, witness, g') := Action.create' g.down lab memberId args consumed created
+  set (ULift.up g')
+  return (action, witness)
 
 /-- Creates a logic for a given constructor. This logic is combined with other
     method and constructor logics to create the complete resource logic for an
@@ -149,7 +132,7 @@ def Constructor.action
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor constrId)
   (args : constrId.Args.type)
-  : Anoma.Action :=
+  : Rand (Anoma.Action × Anoma.DeltaWitness) :=
     -- TODO: set nonce properly
     let clab := classId.label
     let newObj : Object clab := constr.created args
@@ -157,7 +140,8 @@ def Constructor.action
        { object := {newObj with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal}
          ephemeral := true
          key := Anoma.NullifierKey.universal }
-    let consumed : ConsumedObject clab := { consumable with nullifierProof := Anoma.nullifyUniversal consumable.resource consumable.key rfl rfl }
+    let consumed : ConsumedObject lab := { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource consumable.key rfl rfl }
+    let createdResource : Anoma.Resource := newObj.toSomeObject.toResource (ephemeral := false) (nonce := consumed.can_nullify.nullifier.toNonce)
     let created : List CreatedObject :=
           [CreatedObject.fromSomeObject (newObj.toSomeObject) (ephemeral := false)]
     Action.create lab classId constrId args [consumed] created
@@ -166,14 +150,14 @@ def Constructor.action
 def Constructor.transaction
   {lab : EcosystemLabel}
   {classId : lab.ClassId}
-  {constrId : classId.label.ConstructorId}
-  (constr : Class.Constructor constrId)
-  (args : constrId.Args.type)
-  : Anoma.Transaction :=
-    let action := constr.action args
-    { actions := [action],
-      -- TODO: automatically generate deltaProof that verifies that the transaction is balanced
-      deltaProof := "" }
+  {constrId : calssId.label.ConstructorId}
+  (constr : Class.Constructor constrId) (args : constrId.Args.type)
+  : Rand Anoma.Transaction := do
+    let (action, witness) ← constr.action args
+    pure <|
+      { actions := [action],
+        -- TODO: automatically generate deltaProof that verifies that the transaction is balanced
+        deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
 
 /-- Creates a logic for a given method. This logic is combined with other method
     and constructor logics to create the complete resource logic for an object. -/
@@ -209,17 +193,17 @@ def Method.action
   (self : Object classId.label)
   (key : Anoma.NullifierKey)
   (args : methodId.Args.type)
-  : Option Anoma.Action :=
+  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
   -- TODO: set nonce and nullifierKeyCommitment properly
   let consumable : ConsumableObject classId.label :=
       { key
         object := self
         ephemeral := false }
   match consumable.consume with
-  | none => none
+  | none => pure none
   | some consumed =>
     let createObject (o : SomeObject) : CreatedObject :=
-      let res : Anoma.Resource := o.toResource false
+      let res : Anoma.Resource := o.toResource (ephemeral := false) (nonce := consumed.can_nullify.nullifier.toNonce)
       { object := o.object
         resource := res
         commitment := res.commitment }
@@ -236,11 +220,15 @@ def Method.transaction
   (self : Object classId.label)
   (key : Anoma.NullifierKey)
   (args : methodId.Args.type)
-  : Option Anoma.Transaction := do
+  : Rand (Option Anoma.Transaction) := do
   let action ← method.action methodId self key args
-  pure { actions := [action],
-         -- TODO: set deltaProof properly
-         deltaProof := "" }
+  match ← method.action methodId self key args with
+  | none => pure none
+  | some (action, witness) =>
+    pure <|
+      some
+        { actions := [action],
+          deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
 
 /-- Creates a logic for a given destructor. This logic is combined with other
     member logics to create the complete resource logic for an object. -/
@@ -272,13 +260,13 @@ def Destructor.action
   (self : Object classId.label)
   (key : Anoma.NullifierKey)
   (args : destructorId.Args.type)
-  : Option Anoma.Action :=
+  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
   let consumable : ConsumableObject classId.label :=
        { key
          object := self
          ephemeral := false }
   match consumable.consume with
-  | none => none
+  | none => pure none
   | some consumed =>
     let createdObject : CreatedObject :=
       let ephResource := { consumed.resource with ephemeral := true }
@@ -296,11 +284,14 @@ def Destructor.transaction
   (self : Object classId.label)
   (key : Anoma.NullifierKey)
   (args : destructorId.Args.type)
-  : Option Anoma.Transaction := do
-  let action ← destructor.action destructorId self key args
-  pure { actions := [action],
-         -- TODO: set deltaProof properly
-         deltaProof := "" }
+  : Rand (Option Anoma.Transaction) := do
+  match ← destructor.action destructorId self key args with
+  | none => pure none
+  | some (action, witness) =>
+    pure <|
+      some
+        { actions := [action],
+          deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
 
 -- Check:
 -- 1. member logic corresponding to the memberId in AppData

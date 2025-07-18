@@ -63,8 +63,14 @@ def beq_generic {A : Type u} {B : Type w} [repA : TypeRep A] [repB : TypeRep B] 
   | some y' => y' == y
   | none => false
 
+def bneq_generic {A : Type u} {B : Type w} [repA : TypeRep A] [repB : TypeRep B] [beqB : BEq B] (x : A) (y : B) : Bool :=
+  not (beq_generic x y)
+
 /-- Boolean equality between elements in different types. -/
 infix:50 " === " => beq_generic
+
+/-- Boolean not-equal for elements in different types. -/
+infix:50 " !== " => bneq_generic
 
 instance : TypeRep Unit where
   rep := Rep.atomic "Unit"
