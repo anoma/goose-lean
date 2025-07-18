@@ -46,6 +46,7 @@ instance Intent.LabelData.hasTypeRep : TypeRep Intent.LabelData where
   rep := Rep.atomic "AVM.Intent.LabelData"
 
 def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (nonce := 0) (nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default) : Anoma.Resource :=
+  -- TODO: compute nonce
   { Val := ⟨Unit⟩,
     Label := ⟨Intent.LabelData⟩,
     label := {

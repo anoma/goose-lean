@@ -36,7 +36,6 @@ def lab : Class.Label where
 def toObject (c : Counter) : Object lab where
   quantity := 1
   privateFields := c.count
-  nullifierKeyCommitment := none
 
 def fromObject (o : Object lab) : Option Counter := do
   guard (o.quantity == 1)

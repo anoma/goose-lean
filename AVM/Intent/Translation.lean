@@ -39,6 +39,7 @@ def Intent.action' (g : StdGen)
   (provided : List SomeObject)
   (key : Anoma.NullifierKey)
   : Option (Anoma.Action × Anoma.DeltaWitness) × StdGen :=
+  -- TODO: Set the nonce of `intentResource` to a random value.
   let intentResource := Intent.toResource intent args provided
   match provided.map (fun p => p.toConsumable false key |>.consume) |>.getSome with
   | none => (none, g)
