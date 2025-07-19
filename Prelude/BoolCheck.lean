@@ -1,10 +1,11 @@
 
 import Prelude.UUnit
 
-namespace BoolCheck
 
 /-- A monad for boolean checks that supports early return --/
 abbrev BoolCheck (ret : Type u := UUnit.{u}) : Type u := Except Bool ret
+
+namespace BoolCheck
 
 def run (b : BoolCheck UUnit) : Bool := match b with
   | (.ok _) => true
@@ -20,6 +21,6 @@ def ret (r : Bool) : BoolCheck UUnit := Except.error r
 
 def guard (b : Bool) : BoolCheck UUnit := if b then pure default else ret false
 
-end BoolCheck
+def fail : BoolCheck UUnit := ret false
 
-export BoolCheck (BoolCheck)
+end BoolCheck

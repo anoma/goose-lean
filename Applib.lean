@@ -7,6 +7,7 @@ open AVM
 def noIntents {A : Type u} : Empty -> A := Empty.elim
 
 macro "noDestructors" : term => `(fun x => Empty.elim x)
+macro "noFunctions" : term => `(fun x => Empty.elim x)
 macro "noMethods" : term => `(fun x => Empty.elim x)
 
 class IsObject (s : Type) where

@@ -16,4 +16,4 @@ instance : TypeRep NullifierKeyCommitment where
 def Nullifier.toNonce (_nullif : Nullifier) : Nonce :=
   -- TODO: Implement a proper conversion from Nullifier to Nonce to avoid collisions.
   -- For now, this is a placeholder implementation that always returns 0.
-  0
+  Nonce.todo

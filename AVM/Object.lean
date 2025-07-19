@@ -6,7 +6,7 @@ namespace AVM
 
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
-structure Object (lab : Class.Label) where
+structure Object (lab : Class.Label) : Type u where
   /-- The nonce should be available for objects fetched from Anoma. -/
   nonce : Option Anoma.Nonce := none
   /-- Used to prove ownership -/
@@ -47,9 +47,11 @@ instance : BEq Object.Resource.Label where
   beq o1 o2 := o1.classLabel == o2.classLabel && o1.dynamicLabel === o2.dynamicLabel
 
 /-- Converts SomeObject to a Resource. -/
-def SomeObject.toResource (sobj : SomeObject)
-    (ephemeral : Bool) (nonce : Anoma.Nonce)
-    : Anoma.Resource :=
+def SomeObject.toResource
+  (sobj : SomeObject)
+  (ephemeral : Bool)
+  (nonce : Anoma.Nonce)
+  : Anoma.Resource :=
   let lab := sobj.label
   let obj : Object lab := sobj.object
   { Val := lab.PrivateFields,

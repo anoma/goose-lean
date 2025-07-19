@@ -1,21 +1,28 @@
+import Prelude.UUnit
 
 universe u v w z
 
 variable {A : Type u} {B : Type v} {C : Type w} {D : Type z}
 
-def List.zipWithExact (f : A → B → C) (l1 : List A) (l2 : List B) : List C :=
+namespace List
+def zipWithExactOption (f : A → B → C) (l1 : List A) (l2 : List B) : Option (List C) :=
   match l1, l2 with
-  | [], [] => []
-  | a :: as, b :: bs => f a b :: List.zipWithExact f as bs
-  | _, _ => panic! "List.zipWithExact: lists must have the same length"
+  | [], [] => pure []
+  | a :: as, b :: bs => do
+    let t <- List.zipWithExactOption f as bs
+    pure (f a b :: t)
+  | _, _ => none
 
-def List.zipWith3Exact (f : A → B → C → D) (l1 : List A) (l2 : List B) (l3 : List C) : List D :=
+def zipWithExact (f : A → B → C) (l1 : List A) (l2 : List B) : List C :=
+  (zipWithExactOption f l1 l2).getD (panic! "List.zipWithExact: lists must have the same length")
+
+def zipWith3Exact (f : A → B → C → D) (l1 : List A) (l2 : List B) (l3 : List C) : List D :=
   match l1, l2, l3 with
   | [], [], [] => []
   | a :: as, b :: bs, c :: cs => f a b c :: List.zipWith3Exact f as bs cs
   | _, _, _ => panic! "List.zipWith3Exact: lists must have the same length"
 
-def List.mapSome (f : A → Option B) (l : List A) : Option (List B) :=
+def mapSome (f : A → Option B) (l : List A) : Option (List B) :=
   match l with
   | [] => some []
   | a :: as => do
@@ -23,5 +30,19 @@ def List.mapSome (f : A → Option B) (l : List A) : Option (List B) :=
     let b ← f a
     some (b :: bs)
 
-def List.getSome (l : List (Option A)) : Option (List A) :=
+def getSome (l : List (Option A)) : Option (List A) :=
   l.mapSome id
+
+def Product (tys : List (Type u)) : Type u :=
+  match tys with
+  | []      => UUnit
+  | [t]     => t
+  | t :: ts => t × Product ts
+
+def toSizedVector {n : Nat} (l : List A) : Option (Vector A n) :=
+  let a : Array A := l.toArray
+  if h : a.size = n
+  then some ⟨a, h⟩
+  else none
+
+end List

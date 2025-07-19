@@ -16,7 +16,7 @@ structure SomeConsumableObject where
   {label : Class.Label}
   consumable : ConsumableObject label
 
-def SomeObject.toConsumable (sobj : SomeObject) (ephemeral : Bool) (key : Anoma.NullifierKey) : SomeConsumableObject :=
+def SomeObject.toConsumable (ephemeral : Bool) (key : Anoma.NullifierKey) (sobj : SomeObject) : SomeConsumableObject :=
   { label := sobj.label
     consumable :=
      { object := sobj.object
@@ -49,6 +49,11 @@ instance SomeConsumedObject.hasBEq : BEq SomeConsumedObject where
 
 instance SomeConsumedObject.hasTypeRep : TypeRep SomeConsumedObject where
   rep := Rep.atomic "AVM.SomeConsumedObject"
+
+def ConsumedObject.toSomeConsumedObject {lab : Class.Label} (c : ConsumedObject lab) : SomeConsumedObject := ⟨c⟩
+
+instance ConsumedObject.coeToSomeConsumedObject {lab : Class.Label} : CoeHead (ConsumedObject lab) SomeConsumedObject where
+  coe := toSomeConsumedObject
 
 def ConsumedObject.resource {lab : Class.Label} (c : ConsumedObject lab) : Anoma.Resource :=
   c.toResource
