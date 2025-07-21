@@ -93,11 +93,12 @@ def Function.action
   | none => pure none
   | some (consumedObjects : funId.Selves) =>
   let mconsumedList : Option (List SomeConsumedObject) :=
-    (List.map (fun arg =>
+    (lab.objectArgNamesEnum funId).toList
+    |>.map (fun arg =>
       (consumedObjects arg).toSomeObject
       |> SomeObject.toConsumable false (keys arg)
       |> SomeConsumableObject.consume)
-    (lab.objectArgNamesEnum funId).toList).getSome
+    |>.getSome
   let createdObjects : List CreatedObject := fn.created consumedObjects fargs |>
       List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false)
         (nonce := Anoma.Nonce.todo)) -- FIXME the Nonce.todo should be replaced with the fix of https://github.com/anoma/goose-lean/issues/51
