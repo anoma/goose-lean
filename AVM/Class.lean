@@ -18,4 +18,4 @@ structure Class {lab : Ecosystem.Label} (classId : lab.ClassId) : Type (u + 1) w
   destructors : (m : classId.label.DestructorId) → Class.Destructor m
   /-- Extra class-specific logic. The whole resource logic function for an
     object consists of the class invariant and the member logics. -/
-  invariant : (self : Object classId.label) → Ecosystem.Logic.Args lab → Bool := fun _ _ => true
+  invariant : (self : Object classId.label) → Logic.Args lab → Bool := fun _ _ => true

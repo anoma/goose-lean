@@ -2,7 +2,7 @@ import AVM.Class.Member
 import AVM.Class.Label
 import AVM.Ecosystem.Label
 
-namespace AVM.Ecosystem
+namespace AVM
 
 /-- The app data for an object in a given class consists of:
     1. member logic indicator (indicator which member is being called)

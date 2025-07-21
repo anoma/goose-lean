@@ -3,8 +3,11 @@ import Prelude
 import AVM.Class.Translation
 import AVM.Ecosystem.AppData
 import AVM.Logic
+import AVM.Action
 
 namespace AVM.Ecosystem
+
+open AVM.Action
 
 /-- Creates a member logic for a given intent. This logic is checked when an
   object is consumed to create the intent. Note that the intent member logic
