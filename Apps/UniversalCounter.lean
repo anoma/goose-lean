@@ -33,7 +33,7 @@ def clab : Class.Label where
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
 
-def lab : EcosystemLabel := EcosystemLabel.singleton clab
+def lab : Ecosystem.Label := Ecosystem.Label.singleton clab
 
 def toObject (c : Counter) : Object clab where
   quantity := 1

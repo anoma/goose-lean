@@ -1,9 +1,9 @@
 import AVM.Class.Label
 import AVM.Object
 
-namespace AVM
+namespace AVM.Ecosystem
 
-structure EcosystemLabel : Type 1 where
+structure Label : Type 1 where
   name : String
 
   ClassId : Type
@@ -29,12 +29,12 @@ structure EcosystemLabel : Type 1 where
   [intentsRepr : Repr IntentId]
   [intentsBEq : BEq IntentId]
 
-namespace EcosystemLabel
+end AVM.Ecosystem
 
-open Class
+namespace AVM.Ecosystem.Label
 
 /-- Singleton ecosystem: An ecosystem with a single class, no functions and no intents -/
-def singleton (l : Label) : EcosystemLabel where
+def singleton (l : Class.Label) : Ecosystem.Label where
   name := l.name
 
   ClassId := UUnit
@@ -45,12 +45,12 @@ def singleton (l : Label) : EcosystemLabel where
   objectArgNamesBEq := fun f => f.elim
 
 
-def ClassId.label {lab : EcosystemLabel} (classId : lab.ClassId) : Label :=
+def ClassId.label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label :=
   lab.classes classId
 
-def ClassId.MemberId {lab : EcosystemLabel} (c : lab.ClassId) : Type := c.label.MemberId
+def ClassId.MemberId {lab : Ecosystem.Label} (c : lab.ClassId) : Type := c.label.MemberId
 
-inductive MemberId (lab : EcosystemLabel) where
+inductive MemberId (lab : Ecosystem.Label) where
   | functionId (funId : lab.FunctionId)
   | intentId (intentId : lab.IntentId)
   | classMember {classId : lab.ClassId} (memId : classId.MemberId)
@@ -62,11 +62,11 @@ inductive MemberId (lab : EcosystemLabel) where
     but having explicit `falseLogicId` makes its intended behaviour clear. -/
   | falseLogicId
 
-instance ClassId.MemberId.hasTypeRep {lab : EcosystemLabel} {c : lab.ClassId} : TypeRep c.MemberId := Label.MemberId.hasTypeRep c.label
+instance ClassId.MemberId.hasTypeRep {lab : Ecosystem.Label} {c : lab.ClassId} : TypeRep c.MemberId := Class.Label.MemberId.hasTypeRep c.label
 
-instance ClassId.MemberId.hasBEq {lab : EcosystemLabel} {c : lab.ClassId} : BEq c.MemberId := Label.MemberId.hasBEq
+instance ClassId.MemberId.hasBEq {lab : Ecosystem.Label} {c : lab.ClassId} : BEq c.MemberId := Class.Label.MemberId.hasBEq
 
-instance MemberId.hasBEq {lab : EcosystemLabel} : BEq (EcosystemLabel.MemberId lab) where
+instance MemberId.hasBEq {lab : Ecosystem.Label} : BEq (Ecosystem.Label.MemberId lab) where
   beq a b :=
     match a, b with
     | functionId c1, functionId c2 => lab.functionsBEq.beq c1 c2
@@ -80,57 +80,57 @@ instance MemberId.hasBEq {lab : EcosystemLabel} : BEq (EcosystemLabel.MemberId l
     | _, intentId _ => false
     | falseLogicId, falseLogicId => true
 
-def FunctionId.Args {lab : EcosystemLabel} (functionId : lab.FunctionId) : SomeType :=
+def FunctionId.Args {lab : Ecosystem.Label} (functionId : lab.FunctionId) : SomeType :=
   lab.FunctionArgs functionId
 
-def FunctionId.ObjectArgNames {lab : EcosystemLabel} (functionId : lab.FunctionId) : Type :=
+def FunctionId.ObjectArgNames {lab : Ecosystem.Label} (functionId : lab.FunctionId) : Type :=
   lab.FunctionObjectArgNames functionId
 
-def FunctionId.objectArgNames {lab : EcosystemLabel} (functionId : lab.FunctionId) : List functionId.ObjectArgNames :=
+def FunctionId.objectArgNames {lab : Ecosystem.Label} (functionId : lab.FunctionId) : List functionId.ObjectArgNames :=
   (lab.objectArgNamesEnum functionId).toList
 
-def FunctionId.ObjectArgNames.classId {lab : EcosystemLabel} {functionId : lab.FunctionId} (argName : functionId.ObjectArgNames) : lab.ClassId :=
+def FunctionId.ObjectArgNames.classId {lab : Ecosystem.Label} {functionId : lab.FunctionId} (argName : functionId.ObjectArgNames) : lab.ClassId :=
   lab.FunctionObjectArgClass argName
 
 /-- Returns the index of an object argument -/
-def FunctionId.ObjectArgNames.ix {lab : EcosystemLabel} {functionId : lab.FunctionId} (argName : functionId.ObjectArgNames) : Fin (lab.objectArgNamesEnum functionId).card :=
+def FunctionId.ObjectArgNames.ix {lab : Ecosystem.Label} {functionId : lab.FunctionId} (argName : functionId.ObjectArgNames) : Fin (lab.objectArgNamesEnum functionId).card :=
   (lab.objectArgNamesEnum functionId).equiv.toFun argName
 
-def FunctionId.numObjectArgs {lab : EcosystemLabel} {functionId : lab.FunctionId} : Nat :=
+def FunctionId.numObjectArgs {lab : Ecosystem.Label} {functionId : lab.FunctionId} : Nat :=
   (lab.objectArgNamesEnum functionId).card
 
-def FunctionId.argsClasses {lab : EcosystemLabel} (functionId : lab.FunctionId) : List lab.ClassId :=
+def FunctionId.argsClasses {lab : Ecosystem.Label} (functionId : lab.FunctionId) : List lab.ClassId :=
   let getArg (a : functionId.ObjectArgNames) : lab.ClassId := lab.FunctionObjectArgClass a
   List.map getArg functionId.objectArgNames
 
-def MemberId.Args {lab : EcosystemLabel} (memberId : MemberId lab) : SomeType :=
+def MemberId.Args {lab : Ecosystem.Label} (memberId : MemberId lab) : SomeType :=
   match memberId with
   | functionId f => lab.FunctionArgs f
-  | classMember m => Label.MemberId.Args m
+  | classMember m => Class.Label.MemberId.Args m
   | intentId _ => ⟨UUnit⟩
   | falseLogicId => ⟨UUnit⟩
 
-def IntentId.fromIntentLabel {lab : EcosystemLabel} (intentLabel : String) : Option lab.IntentId :=
+def IntentId.fromIntentLabel {lab : Ecosystem.Label} (intentLabel : String) : Option lab.IntentId :=
   (@FinEnum.toList lab.IntentId lab.intentsFinite).find? fun intentId =>
     (@repr _ (lab.intentsRepr) intentId).pretty == intentLabel
 
-instance {lab : EcosystemLabel} {classId : lab.ClassId}
+instance {lab : Ecosystem.Label} {classId : lab.ClassId}
   : CoeHead classId.label.ConstructorId classId.MemberId where
   coe := .constructorId
 
-instance {lab : EcosystemLabel} {classId : lab.ClassId}
+instance {lab : Ecosystem.Label} {classId : lab.ClassId}
   : CoeHead classId.label.MethodId classId.MemberId where
   coe := .methodId
 
-instance {lab : EcosystemLabel} {classId : lab.ClassId}
+instance {lab : Ecosystem.Label} {classId : lab.ClassId}
   : CoeHead classId.label.DestructorId classId.MemberId where
   coe := .destructorId
 
-instance {lab : EcosystemLabel}
+instance {lab : Ecosystem.Label}
   : CoeHead lab.IntentId lab.MemberId where
   coe := .intentId
 
-def FunctionId.Selfs {lab : EcosystemLabel} (functionId : lab.FunctionId) : Type :=
+def FunctionId.Selfs {lab : Ecosystem.Label} (functionId : lab.FunctionId) : Type :=
   (argName : lab.FunctionObjectArgNames functionId) → Object (lab.FunctionObjectArgClass argName).label
 
-end EcosystemLabel
+end Ecosystem.Label

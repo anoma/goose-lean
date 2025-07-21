@@ -45,12 +45,14 @@ structure Label : Type (u + 1) where
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
 
-inductive Label.MemberId (lab : Label) where
+end Class
+
+inductive Class.Label.MemberId (lab : Class.Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
 
-instance Label.MemberId.hasBEq {lab : Label} : BEq (Label.MemberId lab) where
+instance Class.Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId lab) where
   beq a b :=
     match a, b with
     | constructorId c1, constructorId c2 => lab.constructorsBEq.beq c1 c2
@@ -61,28 +63,28 @@ instance Label.MemberId.hasBEq {lab : Label} : BEq (Label.MemberId lab) where
     | _, methodId _ => false
     | destructorId c1, destructorId c2 => lab.destructorsBEq.beq c1 c2
 
-instance Label.MemberId.hasTypeRep (lab : Class.Label) : TypeRep (Label.MemberId lab) where
-  rep := Rep.composite "AVM.Label.MemberId" [Rep.atomic lab.name]
+instance Class.Label.MemberId.hasTypeRep (lab : Class.Label) : TypeRep (Class.Label.MemberId lab) where
+  rep := Rep.composite "AVM.Class.Label.MemberId" [Rep.atomic lab.name]
 
-def Label.ConstructorId.Args {lab : Label} (constrId : lab.ConstructorId) : SomeType :=
+def Class.Label.ConstructorId.Args {lab : Class.Label} (constrId : lab.ConstructorId) : SomeType :=
   lab.ConstructorArgs constrId
 
-def Label.MethodId.Args {lab : Label} (methodId : lab.MethodId) : SomeType :=
+def Class.Label.MethodId.Args {lab : Class.Label} (methodId : lab.MethodId) : SomeType :=
   lab.MethodArgs methodId
 
-def Label.DestructorId.Args {lab : Label} (destructorId : lab.DestructorId) : SomeType :=
+def Class.Label.DestructorId.Args {lab : Class.Label} (destructorId : lab.DestructorId) : SomeType :=
   lab.DestructorArgs destructorId
 
-def Label.MemberId.Args {lab : Label.{u}} (memberId : MemberId lab) : SomeType.{u} :=
+def Class.Label.MemberId.Args {lab : Class.Label.{u}} (memberId : MemberId lab) : SomeType.{u} :=
   match memberId with
   | constructorId c => lab.ConstructorArgs c
   | methodId c => lab.MethodArgs c
   | destructorId c => lab.DestructorArgs c
 
-instance Label.hasTypeRep : TypeRep Label where
+instance Class.Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"
 
-instance Label.hasBEq : BEq Label where
+instance Class.Label.hasBEq : BEq Label where
   beq a b :=
     a.name == b.name
     && a.PrivateFields == b.PrivateFields

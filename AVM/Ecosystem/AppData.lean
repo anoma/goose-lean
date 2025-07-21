@@ -8,22 +8,22 @@ namespace AVM.Ecosystem
     1. member logic indicator (indicator which member is being called)
     2. member arguments
   -/
-structure AppData (lab : EcosystemLabel) where
+structure AppData (lab : Ecosystem.Label) where
   memberId : lab.MemberId
   memberArgs : memberId.Args.type
 
 structure SomeAppData where
-  {label : EcosystemLabel}
+  {label : Ecosystem.Label}
   appData : AppData label
 
-def AppData.toSomeAppData {lab : EcosystemLabel} (appData : AppData lab) : SomeAppData := {appData}
+def AppData.toSomeAppData {lab : Ecosystem.Label} (appData : AppData lab) : SomeAppData := {appData}
 
-instance AppData.hasBEq {lab : EcosystemLabel} : BEq (AppData lab) where
+instance AppData.hasBEq {lab : Ecosystem.Label} : BEq (AppData lab) where
   beq a b :=
     a.memberId == b.memberId
     && a.memberArgs === b.memberArgs
 
-instance AppData.hasTypeRep {lab : EcosystemLabel} : TypeRep (AppData lab) where
+instance AppData.hasTypeRep {lab : Ecosystem.Label} : TypeRep (AppData lab) where
   rep := Rep.composite "AVM.Class.AppData" [Rep.atomic lab.name]
 
 instance SomeAppData.hasBeq : BEq SomeAppData where
@@ -32,4 +32,4 @@ instance SomeAppData.hasBeq : BEq SomeAppData where
 instance SomeAppData.hasTypeRep : TypeRep SomeAppData where
   rep := Rep.atomic "AVM.Class.SomeAppData"
 
-abbrev Logic.Args (lab : EcosystemLabel) := Anoma.Logic.Args (AppData lab)
+abbrev Logic.Args (lab : Ecosystem.Label) := Anoma.Logic.Args (AppData lab)

@@ -14,7 +14,7 @@ namespace AVM.Ecosystem
   created. The intent logic is checked on consumption of the intent resource
   and it checks that the the intent's condition is satified. -/
 def Intent.logic
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   (intent : Intent)
   (args : Logic.Args lab)
   : Bool :=
@@ -36,7 +36,7 @@ def Intent.logic
     true
 
 def Function.parseObjectArgs
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   (args : Logic.Args lab)
   (funId : lab.FunctionId)
   : Option funId.Selfs
@@ -63,7 +63,7 @@ def Function.parseObjectArgs
             contradiction
 
 def Function.logic
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   (args : Logic.Args lab)
   (funId : lab.FunctionId)
@@ -81,7 +81,7 @@ def Function.logic
       Logic.checkResourceData createdObjects args.created
 
 def Function.action
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   (args : Logic.Args lab)
   (funId : lab.FunctionId)
@@ -108,7 +108,7 @@ def Function.action
   pure (some r)
 
 private def logic'
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   (args : Logic.Args lab)
   : Bool :=
@@ -125,7 +125,7 @@ private def logic'
     | {memberId := .functionId fn, memberArgs} => Function.logic eco args fn memberArgs
 
 def logic
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   (args : Anoma.Logic.Args SomeAppData) : Bool :=
   match tryCast args.data.appData with

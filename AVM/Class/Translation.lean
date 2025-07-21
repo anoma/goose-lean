@@ -26,7 +26,7 @@ def CreatedObject.fromSomeObject (o : SomeObject) (ephemeral : Bool) (nonce : An
 
 def Action.create'
   (g : StdGen)
-  (lab : EcosystemLabel)
+  (lab : Ecosystem.Label)
   (memberId : lab.MemberId)
   (args : memberId.Args.type)
   (sconsumed : List SomeConsumedObject)
@@ -89,7 +89,7 @@ def Action.create'
 
 /-- Helper function to create an Action. -/
 def Action.create
-  (lab : EcosystemLabel)
+  (lab : Ecosystem.Label)
   (memberId : lab.MemberId)
   (args : memberId.Args.type)
   (consumed : List SomeConsumedObject)
@@ -110,7 +110,7 @@ open Ecosystem
     method and constructor logics to create the complete resource logic for an
     object. -/
 def Constructor.logic
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor constrId)
@@ -130,7 +130,7 @@ def Constructor.logic
       true
 
 def Constructor.action
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor constrId)
@@ -151,7 +151,7 @@ def Constructor.action
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Constructor.transaction
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor constrId) (args : constrId.Args.type)
@@ -165,7 +165,7 @@ def Constructor.transaction
 /-- Creates a logic for a given method. This logic is combined with other method
     and constructor logics to create the complete resource logic for an object. -/
 def Method.logic
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   {methodId : classId.label.MethodId}
   (method : Class.Method methodId)
@@ -189,7 +189,7 @@ def Method.logic
       true
 
 def Method.action
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   (methodId : classId.label.MethodId)
   (method : Class.Method methodId)
@@ -217,7 +217,7 @@ def Method.action
 
 /-- Creates an Anoma Transaction for a given object method. -/
 def Method.transaction
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   (methodId : classId.label.MethodId)
   (method : Class.Method methodId)
@@ -236,7 +236,7 @@ def Method.transaction
 /-- Creates a logic for a given destructor. This logic is combined with other
     member logics to create the complete resource logic for an object. -/
 def Destructor.logic
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   {destructorId : classId.label.DestructorId}
   (destructor : Class.Destructor destructorId)
@@ -256,7 +256,7 @@ def Destructor.logic
     else args.self.ephemeral
 
 def Destructor.action
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   (destructorId : classId.label.DestructorId)
   (_destructor : Class.Destructor destructorId)
@@ -280,7 +280,7 @@ def Destructor.action
 
 /-- Creates an Anoma Transaction for a given object destructor. -/
 def Destructor.transaction
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   (destructorId : classId.label.DestructorId)
   (destructor : Class.Destructor destructorId)
@@ -300,7 +300,7 @@ def Destructor.transaction
 -- 1. member logic corresponding to the memberId in AppData
 -- 2. class invariant for the object being consumed
 def checkClassMemberLogic
-  {lab : EcosystemLabel}
+  {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   (args : Logic.Args lab)
   (eco : Ecosystem lab)

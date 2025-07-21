@@ -40,7 +40,7 @@ def clab : Class.Label where
     | Constructors.Zero => ⟨Unit⟩
   DestructorId := Destructors
 
-def lab : EcosystemLabel := EcosystemLabel.singleton clab
+def lab : Ecosystem.Label := Ecosystem.Label.singleton clab
 
 def toObject (c : OwnedCounter) : Object clab where
   quantity := 1

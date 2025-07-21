@@ -9,7 +9,7 @@ namespace AVM
 
 /-- Syntax-level object description (fields + constructors + methods) should
     desugar to the `Class` structure. -/
-structure Class {lab : EcosystemLabel} (classId : lab.ClassId) : Type (u + 1) where
+structure Class {lab : Ecosystem.Label} (classId : lab.ClassId) : Type (u + 1) where
   /-- The constructors of the class. -/
   constructors : (c : classId.label.ConstructorId) → Class.Constructor c
   /-- The methods of the class. -/

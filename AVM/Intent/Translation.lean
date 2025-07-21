@@ -38,7 +38,7 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
   avoid universe level inconsistencies with monadic notation. -/
 def Intent.action'
   (g : StdGen)
-  (label : EcosystemLabel)
+  (label : Ecosystem.Label)
   (intent : Intent)
   (args : intent.Args.type)
   (provided : List SomeObject)
@@ -91,7 +91,7 @@ def Intent.action'
 
       mkTagDataPairConsumed (c : SomeConsumedObject)
        : Option (Anoma.Tag × SomeAppData) :=
-        match EcosystemLabel.IntentId.fromIntentLabel (lab := label) intent.label with
+        match Ecosystem.Label.IntentId.fromIntentLabel (lab := label) intent.label with
         | none => none
         | some intentId =>
           some
@@ -103,7 +103,7 @@ def Intent.action'
 
 /-- An action which consumes the provided objects and creates the intent. -/
 def Intent.action
-  (label : EcosystemLabel)
+  (label : Ecosystem.Label)
   (intent : Intent)
   (args : intent.Args.type)
   (provided : List SomeObject)
@@ -117,7 +117,7 @@ def Intent.action
 /-- A (partial) transaction which consumes the provided objects and creates the
   intent. -/
 def Intent.transaction
-  (label : EcosystemLabel)
+  (label : Ecosystem.Label)
   (intent : Intent)
   (args : intent.Args.type)
   (provided : List SomeObject)
