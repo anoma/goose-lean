@@ -1,9 +1,8 @@
-
 import Prelude
-import AVM.Class.Member
+import Anoma
+import AVM.Object
 
-namespace AVM.Class
-
+-- TODO rename to Resource.dummy?
 def dummyResource (nonce : Anoma.Nonce) : Anoma.Resource.{u, v} :=
   { Val := ⟨UUnit⟩,
     Label := ⟨ULift String⟩,
@@ -14,15 +13,17 @@ def dummyResource (nonce : Anoma.Nonce) : Anoma.Resource.{u, v} :=
     nonce,
     nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal }
 
-def Member.Logic.filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
+namespace AVM.Logic
+
+def filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
   resources.filter (fun res => res.label !== ULift.up.{v} "dummy-resource")
 
 /-- Checks that the number of objects and resources match, and that the
     resources' private data and labels match the objects' private data and
     labels. This check is used in the constructor and method logics. Dummy
     resources in the `resources` list are ignored. -/
-def Member.Logic.checkResourceData (objects : List SomeObject) (resources : List Anoma.Resource) : Bool :=
-  let resources' := Member.Logic.filterOutDummy resources
+def checkResourceData (objects : List SomeObject) (resources : List Anoma.Resource) : Bool :=
+  let resources' := Logic.filterOutDummy resources
   objects.length == resources'.length
     && List.and (List.zipWith resourceDataEq objects resources')
   where

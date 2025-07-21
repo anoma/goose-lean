@@ -13,6 +13,7 @@ instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) wh
   default := {Label := ⟨UUnit⟩
               mkDynamicLabel := fun _ => default}
 
+
 /-- A class label uniquely identifies and specifies a class. The class
     specification provided by a label consists of unique class name, private
     field types, constructor and method ids. -/
@@ -44,71 +45,46 @@ structure Label : Type (u + 1) where
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
 
-  /-- The arguments for the intent member logic are UUnit.unit. -/
-  IntentId : Type := Empty
-  [intentsFinite : FinEnum IntentId]
-  [intentsRepr : Repr IntentId]
-  [intentsBEq : BEq IntentId]
+end Class
 
-inductive Label.MemberId (lab : Label) where
+inductive Class.Label.MemberId (lab : Class.Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
-  | intentId (intentId : lab.IntentId) : MemberId lab
-  /-- Signifies an "always false" member logic. This is used for the member
-    logic field of app data, in the created case. It is important that "dummy"
-    member logic indicator for the created case always returns false – otherwise
-    one could circumvent method logic checks by providing the dummy member logic
-    indicator. This could also be represented by an `Option` type in app data,
-    but having explicit `falseLogicId` makes its intended behaviour clear. -/
-  | falseLogicId : MemberId lab
 
-instance Label.MemberId.hasBEq {lab : Label} : BEq (Label.MemberId lab) where
+instance Class.Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId lab) where
   beq a b :=
     match a, b with
-    | .constructorId c1, .constructorId c2 => lab.constructorsBEq.beq c1 c2
-    | .methodId m1, .methodId m2 => lab.methodsBEq.beq m1 m2
-    | .intentId i1, .intentId i2 => lab.intentsBEq.beq i1 i2
-    | .falseLogicId, .falseLogicId => true
-    | _, _ => false
+    | constructorId c1, constructorId c2 => lab.constructorsBEq.beq c1 c2
+    | constructorId _, _ => false
+    | _, constructorId _ => false
+    | methodId m1, methodId m2 => lab.methodsBEq.beq m1 m2
+    | methodId _, _ => false
+    | _, methodId _ => false
+    | destructorId c1, destructorId c2 => lab.destructorsBEq.beq c1 c2
 
-def Label.ConstructorId.Args {lab : Label} (constrId : lab.ConstructorId) : SomeType :=
+instance Class.Label.MemberId.hasTypeRep (lab : Class.Label) : TypeRep (Class.Label.MemberId lab) where
+  rep := Rep.composite "AVM.Class.Label.MemberId" [Rep.atomic lab.name]
+
+def Class.Label.ConstructorId.Args {lab : Class.Label} (constrId : lab.ConstructorId) : SomeType :=
   lab.ConstructorArgs constrId
 
-def Label.MethodId.Args {lab : Label} (methodId : lab.MethodId) : SomeType :=
+def Class.Label.MethodId.Args {lab : Class.Label} (methodId : lab.MethodId) : SomeType :=
   lab.MethodArgs methodId
 
-def Label.DestructorId.Args {lab : Label} (destructorId : lab.DestructorId) : SomeType :=
+def Class.Label.DestructorId.Args {lab : Class.Label} (destructorId : lab.DestructorId) : SomeType :=
   lab.DestructorArgs destructorId
 
-def Label.MemberId.Args {lab : Label.{u}} (memberId : MemberId lab) : SomeType.{u} :=
+def Class.Label.MemberId.Args {lab : Class.Label.{u}} (memberId : MemberId lab) : SomeType.{u} :=
   match memberId with
-  | .constructorId c => lab.ConstructorArgs c
-  | .methodId c => lab.MethodArgs c
-  | .destructorId c => lab.DestructorArgs c
-  | .intentId _ => ⟨UUnit⟩
-  | .falseLogicId => ⟨UUnit⟩
+  | constructorId c => lab.ConstructorArgs c
+  | methodId c => lab.MethodArgs c
+  | destructorId c => lab.DestructorArgs c
 
-def Label.IntentId.fromIntentLabel {lab : Label} (intentLabel : String) : Option lab.IntentId :=
-  (@FinEnum.toList lab.IntentId lab.intentsFinite).find? fun intentId =>
-    (@repr _ (lab.intentsRepr) intentId).pretty == intentLabel
-
-instance {lab : Label} : CoeHead lab.ConstructorId (Label.MemberId lab) where
-  coe := Label.MemberId.constructorId
-
-instance {lab : Label} : CoeHead lab.MethodId (Label.MemberId lab) where
-  coe := Label.MemberId.methodId
-
-instance {lab : Label} : CoeHead lab.DestructorId (Label.MemberId lab) where
-  coe := Label.MemberId.destructorId
-
-instance {lab : Label} : CoeHead lab.IntentId (Label.MemberId lab) where
-  coe := Label.MemberId.intentId
-
-instance Label.hasTypeRep : TypeRep Label where
+instance Class.Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"
 
-instance Label.hasBEq : BEq Label where
+instance Class.Label.hasBEq : BEq Label where
   beq a b :=
     a.name == b.name
     && a.PrivateFields == b.PrivateFields

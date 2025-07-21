@@ -21,7 +21,7 @@ inductive Constructors where
 
 open AVM
 
-def lab : Class.Label where
+def clab : Class.Label where
   name := "UniversalCounter"
   PrivateFields := ⟨Nat⟩
 
@@ -33,17 +33,19 @@ def lab : Class.Label where
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
 
-def toObject (c : Counter) : Object lab where
+def lab : Ecosystem.Label := Ecosystem.Label.singleton clab
+
+def toObject (c : Counter) : Object clab where
   quantity := 1
   privateFields := c.count
   nullifierKeyCommitment := none
 
-def fromObject (o : Object lab) : Option Counter := do
+def fromObject (o : Object clab) : Option Counter := do
   guard (o.quantity == 1)
   some (Counter.mk (o.privateFields))
 
 instance hasIsObject : IsObject Counter where
-  lab := lab
+  lab := clab
   toObject := Counter.toObject
   fromObject := Counter.fromObject
   roundTrip : Counter.fromObject ∘ Counter.toObject = some := by rfl
@@ -54,16 +56,20 @@ def newCounter : Counter where
 def incrementBy (step : Nat) (c : Counter) : Counter :=
   {c with count := c.count + step}
 
-def counterConstructor : @Class.Constructor lab Constructors.Zero := defConstructor
+def counterConstructor : @Class.Constructor clab Constructors.Zero := defConstructor
   (body := fun (_noArgs : Unit) => newCounter)
 
-def counterIncr : @Class.Method lab Methods.Incr := defMethod
+def counterIncr : @Class.Method clab Methods.Incr := defMethod
   (body := fun (self : Counter) (step : Nat) => [self.incrementBy step])
 
-def counterClass : Class lab where
+def counterClass : @Class lab UUnit.unit where
   constructors := fun
     | Constructors.Zero => counterConstructor
   methods := fun
     | Methods.Incr => counterIncr
-  intents := noIntents
   destructors := noDestructors
+
+def counterEcosystem : Ecosystem lab where
+  classes := fun _ => counterClass
+  intents := noIntents
+  functions := noFunctions

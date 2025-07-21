@@ -1,12 +1,15 @@
-
 import Prelude
 import Mathlib.Control.Random
 import AVM.Intent
-import AVM.Class.Member.Logic
-import AVM.Class.AppData
+import AVM.Class.Label
+import AVM.Logic
+import AVM.Ecosystem
+import AVM.Ecosystem.AppData
 import AVM.Object.Consumable
 
 namespace AVM
+
+open Ecosystem
 
 /-- The intent logic which is checked when the intent resource is consumed. The
   intent logic checks the intent's condition. -/
@@ -17,7 +20,7 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
       let receivedObjects ←
         BoolCheck.some <|
           List.mapSome SomeObject.fromResource <|
-          Class.Member.Logic.filterOutDummy args.created
+          Logic.filterOutDummy args.created
       let argsData ← BoolCheck.some <| tryCast data.args
       BoolCheck.ret <|
         intent.condition argsData data.provided receivedObjects
@@ -28,12 +31,14 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
     BoolCheck.run do
       let data ← BoolCheck.some <| Intent.ResourceData.fromResource args.self
       BoolCheck.ret <|
-        Class.Member.Logic.checkResourceData data.provided args.consumed
+        Logic.checkResourceData data.provided args.consumed
 
 /-- An action which consumes the provided objects and creates the intent. This
   is a helper function which handles the random number generator explicitly to
   avoid universe level inconsistencies with monadic notation. -/
-def Intent.action' (g : StdGen)
+def Intent.action'
+  (g : StdGen)
+  (label : Ecosystem.Label)
   (intent : Intent)
   (args : intent.Args.type)
   (provided : List SomeObject)
@@ -56,7 +61,7 @@ def Intent.action' (g : StdGen)
       let (r, g2) := stdNext g1
       let (r', g3) := stdNext g2
       let createdWitness : Anoma.ComplianceWitness :=
-        { consumedResource := Class.dummyResource r,
+        { consumedResource := dummyResource ⟨r⟩,
           createdResource := intentResource,
           nfKey := key,
           rcv := r'.repr }
@@ -74,47 +79,51 @@ def Intent.action' (g : StdGen)
           let (r, g') := stdNext g
           let complianceWitness :=
             { consumedResource := obj.consumed.resource,
-              createdResource := Class.dummyResource obj.consumed.can_nullify.nullifier.toNonce,
+              createdResource := dummyResource obj.consumed.can_nullify.nullifier.toNonce,
               nfKey := obj.consumed.key
               rcv := r.repr }
           (complianceWitness :: acc, g')
 
-      mkLogicVerifierInput (status : ConsumedCreated) (data : Class.SomeAppData) : Anoma.LogicVerifierInput :=
-        { Data := ⟨Class.SomeAppData⟩,
+      mkLogicVerifierInput (status : ConsumedCreated) (data : SomeAppData) : Anoma.LogicVerifierInput :=
+        { Data := ⟨SomeAppData⟩,
           status,
           appData := data }
 
       mkTagDataPairConsumed (c : SomeConsumedObject)
-       : Option (Anoma.Tag × Class.SomeAppData) :=
-        match Class.Label.IntentId.fromIntentLabel (lab := c.label) intent.label with
+       : Option (Anoma.Tag × SomeAppData) :=
+        match Ecosystem.Label.IntentId.fromIntentLabel (lab := label) intent.label with
         | none => none
         | some intentId =>
           some
             (Anoma.Tag.Consumed c.consumed.can_nullify.nullifier,
-              { label := c.label,
+              { label := label,
                 appData := {
-                  memberId := Class.Label.MemberId.intentId intentId,
+                  memberId := .intentId intentId,
                   memberArgs := UUnit.unit }})
 
 /-- An action which consumes the provided objects and creates the intent. -/
-def Intent.action (intent : Intent)
+def Intent.action
+  (label : Ecosystem.Label)
+  (intent : Intent)
   (args : intent.Args.type)
   (provided : List SomeObject)
   (key : Anoma.NullifierKey)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let g ← get
-  let (p, g') := Intent.action' g.down intent args provided key
+  let (p, g') := Intent.action' g.down label intent args provided key
   set (ULift.up g')
   pure p
 
 /-- A (partial) transaction which consumes the provided objects and creates the
   intent. -/
-def Intent.transaction (intent : Intent)
+def Intent.transaction
+  (label : Ecosystem.Label)
+  (intent : Intent)
   (args : intent.Args.type)
   (provided : List SomeObject)
   (key : Anoma.NullifierKey)
   : Rand (Option Anoma.Transaction) := do
-  match ← intent.action args provided key with
+  match ← intent.action label args provided key with
   | none => pure none
   | some (action, witness) =>
     pure <|
