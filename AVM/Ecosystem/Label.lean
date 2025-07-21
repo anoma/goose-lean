@@ -130,7 +130,7 @@ instance {lab : Ecosystem.Label}
   : CoeHead lab.IntentId lab.MemberId where
   coe := .intentId
 
-def FunctionId.Selfs {lab : Ecosystem.Label} (functionId : lab.FunctionId) : Type :=
+def FunctionId.Selves {lab : Ecosystem.Label} (functionId : lab.FunctionId) : Type :=
   (argName : lab.FunctionObjectArgNames functionId) → Object (lab.FunctionObjectArgClass argName).label
 
 end Ecosystem.Label

@@ -39,7 +39,7 @@ def Function.parseObjectArgs
   {lab : Ecosystem.Label}
   (args : Logic.Args lab)
   (funId : lab.FunctionId)
-  : Option funId.Selfs
+  : Option funId.Selves
   := do
   match args.consumed.toSizedVector with
   | none => none
@@ -72,7 +72,7 @@ def Function.logic
   let fn : Function funId := eco.functions funId
   match Function.parseObjectArgs args funId with
   | none => false
-  | some (consumedObjects : funId.Selfs) =>
+  | some (consumedObjects : funId.Selves) =>
   let consumedList : List SomeObject :=
     List.map (fun arg => (consumedObjects arg).toSomeObject) (lab.objectArgNamesEnum funId).toList
   (eco.functions funId).invariant consumedObjects fargs
@@ -91,7 +91,7 @@ def Function.action
   let fn : Function funId := eco.functions funId
   match Function.parseObjectArgs args funId with
   | none => pure none
-  | some (consumedObjects : funId.Selfs) =>
+  | some (consumedObjects : funId.Selves) =>
   let mconsumedList : Option (List SomeConsumedObject) :=
     (List.map (fun arg =>
       (consumedObjects arg).toSomeObject
