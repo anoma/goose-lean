@@ -1,6 +1,7 @@
 
 import Anoma
 import AVM.Object
+import AVM.Intent.Label
 
 namespace AVM
 
@@ -8,19 +9,11 @@ namespace AVM
     intent condition which checks if the desired objects were received. Intents
     are compiled to resources with the conditions compiled to resource logics.
     Intent creation is compiled to transaction submission. -/
-structure Intent where
-  /-- The type of intent arguments. The arguments are stored in the `value`
-    field of the intent resource. They are not provided in the app data for any
-    resource logics. -/
-  Args : SomeType
-  /-- The unique label of the intent. The textual representation (via Repr) of
-    the IntentId constructor corresponding to an intent must be equal to the
-    intent's label. -/
-  label : String
+structure Intent (ilab : Intent.Label) where
   /-- The intent condition checks if the desired objects were received. Given
       intent arguments and provided objects, the intent condition is compiled to
       the resource logic of the resource intent. -/
-  condition : Args.type → (provided : List SomeObject) → (received : List SomeObject) → Bool
+  condition : ilab.Args.type → (provided : List SomeObject) → (received : List SomeObject) → Bool
 
 /-- Intent.ResourceData is stored in the `label` field of the intent resource. -/
 structure Intent.ResourceData.{u} where
@@ -35,22 +28,22 @@ instance Intent.ResourceData.hasBEq : BEq Intent.ResourceData where
   beq a b :=
     a.args === b.args && a.provided == b.provided
 
-structure Intent.LabelData where
+structure Intent.LabelData : Type (u + 1) where
   /-- The unique label of the intent. -/
-  label : String
-  data : Intent.ResourceData
+  label : Intent.Label.{u}
+  data : Intent.ResourceData.{u}
   deriving BEq
 
 instance Intent.LabelData.hasTypeRep : TypeRep Intent.LabelData where
   rep := Rep.atomic "AVM.Intent.LabelData"
 
-def Intent.toResource (intent : Intent) (args : intent.Args.type) (provided : List SomeObject) (nonce : Anoma.Nonce := default) (nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default) : Anoma.Resource :=
+def Intent.toResource {ilab : Intent.Label} (_intent : Intent ilab) (args : ilab.Args.type) (provided : List SomeObject) (nonce : Anoma.Nonce := default) (nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default) : Anoma.Resource :=
   { Val := ⟨Unit⟩,
     Label := ⟨Intent.LabelData⟩,
     label := {
-      label := intent.label,
+      label := ilab,
       data := {
-        Args := ⟨intent.Args⟩,
+        Args := ⟨ilab.Args⟩,
         args,
         provided
       }

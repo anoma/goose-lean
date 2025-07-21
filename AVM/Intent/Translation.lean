@@ -13,7 +13,7 @@ open Ecosystem
 
 /-- The intent logic which is checked when the intent resource is consumed. The
   intent logic checks the intent's condition. -/
-def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
+def Intent.logic {ilab : Intent.Label} (intent : Intent ilab) (args : Anoma.Logic.Args Unit) : Bool :=
   if args.isConsumed then
     BoolCheck.run do
       let data ← BoolCheck.some <| Intent.ResourceData.fromResource args.self
@@ -37,10 +37,11 @@ def Intent.logic (intent : Intent) (args : Anoma.Logic.Args Unit) : Bool :=
   is a helper function which handles the random number generator explicitly to
   avoid universe level inconsistencies with monadic notation. -/
 def Intent.action'
-  (g : StdGen)
   (label : Ecosystem.Label)
-  (intent : Intent)
-  (args : intent.Args.type)
+  {ilab : Intent.Label}
+  (g : StdGen)
+  (intent : Intent ilab)
+  (args : ilab.Args.type)
   (provided : List SomeObject)
   (key : Anoma.NullifierKey)
   : Option (Anoma.Action × Anoma.DeltaWitness) × StdGen :=
@@ -91,26 +92,24 @@ def Intent.action'
 
       mkTagDataPairConsumed (c : SomeConsumedObject)
        : Option (Anoma.Tag × SomeAppData) :=
-        match Ecosystem.Label.IntentId.fromIntentLabel (lab := label) intent.label with
-        | none => none
-        | some intentId =>
           some
             (Anoma.Tag.Consumed c.consumed.can_nullify.nullifier,
               { label := label,
                 appData := {
-                  memberId := .intentId intentId,
+                  memberId := .classMember (classId := c.label) (Class.Label.MemberId.intentId ilab),
                   memberArgs := UUnit.unit }})
 
 /-- An action which consumes the provided objects and creates the intent. -/
 def Intent.action
-  (label : Ecosystem.Label)
-  (intent : Intent)
-  (args : intent.Args.type)
+  (lab : Ecosystem.Label)
+  {ilab : Intent.Label}
+  (intent : Intent ilab)
+  (args : ilab.Args.type)
   (provided : List SomeObject)
   (key : Anoma.NullifierKey)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let g ← get
-  let (p, g') := Intent.action' g.down label intent args provided key
+  let (p, g') := Intent.action' lab g.down intent args provided key
   set (ULift.up g')
   pure p
 
@@ -118,8 +117,9 @@ def Intent.action
   intent. -/
 def Intent.transaction
   (label : Ecosystem.Label)
-  (intent : Intent)
-  (args : intent.Args.type)
+  {ilab : Intent.Label}
+  (intent : Intent ilab)
+  (args : ilab.Args.type)
   (provided : List SomeObject)
   (key : Anoma.NullifierKey)
   : Rand (Option Anoma.Transaction) := do

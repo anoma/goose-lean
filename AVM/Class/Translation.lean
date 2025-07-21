@@ -205,6 +205,34 @@ def Destructor.transaction
         { actions := [action],
           deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
 
+
+/-- Creates a member logic for a given intent. This logic is checked when an
+  object is consumed to create the intent. Note that the intent member logic
+  (defined here) is distinct from the intent logic defined in
+  `AVM/Intent/Translation.lean`. The intent member logic is associated with
+  a resource consumed by the intent and it checks that the right intent is
+  created. The intent logic is checked on consumption of the intent resource
+  and it checks that the the intent's condition is satified. -/
+def Intent.logic
+  {lab : Ecosystem.Label}
+  {ilab : Intent.Label}
+  (_intent : Intent ilab)
+  (args : Logic.Args lab)
+  : Bool :=
+  -- Check that exactly one resource is created that corresponds to the intent
+  match Logic.filterOutDummy args.created with
+  | [intentRes] => BoolCheck.run do
+    let labelData ← BoolCheck.some <| Intent.LabelData.fromResource intentRes
+    BoolCheck.ret <|
+      -- NOTE: We should also check that the intent logic hashes of
+      -- `intentRes` and `intent` match.
+      labelData.label === ilab
+      && intentRes.quantity == 1
+      && intentRes.ephemeral
+      && Logic.checkResourceData labelData.data.provided args.consumed
+  | _ =>
+    false
+
 -- Check:
 -- 1. member logic corresponding to the memberId in AppData
 -- 2. class invariant for the object being consumed
@@ -227,3 +255,9 @@ def checkClassMemberLogic
       Method.logic (cls.methods m) args
     | .destructorId m =>
       Destructor.logic (cls.destructors m) args
+    | .intentId l =>
+      if h : l ∈ classId.label.intentLabels then
+        let intent : Intent l := cls.intents l h
+        Intent.logic intent args
+      else
+        false
