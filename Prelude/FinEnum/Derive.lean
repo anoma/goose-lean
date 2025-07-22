@@ -31,5 +31,7 @@ initialize registerDerivingHandler ``FinEnum derive
 
 /-- Standalone instance of FinEnum -/
 elab "#FinEnum.derive" name:ident : command => do
-  let _ ← derive #[name.getId]
-  pure ()
+  if ← derive #[name.getId] then
+    pure ()
+  else
+    throwError "Failed to derive FinEnum for {name.getId}"
