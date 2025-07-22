@@ -1,4 +1,5 @@
 import Anoma.Resource
+import AVM.Intent.Label
 import Prelude
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Data.FinEnum
@@ -12,7 +13,6 @@ structure DynamicLabel (PrivateFields : Type u) : Type (u + 1) where
 instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) where
   default := {Label := ⟨UUnit⟩
               mkDynamicLabel := fun _ => default}
-
 
 /-- A class label uniquely identifies and specifies a class. The class
     specification provided by a label consists of unique class name, private
@@ -45,12 +45,15 @@ structure Label : Type (u + 1) where
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
 
+  intentLabels : Std.HashSet Intent.Label
+
 end Class
 
 inductive Class.Label.MemberId (lab : Class.Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
-  | methodId (methodId : lab.MethodId) : MemberId lab
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
+  | methodId (methodId : lab.MethodId) : MemberId lab
+  | intentId (intentId : Intent.Label) : MemberId lab
 
 instance Class.Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId lab) where
   beq a b :=
@@ -58,10 +61,13 @@ instance Class.Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.Memb
     | constructorId c1, constructorId c2 => lab.constructorsBEq.beq c1 c2
     | constructorId _, _ => false
     | _, constructorId _ => false
+    | destructorId c1, destructorId c2 => lab.destructorsBEq.beq c1 c2
+    | destructorId _, _ => false
+    | _, destructorId _ => false
     | methodId m1, methodId m2 => lab.methodsBEq.beq m1 m2
     | methodId _, _ => false
     | _, methodId _ => false
-    | destructorId c1, destructorId c2 => lab.destructorsBEq.beq c1 c2
+    | intentId i1, intentId i2 => i1 == i2
 
 instance Class.Label.MemberId.hasTypeRep (lab : Class.Label) : TypeRep (Class.Label.MemberId lab) where
   rep := Rep.composite "AVM.Class.Label.MemberId" [Rep.atomic lab.name]
@@ -78,8 +84,9 @@ def Class.Label.DestructorId.Args {lab : Class.Label} (destructorId : lab.Destru
 def Class.Label.MemberId.Args {lab : Class.Label.{u}} (memberId : MemberId lab) : SomeType.{u} :=
   match memberId with
   | constructorId c => lab.ConstructorArgs c
-  | methodId c => lab.MethodArgs c
   | destructorId c => lab.DestructorArgs c
+  | methodId c => lab.MethodArgs c
+  | intentId _ => ⟨UUnit⟩
 
 instance Class.Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"
