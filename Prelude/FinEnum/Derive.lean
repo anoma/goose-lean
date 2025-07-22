@@ -5,7 +5,7 @@ open Lean.Parser.Term
 
 namespace FinEnum
 
-/-- Produces an FinEnum instance of the given inductive.
+/-- Produces a FinEnum instance for the given inductive.
 It assumes that all constructors are nullary -/
 def derive (declNames : Array Name) : CommandElabM Bool :=
   match declNames with
