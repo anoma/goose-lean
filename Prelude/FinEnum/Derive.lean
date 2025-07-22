@@ -1,9 +1,12 @@
 import Mathlib.Data.FinEnum
 import Lean
-open Lean Elab Parser Term Command
+open Lean Elab Term Command
+open Lean.Parser.Term
 
 namespace FinEnum
 
+/-- Produces an FinEnum instance of the given inductive.
+It assumes that all constructors are nullary -/
 def derive (declNames : Array Name) : CommandElabM Bool :=
   match declNames with
   | #[d] => do
@@ -25,3 +28,8 @@ def derive (declNames : Array Name) : CommandElabM Bool :=
   | _ => return false
 
 initialize registerDerivingHandler ``FinEnum derive
+
+/-- Standalone instance of FinEnum -/
+elab "#FinEnum.derive" name:ident : command => do
+  let _ ← derive #[name.getId]
+  pure ()
