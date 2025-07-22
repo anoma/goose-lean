@@ -92,11 +92,14 @@ def Intent.action'
 
       mkTagDataPairConsumed (c : SomeConsumedObject)
        : Option (Anoma.Tag × SomeAppData) :=
+          match label.classId c.label with
+          | none => none
+          | some classId =>
           some
             (Anoma.Tag.Consumed c.consumed.can_nullify.nullifier,
               { label := label,
                 appData := {
-                  memberId := .classMember (classId := c.label) (Class.Label.MemberId.intentId ilab),
+                  memberId := .classMember (classId := classId) (Class.Label.MemberId.intentId ilab),
                   memberArgs := UUnit.unit }})
 
 /-- An action which consumes the provided objects and creates the intent. -/

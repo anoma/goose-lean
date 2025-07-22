@@ -39,6 +39,7 @@ def clab : Class.Label where
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
   DestructorId := Destructors
+  intentLabels := ∅
 
 def lab : Ecosystem.Label := Ecosystem.Label.singleton clab
 
@@ -86,8 +87,8 @@ def counterClass : @Class lab .unit where
     | Methods.Transfer => counterTransfer
   destructors := fun
     | Destructors.Ten => counterDestroy
+  intents := noIntents lab clab
 
 def counterEcosystem : Ecosystem lab where
   classes := fun _ => counterClass
-  intents := noIntents
   functions := noFunctions

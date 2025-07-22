@@ -4,8 +4,7 @@ namespace Applib
 
 open AVM
 
-def noIntents {A : Type u} : Empty -> A := Empty.elim
-
+macro "noIntents" lab:ident clab:ident : term => `(fun _ h => by simp [$lab:ident, Ecosystem.Label.ClassId.label, Ecosystem.Label.singleton, $clab:ident] at h)
 macro "noDestructors" : term => `(fun x => Empty.elim x)
 macro "noFunctions" : term => `(fun x => Empty.elim x)
 macro "noMethods" : term => `(fun x => Empty.elim x)
@@ -55,4 +54,3 @@ def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.lab.Destructor
     match i.fromObject self with
     | none => false
     | some self' => invariant self' args
-

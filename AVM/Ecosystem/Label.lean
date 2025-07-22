@@ -7,7 +7,8 @@ structure Label where
   name : String
 
   ClassId : Type
-  classes : ClassId -> Class.Label
+  classLabel : ClassId → Class.Label
+  classId : Class.Label → Option ClassId
   [classesFinite : Fintype ClassId]
   [classesRepr : Repr ClassId]
   [classesBEq : BEq ClassId]
@@ -32,15 +33,15 @@ def singleton (l : Class.Label) : Ecosystem.Label where
   name := l.name
 
   ClassId := UUnit
-  classes := fun _ => l
+  classLabel := fun _ => l
+  classId := fun l' => if l' == l then some UUnit.unit else none
 
   FunctionObjectArgClass := fun _ => UUnit.unit
   objectArgNamesEnum := fun f => f.elim
   objectArgNamesBEq := fun f => f.elim
 
-
 def ClassId.label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label :=
-  lab.classes classId
+  lab.classLabel classId
 
 def ClassId.MemberId {lab : Ecosystem.Label} (c : lab.ClassId) := c.label.MemberId
 
