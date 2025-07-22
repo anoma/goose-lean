@@ -70,18 +70,17 @@ def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) 
 def Object.fromResource
   {lab : Class.Label}
   (res : Anoma.Resource)
-  : Option (Object lab) := do
-  let privateFields : lab.PrivateFields.type ← SomeType.cast res.value
-  pure { quantity := res.quantity,
+  : Option (Object lab) :=
+  let try privateFields : lab.PrivateFields.type := SomeType.cast res.value
+  some { quantity := res.quantity,
          nullifierKeyCommitment := res.nullifierKeyCommitment,
          nonce := res.nonce,
          privateFields := privateFields }
 
 def SomeObject.fromResource
   (res : Anoma.Resource)
-  : Option SomeObject := do
-  let resLab : Object.Resource.Label ← tryCast res.label
+  : Option SomeObject :=
+  let try resLab : Object.Resource.Label := tryCast res.label
   let lab : Class.Label := resLab.classLabel
-  match @Object.fromResource lab res with
-  | none => none
-  | some obj => pure {label := lab, object := obj}
+  let try obj := @Object.fromResource lab res
+  some {label := lab, object := obj}

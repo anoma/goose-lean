@@ -25,18 +25,11 @@ def Constructor.logic
   (constr : Class.Constructor constrId)
   (args : Logic.Args lab)
   : Bool :=
-    if args.isConsumed then
-      match SomeType.cast args.data.memberArgs with
-      | some argsData =>
-        let newObj := constr.created argsData
-        Logic.checkResourceData [newObj.toSomeObject] args.consumed
-          && Logic.checkResourceData [newObj.toSomeObject] args.created
-          && constr.invariant argsData
-      | none =>
-        false
-    else
-      -- TODO: not general enough, fine for the counter
-      true
+    let try argsData := SomeType.cast args.data.memberArgs
+    let newObj := constr.created argsData
+    Logic.checkResourceData [newObj.toSomeObject] args.consumed
+      && Logic.checkResourceData [newObj.toSomeObject] args.created
+      && constr.invariant argsData
 
 def Constructor.action
   {lab : Ecosystem.Label}
@@ -80,22 +73,12 @@ def Method.logic
   (method : Class.Method methodId)
   (args : Logic.Args lab)
   : Bool :=
-    if args.isConsumed then
-      match SomeType.cast args.data.memberArgs with
-      | some argsData =>
-        let mselfObj : Option (Object classId.label) := Object.fromResource args.self
-        match mselfObj with
-          | none => false
-          | some selfObj =>
-            method.invariant selfObj argsData
-            && Logic.checkResourceData [selfObj.toSomeObject] args.consumed
-            && let createdObjects := method.created selfObj argsData
-               Logic.checkResourceData createdObjects args.created
-      | none =>
-        false
-    else
-      -- TODO: may need to do something more here in general, fine for the counter
-      true
+    let try argsData := SomeType.cast args.data.memberArgs
+    let try selfObj : Object classId.label := Object.fromResource args.self
+    method.invariant selfObj argsData
+    && Logic.checkResourceData [selfObj.toSomeObject] args.consumed
+    && let createdObjects := method.created selfObj argsData
+       Logic.checkResourceData createdObjects args.created
 
 def Method.action
   {lab : Ecosystem.Label}
@@ -105,24 +88,22 @@ def Method.action
   (self : Object classId.label)
   (key : Anoma.NullifierKey)
   (args : methodId.Args.type)
-  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
+  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   -- TODO: set nonce and nullifierKeyCommitment properly
   let consumable : ConsumableObject classId.label :=
       { key
         object := self
         ephemeral := false }
-  match consumable.consume with
-  | none => pure none
-  | some consumed =>
-    let createObject (o : SomeObject) : CreatedObject :=
-      -- FIXME see https://github.com/anoma/goose-lean/issues/51
-      let res : Anoma.Resource := o.toResource (ephemeral := false) (nonce := consumed.can_nullify.nullifier.toNonce)
-      { object := o.object
-        resource := res
-        commitment := res.commitment }
-    let created : List CreatedObject :=
-        List.map createObject (method.created self args)
-    Action.create lab (.classMember (.methodId methodId)) args [consumed] created
+  let try consumed := consumable.consume
+  let createObject (o : SomeObject) : CreatedObject :=
+    -- FIXME see https://github.com/anoma/goose-lean/issues/51
+    let res : Anoma.Resource := o.toResource (ephemeral := false) (nonce := consumed.can_nullify.nullifier.toNonce)
+    { object := o.object
+      resource := res
+      commitment := res.commitment }
+  let created : List CreatedObject :=
+      List.map createObject (method.created self args)
+  Action.create lab (.classMember (.methodId methodId)) args [consumed] created
 
 /-- Creates an Anoma Transaction for a given object method. -/
 def Method.transaction
@@ -134,13 +115,11 @@ def Method.transaction
   (key : Anoma.NullifierKey)
   (args : methodId.Args.type)
   : Rand (Option Anoma.Transaction) := do
-  match ← method.action methodId self key args with
-  | none => pure none
-  | some (action, witness) =>
-    pure <|
-      some
-        { actions := [action],
-          deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
+  let try (action, witness) ← method.action methodId self key args
+  pure <|
+    some
+      { actions := [action],
+        deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
 
 /-- Creates a logic for a given destructor. This logic is combined with other
     member logics to create the complete resource logic for an object. -/

@@ -6,3 +6,4 @@ import Prelude.TypeRep
 import Prelude.SomeType
 import Prelude.FinEnum
 import Prelude.FinEnum.Derive
+import Prelude.LetTry
