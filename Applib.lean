@@ -47,7 +47,7 @@ def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.lab.ConstructorId
 
 def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.lab.DestructorId}
  (invariant : (self : cl) -> destructorId.Args.type → Bool := fun _ _ => true)
- : Class.Destructor destructorId  where
+ : Class.Destructor destructorId where
     invariant (self : Object i.lab) (args : destructorId.Args.type) :=
     let try self' := i.fromObject self
     invariant self' args
