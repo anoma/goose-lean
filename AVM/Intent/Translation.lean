@@ -92,9 +92,9 @@ def Intent.action'
 
       mkTagDataPairConsumed (c : SomeConsumedObject)
        : Option (Anoma.Tag × SomeAppData) :=
-          match label.classId c.label with
-          | none => none
-          | some classId =>
+        match label.classId c.label with
+        | none => none
+        | some classId =>
           some
             (Anoma.Tag.Consumed c.consumed.can_nullify.nullifier,
               { label := label,
