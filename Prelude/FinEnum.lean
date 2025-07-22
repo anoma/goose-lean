@@ -42,13 +42,25 @@ def decImage {A : Type u} [enum : FinEnum A] {B : (a : A) → Type v} {P : {a : 
     rw [← enum.equiv.left_inv a]; exact (p (toFun a)).down
   | .inr ⟨n, ⟨p⟩⟩ => by right; refine ⟨inv n, ?_⟩; constructor; intro; contradiction
 
+def IsSomeDec {a : A} {B : (a : A) → Type u} (m : Option (B a)) : Decidable m.isSome :=
+  match m with
+  | none => isFalse (fun _ => by contradiction)
+  | some _ => isTrue rfl
+
 def decImageOption {A : Type u} [FinEnum A] {B : (a : A) → Type v}
   (f : (a : A) -> Option (B a))
   : (∀ a : A, PLift ((f a).isSome)) ⊕ (Σ a : A, PLift (¬ (f a).isSome)) :=
-  let IsSomeDec {a : A} (m : Option (B a)) : Decidable m.isSome :=
-      match m with
-      | none => isFalse (fun _ => by contradiction)
-      | some _ => isTrue rfl
   decImage f IsSomeDec
 
-end FinEnum
+def decImageOption' {A : Type u} [enum : FinEnum A] {B : (a : A) → Type v}
+  (f : (a : A) -> Option (B a))
+  : Option (∀ a : A, B a) :=
+  match decImage f IsSomeDec with
+  | .inr _ => none
+  | .inl p => some <| fun a =>
+    match p1 : f a with
+    | some b => b
+    | none => by
+        have c := (p a).down
+        rw [p1] at c
+        contradiction

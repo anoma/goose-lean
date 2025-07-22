@@ -10,9 +10,9 @@ macro "noFunctions" : term => `(fun x => Empty.elim x)
 macro "noMethods" : term => `(fun x => Empty.elim x)
 
 class IsObject (s : Type) where
-  lab : Class.Label
-  toObject : s → Object lab
-  fromObject : Object lab → Option s
+  label : Class.Label
+  toObject : s → Object label
+  fromObject : Object label → Option s
   roundTrip : fromObject ∘ toObject = some
 
 structure AnObject where
@@ -27,7 +27,7 @@ def AnObject.toSomeObject (g : AnObject) : SomeObject :=
 instance {ty : Type} [IsObject ty] : CoeHead ty AnObject where
   coe (obj : ty) := {obj}
 
-def defMethod (cl : Type) [i : IsObject cl] {methodId : i.lab.MethodId}
+def defMethod (cl : Type) [i : IsObject cl] {methodId : i.label.MethodId}
  (body : (self : cl) → methodId.Args.type → List AnObject)
  (invariant : (self : cl) → methodId.Args.type → Bool := fun _ _ => true)
  : Class.Method methodId where
@@ -38,16 +38,54 @@ def defMethod (cl : Type) [i : IsObject cl] {methodId : i.lab.MethodId}
       let try self' := i.fromObject self
       List.map AnObject.toSomeObject (body self' args)
 
-def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.lab.ConstructorId}
+def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.label.ConstructorId}
  (body : constrId.Args.type → cl)
  (invariant : constrId.Args.type → Bool := fun _ => true)
  : Class.Constructor constrId where
     invariant (args : constrId.Args.type) := invariant args
     created (args : constrId.Args.type) := i.toObject (body args)
 
-def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.lab.DestructorId}
+def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.label.DestructorId}
  (invariant : (self : cl) -> destructorId.Args.type → Bool := fun _ _ => true)
  : Class.Destructor destructorId where
-    invariant (self : Object i.lab) (args : destructorId.Args.type) :=
+    invariant (self : Object i.label) (args : destructorId.Args.type) :=
     let try self' := i.fromObject self
     invariant self' args
+
+structure ObjectArgInfo
+  (label : Ecosystem.Label)
+  (funId : label.FunctionId)
+  (argName : label.FunctionObjectArgNames funId)
+  : Type 1 where
+  type : Type
+  [isObject : IsObject type]
+  withLabel : isObject.label = (label.FunctionObjectArgClass argName).label := by rfl
+
+def ObjectArgs
+  (lab : Ecosystem.Label)
+  (funId : lab.FunctionId)
+  (argsInfo : (a : funId.ObjectArgNames) → ObjectArgInfo lab funId a)
+  : Type
+  := (a : funId.ObjectArgNames) → (argsInfo a).type
+
+def defFunction
+  (lab : Ecosystem.Label)
+  (funId : lab.FunctionId)
+  (argsInfo : (a : funId.ObjectArgNames) → ObjectArgInfo lab funId a)
+  (created : ObjectArgs lab funId argsInfo → funId.Args.type → List AnObject)
+  (invariant : ObjectArgs lab funId argsInfo → funId.Args.type → Bool)
+  : Function funId where
+  created (selves : funId.Selves) (args : funId.Args.type) : List SomeObject :=
+    match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
+    | none => []
+    | some (p : (argName : funId.ObjectArgNames) → (argsInfo argName).type) =>
+        (created p args).map AnObject.toSomeObject
+  invariant (selves : funId.Selves) (args : funId.Args.type) : Bool :=
+    match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
+    | none => false
+    | some (p : (argName : funId.ObjectArgNames) → (argsInfo argName).type) => invariant p args
+  where
+  getArg (selves : funId.Selves) (argName : funId.ObjectArgNames) : Option (argsInfo argName).type :=
+    (argsInfo argName).isObject.fromObject
+    (by rw [(argsInfo argName).withLabel]
+        exact selves argName)
