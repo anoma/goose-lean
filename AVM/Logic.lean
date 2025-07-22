@@ -34,6 +34,5 @@ def checkResourceData (objects : List SomeObject) (resources : List Anoma.Resour
       sobj.label === res.label &&
       sobj.object.nullifierKeyCommitment! == res.nullifierKeyCommitment &&
       sobj.object.quantity == res.quantity &&
-        match tryCast sobj.object.privateFields with
-        | some privateFields => res.value == privateFields
-        | none => false
+        let try privateFields := tryCast sobj.object.privateFields
+        res.value == privateFields
