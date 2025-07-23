@@ -17,22 +17,11 @@ def Function.parseObjectArgs
   :=
   let try consumedVec : Vector Anoma.Resource funId.numObjectArgs := args.consumed.toSizedVector
   let mkConsumedObject (a : funId.ObjectArgNames) : Option (Object a.classId.label) := Object.fromResource (consumedVec.get a.ix)
-  match @FinEnum.decImageOption
+  @FinEnum.decImageOption'
         funId.ObjectArgNames
         (lab.objectArgNamesEnum funId)
         (fun a => Object a.classId.label)
         mkConsumedObject
-  with
-  -- there is at least one resource that cannot be decoded
-  | .inr (_ : Σ (a : funId.ObjectArgNames), PLift (¬ (mkConsumedObject a).isSome)) => none
-  | .inl (p : ∀ (a : funId.ObjectArgNames), PLift (mkConsumedObject a).isSome) =>
-    pure fun (argName : funId.ObjectArgNames) =>
-      match p1 : mkConsumedObject argName with
-      | some obj => obj
-      | none => by
-            have c := (p argName).down
-            rw [p1] at c
-            contradiction
 
 def Function.logic
   {lab : Ecosystem.Label}
@@ -47,7 +36,7 @@ def Function.logic
     List.map (fun arg => (consumedObjects arg).toSomeObject) (lab.objectArgNamesEnum funId).toList
   (eco.functions funId).invariant consumedObjects fargs
    && Logic.checkResourceData consumedList args.consumed
-   && let createdObjects : List SomeObject := fn.created consumedObjects fargs
+   && let createdObjects : List SomeObject := (fn.body consumedObjects fargs).created
       Logic.checkResourceData createdObjects args.created
 
 def Function.action
@@ -60,16 +49,18 @@ def Function.action
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let fn : Function funId := eco.functions funId
   let try consumedObjects : funId.Selves := Function.parseObjectArgs args funId
-  let try consumedList : List SomeConsumedObject :=
+  let try consumedSelves : List SomeConsumedObject :=
     (lab.objectArgNamesEnum funId).toList
     |>.map (fun arg =>
       (consumedObjects arg).toSomeObject
       |> SomeObject.toConsumable false (keys arg)
       |> SomeConsumableObject.consume)
     |>.getSome
-  let createdObjects : List CreatedObject := fn.created consumedObjects fargs |>
+  let funRes : FunctionResult := fn.body consumedObjects fargs
+  let createdObjects : List CreatedObject := funRes.created |>
       List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false))
-  let r ← Action.create lab (.functionId funId) fargs consumedList createdObjects
+  let try destroyed : List SomeConsumedObject := funRes.destroyed.map (·.consume) |>.getSome
+  let r ← Action.create lab (.functionId funId) fargs (consumedSelves ++ destroyed) createdObjects
   pure (some r)
 
 private def logic'

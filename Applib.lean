@@ -68,18 +68,25 @@ def ObjectArgs
   : Type
   := (a : funId.ObjectArgNames) → (argsInfo a).type
 
+structure FunctionResult where
+  created : List AnObject := []
+  destroyed : List AnObject := []
+
+def FunctionResult.toAVM (r : FunctionResult) : AVM.FunctionResult where
+  created := r.created.map AnObject.toSomeObject
+  destroyed := r.destroyed.map AnObject.toSomeObject
+
 def defFunction
   (lab : Ecosystem.Label)
   (funId : lab.FunctionId)
   (argsInfo : (a : funId.ObjectArgNames) → ObjectArgInfo lab funId a)
-  (created : ObjectArgs lab funId argsInfo → funId.Args.type → List AnObject)
+  (body : ObjectArgs lab funId argsInfo → funId.Args.type → FunctionResult)
   (invariant : ObjectArgs lab funId argsInfo → funId.Args.type → Bool)
   : Function funId where
-  created (selves : funId.Selves) (args : funId.Args.type) : List SomeObject :=
+  body (selves : funId.Selves) (args : funId.Args.type) : AVM.FunctionResult :=
     match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
-    | none => []
-    | some (p : (argName : funId.ObjectArgNames) → (argsInfo argName).type) =>
-        (created p args).map AnObject.toSomeObject
+    | none => {created := [], destroyed := []}
+    | some (p : (argName : funId.ObjectArgNames) → (argsInfo argName).type) => (body p args).toAVM
   invariant (selves : funId.Selves) (args : funId.Args.type) : Bool :=
     match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
     | none => false

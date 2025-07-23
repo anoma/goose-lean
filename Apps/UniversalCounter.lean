@@ -123,9 +123,9 @@ def counterEcosystem : Ecosystem lab where
 
     defFunction lab Mutual
       (argsInfo := mergeArgsInfo)
-      (created := fun counters _args =>
-                     let c1 := counters Mutual.Counter1
-                     let c2 := counters Mutual.Counter2
-                   [incrementBy c2.count c1,
-                    incrementBy c1.count c2])
+      (body := fun counters _args =>
+                let c1 := counters Mutual.Counter1
+                let c2 := counters Mutual.Counter2
+                {created := [incrementBy c2.count c1,
+                             incrementBy c1.count c2]})
       (invariant := fun _counters _args => true)
