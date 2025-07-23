@@ -45,7 +45,6 @@ def Intent.action'
   (provided : List SomeObject)
   (key : Anoma.NullifierKey)
   : Option (Anoma.Action × Anoma.DeltaWitness) × StdGen :=
-  let intentResource := Intent.toResource intent args provided
   let try providedConsumed :=
         provided.map (fun p => p.toConsumable false key |>.consume) |>.getSome
       failwith (none, g)
@@ -59,13 +58,15 @@ def Intent.action'
     providedConsumed.foldr mkConsumedComplianceWitness ([], g)
   let consumedUnits : List Anoma.ComplianceUnit :=
     consumedWitnesses.map Anoma.ComplianceUnit.create
-  let (r, g2) := stdNext g1
-  let (r', g3) := stdNext g2
+  let (r1, g2) := stdNext g1
+  let (r2, g3) := stdNext g2
+  let (r3, g4) := stdNext g3
+  let intentResource : Anoma.Resource := Intent.toResource intent args provided (nonce := ⟨r3⟩)
   let createdWitness : Anoma.ComplianceWitness :=
-    { consumedResource := dummyResource ⟨r⟩,
+    { consumedResource := dummyResource ⟨r1⟩,
       createdResource := intentResource,
       nfKey := key,
-      rcv := r'.repr }
+      rcv := r2.repr }
   let createdUnit : Anoma.ComplianceUnit :=
     Anoma.ComplianceUnit.create createdWitness
   let action :=
@@ -73,7 +74,7 @@ def Intent.action'
         logicVerifierInputs }
   let witness : Anoma.DeltaWitness :=
     Anoma.DeltaWitness.fromComplianceWitnesses (consumedWitnesses ++ [createdWitness])
-  (some (action, witness), g3)
+  (some (action, witness), g4)
 where
   mkConsumedComplianceWitness (obj : SomeConsumedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
     | (acc, g) =>

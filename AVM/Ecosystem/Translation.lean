@@ -68,8 +68,7 @@ def Function.action
       |> SomeConsumableObject.consume)
     |>.getSome
   let createdObjects : List CreatedObject := fn.created consumedObjects fargs |>
-      List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false)
-        (nonce := Anoma.Nonce.todo)) -- FIXME the Nonce.todo should be replaced with the fix of https://github.com/anoma/goose-lean/issues/51
+      List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false))
   let r ← Action.create lab (.functionId funId) fargs consumedList createdObjects
   pure (some r)
 

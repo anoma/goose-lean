@@ -37,7 +37,7 @@ structure Intent.LabelData : Type (u + 1) where
 instance Intent.LabelData.hasTypeRep : TypeRep Intent.LabelData where
   rep := Rep.atomic "AVM.Intent.LabelData"
 
-def Intent.toResource {ilab : Intent.Label} (_intent : Intent ilab) (args : ilab.Args.type) (provided : List SomeObject) (nonce : Anoma.Nonce := default) (nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default) : Anoma.Resource :=
+def Intent.toResource {ilab : Intent.Label} (_intent : Intent ilab) (args : ilab.Args.type) (provided : List SomeObject) (nonce : Anoma.Nonce) (nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default) : Anoma.Resource :=
   { Val := ⟨Unit⟩,
     Label := ⟨Intent.LabelData⟩,
     label := {

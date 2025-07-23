@@ -46,8 +46,7 @@ def Constructor.action
         key := Anoma.NullifierKey.universal }
   let consumed : ConsumedObject classId.label := { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource consumable.key rfl rfl }
   let created : List CreatedObject :=
-        [CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)
-          (nonce := consumed.can_nullify.nullifier.toNonce)]
+        [CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)]
   Action.create lab (.classMember (.constructorId constrId)) args [consumed] created
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
@@ -87,18 +86,14 @@ def Method.action
   (key : Anoma.NullifierKey)
   (args : methodId.Args.type)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
-  -- TODO: set nonce and nullifierKeyCommitment properly
   let consumable : ConsumableObject classId.label :=
       { key
         object := self
         ephemeral := false }
   let try consumed := consumable.consume
   let createObject (o : SomeObject) : CreatedObject :=
-    -- FIXME see https://github.com/anoma/goose-lean/issues/51
-    let res : Anoma.Resource := o.toResource (ephemeral := false) (nonce := consumed.can_nullify.nullifier.toNonce)
     { object := o.object
-      resource := res
-      commitment := res.commitment }
+      ephemeral := false }
   let created : List CreatedObject :=
       List.map createObject (method.created self args)
   Action.create lab (.classMember (.methodId methodId)) args [consumed] created
@@ -148,10 +143,8 @@ def Destructor.action
          ephemeral := false }
   let try consumed := consumable.consume
   let createdObject : CreatedObject :=
-    let ephResource := { consumed.resource with ephemeral := true }
     { object := self
-      resource := ephResource
-      commitment := ephResource.commitment }
+      ephemeral := true }
   Action.create lab (.classMember (.destructorId destructorId)) args [consumed] [createdObject]
 
 /-- Creates an Anoma Transaction for a given object destructor. -/
