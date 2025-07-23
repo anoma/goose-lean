@@ -1,4 +1,5 @@
 import Prelude.UUnit
+import Prelude.LetTry
 
 universe u v w z
 
@@ -44,5 +45,10 @@ def toSizedVector {n : Nat} (l : List A) : Option (Vector A n) :=
   if h : a.size = n
   then some ⟨a, h⟩
   else none
+
+def splitAtExact (n : Nat) (lst : List A) : Option (Vector A n × List A) :=
+  let (l, r) := List.splitAt n lst
+  let try l' := l.toSizedVector
+  pure (l', r)
 
 end List
