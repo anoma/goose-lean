@@ -9,7 +9,7 @@ namespace Anoma
 /-- Representation of Anoma Resource data, without the resource logic. In the
     GOOSE model, the resource logic is determined by the `label` field (which
     contains the unique label of the class). -/
-structure Resource : Type (max u v + 1) where
+structure Resource.{u, v} : Type (max u v + 1) where
   Val : SomeType.{u}
   Label : SomeType.{v}
   label : Label.type
@@ -27,18 +27,18 @@ instance Resource.instBEq : BEq Resource where
     && a.nonce === b.nonce
     && a.nullifierKeyCommitment === b.nullifierKeyCommitment
 
-structure Logic.Args (Data : Type u) where
-  self : Resource
+structure Logic.Args.{u, v, w} (Data : Type w) where
+  self : Resource.{u, v}
   status : ConsumedCreated
-  consumed : List Resource
-  created : List Resource
+  consumed : List Resource.{u, v}
+  created : List Resource.{u, v}
   /-- `data` is the action's appData for self -/
   data : Data
 
 def Logic.Args.isConsumed {Data : Type u} (d : Logic.Args Data) := d.status.isConsumed
 
 /-- Corresponds to Anoma Resource (with resource logic). -/
-structure ResourceWithLogic (Data : Type u) where
+structure ResourceWithLogic (Data) where
   val : Resource
   logic : Logic.Args Data → Bool
 

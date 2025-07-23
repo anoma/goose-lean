@@ -1,22 +1,13 @@
 import Prelude
 import Anoma
 import AVM.Object
-
--- TODO rename to Resource.dummy?
-def dummyResource (nonce : Anoma.Nonce) : Anoma.Resource.{u, v} :=
-  { Val := ⟨UUnit⟩,
-    Label := ⟨ULift String⟩,
-    label := ULift.up "dummy-resource",
-    quantity := 0,
-    value := UUnit.unit,
-    ephemeral := true,
-    nonce,
-    nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal }
+import AVM.Action.DummyResource
 
 namespace AVM.Logic
 
+/-- Filters out dummy resources from a list of resources. -/
 def filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
-  resources.filter (fun res => res.label !== ULift.up.{v} "dummy-resource")
+  resources.filter (not ∘ Action.isDummyResource)
 
 /-- Checks that the number of objects and resources match, and that the
     resources' private data and labels match the objects' private data and

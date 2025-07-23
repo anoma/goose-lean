@@ -63,7 +63,7 @@ def Intent.action'
   let (r3, g4) := stdNext g3
   let intentResource : Anoma.Resource := Intent.toResource intent args provided (nonce := ⟨r3⟩)
   let createdWitness : Anoma.ComplianceWitness :=
-    { consumedResource := dummyResource ⟨r1⟩,
+    { consumedResource := Action.dummyResource ⟨r1⟩,
       createdResource := intentResource,
       nfKey := key,
       rcv := r2.repr }
@@ -81,7 +81,7 @@ where
       let (r, g') := stdNext g
       let complianceWitness :=
         { consumedResource := obj.consumed.resource,
-          createdResource := dummyResource obj.consumed.can_nullify.nullifier.toNonce,
+          createdResource := Action.dummyResource obj.consumed.can_nullify.nullifier.toNonce,
           nfKey := obj.consumed.key
           rcv := r.repr }
       (complianceWitness :: acc, g')
