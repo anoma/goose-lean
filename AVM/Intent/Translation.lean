@@ -46,61 +46,59 @@ def Intent.action'
   (key : Anoma.NullifierKey)
   : Option (Anoma.Action × Anoma.DeltaWitness) × StdGen :=
   let intentResource := Intent.toResource intent args provided
-  match provided.map (fun p => p.toConsumable false key |>.consume) |>.getSome with
-  | none => (none, g)
-  | some providedConsumed =>
-    match providedConsumed.map mkTagDataPairConsumed |>.getSome with
-    | none => (none, g)
-    | some appDataPairs =>
-      let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
-        Std.HashMap.emptyWithCapacity
-        |>.insertMany (appDataPairs.map (fun (tag, data) => (tag, mkLogicVerifierInput Consumed data)))
-      let (consumedWitnesses, g1) : List Anoma.ComplianceWitness × StdGen :=
-        providedConsumed.foldr mkConsumedComplianceWitness ([], g)
-      let consumedUnits : List Anoma.ComplianceUnit :=
-        consumedWitnesses.map Anoma.ComplianceUnit.create
-      let (r, g2) := stdNext g1
-      let (r', g3) := stdNext g2
-      let createdWitness : Anoma.ComplianceWitness :=
-        { consumedResource := dummyResource ⟨r⟩,
-          createdResource := intentResource,
-          nfKey := key,
-          rcv := r'.repr }
-      let createdUnit : Anoma.ComplianceUnit :=
-        Anoma.ComplianceUnit.create createdWitness
-      let action :=
-          { complianceUnits := consumedUnits ++ [createdUnit],
-            logicVerifierInputs }
-      let witness : Anoma.DeltaWitness :=
-        Anoma.DeltaWitness.fromComplianceWitnesses (consumedWitnesses ++ [createdWitness])
-      (some (action, witness), g3)
-    where
-      mkConsumedComplianceWitness (obj : SomeConsumedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
-        | (acc, g) =>
-          let (r, g') := stdNext g
-          let complianceWitness :=
-            { consumedResource := obj.consumed.resource,
-              createdResource := dummyResource obj.consumed.can_nullify.nullifier.toNonce,
-              nfKey := obj.consumed.key
-              rcv := r.repr }
-          (complianceWitness :: acc, g')
+  let try providedConsumed :=
+        provided.map (fun p => p.toConsumable false key |>.consume) |>.getSome
+      failwith (none, g)
+  let try appDataPairs :=
+        providedConsumed.map mkTagDataPairConsumed |>.getSome
+      failwith (none, g)
+  let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
+    Std.HashMap.emptyWithCapacity
+    |>.insertMany (appDataPairs.map (fun (tag, data) => (tag, mkLogicVerifierInput Consumed data)))
+  let (consumedWitnesses, g1) : List Anoma.ComplianceWitness × StdGen :=
+    providedConsumed.foldr mkConsumedComplianceWitness ([], g)
+  let consumedUnits : List Anoma.ComplianceUnit :=
+    consumedWitnesses.map Anoma.ComplianceUnit.create
+  let (r, g2) := stdNext g1
+  let (r', g3) := stdNext g2
+  let createdWitness : Anoma.ComplianceWitness :=
+    { consumedResource := dummyResource ⟨r⟩,
+      createdResource := intentResource,
+      nfKey := key,
+      rcv := r'.repr }
+  let createdUnit : Anoma.ComplianceUnit :=
+    Anoma.ComplianceUnit.create createdWitness
+  let action :=
+      { complianceUnits := consumedUnits ++ [createdUnit],
+        logicVerifierInputs }
+  let witness : Anoma.DeltaWitness :=
+    Anoma.DeltaWitness.fromComplianceWitnesses (consumedWitnesses ++ [createdWitness])
+  (some (action, witness), g3)
+where
+  mkConsumedComplianceWitness (obj : SomeConsumedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+    | (acc, g) =>
+      let (r, g') := stdNext g
+      let complianceWitness :=
+        { consumedResource := obj.consumed.resource,
+          createdResource := dummyResource obj.consumed.can_nullify.nullifier.toNonce,
+          nfKey := obj.consumed.key
+          rcv := r.repr }
+      (complianceWitness :: acc, g')
 
-      mkLogicVerifierInput (status : ConsumedCreated) (data : SomeAppData) : Anoma.LogicVerifierInput :=
-        { Data := ⟨SomeAppData⟩,
-          status,
-          appData := data }
+  mkLogicVerifierInput (status : ConsumedCreated) (data : SomeAppData) : Anoma.LogicVerifierInput :=
+    { Data := ⟨SomeAppData⟩,
+      status,
+      appData := data }
 
-      mkTagDataPairConsumed (c : SomeConsumedObject)
-       : Option (Anoma.Tag × SomeAppData) :=
-        match label.classId c.label with
-        | none => none
-        | some classId =>
-          some
-            (Anoma.Tag.Consumed c.consumed.can_nullify.nullifier,
-              { label := label,
-                appData := {
-                  memberId := .classMember (classId := classId) (Class.Label.MemberId.intentId ilab),
-                  memberArgs := UUnit.unit }})
+  mkTagDataPairConsumed (c : SomeConsumedObject)
+    : Option (Anoma.Tag × SomeAppData) :=
+    let try classId := label.classId c.label
+    some
+      (Anoma.Tag.Consumed c.consumed.can_nullify.nullifier,
+        { label := label,
+          appData := {
+            memberId := .classMember (classId := classId) (Class.Label.MemberId.intentId ilab),
+            memberArgs := UUnit.unit }})
 
 /-- An action which consumes the provided objects and creates the intent. -/
 def Intent.action
@@ -126,10 +124,8 @@ def Intent.transaction
   (provided : List SomeObject)
   (key : Anoma.NullifierKey)
   : Rand (Option Anoma.Transaction) := do
-  match ← intent.action label args provided key with
-  | none => pure none
-  | some (action, witness) =>
-    pure <|
-      some
-        { actions := [action],
-          deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
+  let try (action, witness) ← intent.action label args provided key
+  pure <|
+    some
+      { actions := [action],
+        deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }

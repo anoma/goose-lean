@@ -1,7 +1,6 @@
 
 import Prelude.UUnit
 
-
 /-- A monad for boolean checks that supports early return --/
 abbrev BoolCheck (ret : Type u := UUnit.{u}) : Type u := Except Bool ret
 

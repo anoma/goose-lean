@@ -75,11 +75,9 @@ def ConsumableObject.consume {lab : Class.Label} (c : ConsumableObject lab) : Op
          key := c.key
          can_nullify }
 
-def SomeConsumableObject.consume (c : SomeConsumableObject) : Option SomeConsumedObject := do
-  match c.consumable.consume with
-  | none => none
-  | some consumed => pure { label := c.label
-                            consumed }
+def SomeConsumableObject.consume (c : SomeConsumableObject) : Option SomeConsumedObject :=
+  let try consumed := c.consumable.consume
+  some { label := c.label, consumed }
 
 def SomeConsumedObject.toSomeObject (sconsumed : SomeConsumedObject) : SomeObject :=
   ⟨sconsumed.consumed.object⟩

@@ -14,10 +14,8 @@ def Function.parseObjectArgs
   (args : Logic.Args lab)
   (funId : lab.FunctionId)
   : Option funId.Selves
-  := do
-  match args.consumed.toSizedVector with
-  | none => none
-  | some (consumedVec : Vector Anoma.Resource funId.numObjectArgs) =>
+  :=
+  let try consumedVec : Vector Anoma.Resource funId.numObjectArgs := args.consumed.toSizedVector
   let mkConsumedObject (a : funId.ObjectArgNames) : Option (Object a.classId.label) := Object.fromResource (consumedVec.get a.ix)
   match @FinEnum.decImageOption
         funId.ObjectArgNames
@@ -44,9 +42,7 @@ def Function.logic
   (fargs : funId.Args.type)
   : Bool :=
   let fn : Function funId := eco.functions funId
-  match Function.parseObjectArgs args funId with
-  | none => false
-  | some (consumedObjects : funId.Selves) =>
+  let try consumedObjects : funId.Selves := Function.parseObjectArgs args funId
   let consumedList : List SomeObject :=
     List.map (fun arg => (consumedObjects arg).toSomeObject) (lab.objectArgNamesEnum funId).toList
   (eco.functions funId).invariant consumedObjects fargs
@@ -61,12 +57,10 @@ def Function.action
   (funId : lab.FunctionId)
   (fargs : funId.Args.type)
   (keys : funId.ObjectArgNames → Anoma.NullifierKey)
-  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
+  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let fn : Function funId := eco.functions funId
-  match Function.parseObjectArgs args funId with
-  | none => pure none
-  | some (consumedObjects : funId.Selves) =>
-  let mconsumedList : Option (List SomeConsumedObject) :=
+  let try consumedObjects : funId.Selves := Function.parseObjectArgs args funId
+  let try consumedList : List SomeConsumedObject :=
     (lab.objectArgNamesEnum funId).toList
     |>.map (fun arg =>
       (consumedObjects arg).toSomeObject
@@ -76,9 +70,6 @@ def Function.action
   let createdObjects : List CreatedObject := fn.created consumedObjects fargs |>
       List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false)
         (nonce := Anoma.Nonce.todo)) -- FIXME the Nonce.todo should be replaced with the fix of https://github.com/anoma/goose-lean/issues/51
-  match mconsumedList with
-  | none => pure none
-  | some (consumedList : List SomeConsumedObject) => do
   let r ← Action.create lab (.functionId funId) fargs consumedList createdObjects
   pure (some r)
 
@@ -102,7 +93,5 @@ def logic
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   (args : Anoma.Logic.Args SomeAppData) : Bool :=
-  match tryCast args.data.appData with
-  | none => false
-  | some appData =>
-    logic' eco { args with data := appData }
+  let try appData := tryCast args.data.appData
+  logic' eco { args with data := appData }
