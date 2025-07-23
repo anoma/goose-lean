@@ -31,10 +31,10 @@ def defMethod (cl : Type) [i : IsObject cl] {methodId : i.label.MethodId}
  (body : (self : cl) → methodId.Args.type → List AnObject)
  (invariant : (self : cl) → methodId.Args.type → Bool := fun _ _ => true)
  : Class.Method methodId where
-    invariant (self : Object i.lab) (args : methodId.Args.type) :=
+    invariant (self : Object i.label) (args : methodId.Args.type) :=
       let try self' := i.fromObject self
       invariant self' args
-    created (self : Object i.lab) (args : methodId.Args.type) :=
+    created (self : Object i.label) (args : methodId.Args.type) :=
       let try self' := i.fromObject self
       List.map AnObject.toSomeObject (body self' args)
 
@@ -68,13 +68,17 @@ def ObjectArgs
   : Type
   := (a : funId.ObjectArgNames) → (argsInfo a).type
 
+structure DestroyableObject where
+  anObject : AnObject
+  key : Anoma.NullifierKey := Anoma.NullifierKey.universal
+
 structure FunctionResult where
   created : List AnObject := []
-  destroyed : List AnObject := []
+  destroyed : List DestroyableObject := []
 
 def FunctionResult.toAVM (r : FunctionResult) : AVM.FunctionResult where
-  created := r.created.map AnObject.toSomeObject
-  destroyed := r.destroyed.map AnObject.toSomeObject
+  created := r.created.map (·.toSomeObject)
+  destroyed := r.destroyed.map (fun d => d.anObject.toSomeObject.toConsumable false d.key)
 
 def defFunction
   (lab : Ecosystem.Label)

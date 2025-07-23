@@ -21,31 +21,33 @@ inductive Constructors where
 
 inductive Functions where
   | Mutual : Functions
-  deriving DecidableEq, Fintype, Repr
+  | Merge : Functions
+  deriving DecidableEq, Fintype, Repr, FinEnum
 
 namespace Functions
-
-instance instFinEnum : FinEnum Functions :=
-  FinEnum.ofList [Mutual]
-  fun
-  | Mutual => by simp
 
 namespace Mutual
 
 inductive ArgNames where
   | Counter1
   | Counter2
-  deriving DecidableEq, Repr
+  deriving DecidableEq, Repr, FinEnum
 
 export ArgNames (Counter1 Counter2)
 
-instance ArgNames.instFinEnum : FinEnum ArgNames :=
-  FinEnum.ofList [Counter1, Counter2]
-  fun
-  | Counter1 => by simp
-  | Counter2 => by simp
-
 end Mutual
+
+namespace Merge
+
+inductive ArgNames where
+  | Counter1
+  | Counter2
+  deriving DecidableEq, Repr, FinEnum
+
+export ArgNames (Counter1 Counter2)
+
+end Merge
+
 end Functions
 
 open Functions
@@ -99,10 +101,16 @@ def lab : Ecosystem.Label where
   FunctionId := Functions
   FunctionObjectArgNames : Functions → Type := fun
    | Functions.Mutual => Mutual.ArgNames
+   | Functions.Merge => Merge.ArgNames
+  objectArgNamesEnum (f : Functions) : FinEnum _ := match h : f with
+   | Functions.Mutual => by rw [h]; exact inferInstance
+   | Functions.Merge => by rw [h]; exact inferInstance
+  objectArgNamesBEq (f : Functions) : BEq _ := match h : f with
+   | Functions.Mutual => by rw [h]; exact inferInstance
+   | Functions.Merge => by rw [h]; exact inferInstance
   FunctionObjectArgClass {f : Functions} (_a : _) := match f with
    | Functions.Mutual => UUnit.unit
-  objectArgNamesEnum (f : Functions) : FinEnum _ := match f with
-   | Functions.Mutual => inferInstance
+   | Functions.Merge => UUnit.unit
 
 def counterClass : @Class lab UUnit.unit where
   constructors := fun
@@ -114,18 +122,35 @@ def counterClass : @Class lab UUnit.unit where
 
 def counterEcosystem : Ecosystem lab where
   classes := fun _ => counterClass
-  functions := fun .Mutual =>
-    let mergeArgsInfo (a : lab.FunctionObjectArgNames Mutual)
+  functions (f : Functions) := match f with
+    | .Mutual =>
+      let mutualArgsInfo (a : lab.FunctionObjectArgNames Mutual)
       : ObjectArgInfo lab Mutual a :=
       match a with
-      | Mutual.Counter1 => { type := Counter }
-      | Mutual.Counter2 => { type := Counter }
+      | .Counter1 => { type := Counter }
+      | .Counter2 => { type := Counter }
 
-    defFunction lab Mutual
-      (argsInfo := mergeArgsInfo)
-      (body := fun counters _args =>
-                let c1 := counters Mutual.Counter1
-                let c2 := counters Mutual.Counter2
-                {created := [incrementBy c2.count c1,
-                             incrementBy c1.count c2]})
-      (invariant := fun _counters _args => true)
+      defFunction lab Mutual
+        (argsInfo := mutualArgsInfo)
+        (body := fun counters _args =>
+                  let c1 := counters .Counter1
+                  let c2 := counters .Counter2
+                  {created := [incrementBy c2.count c1,
+                               incrementBy c1.count c2]})
+        (invariant := fun _counters _args => true)
+
+    | .Merge =>
+      let mergeArgsInfo (a : lab.FunctionObjectArgNames Merge)
+      : ObjectArgInfo lab Merge a :=
+        match a with
+        | .Counter1 => { type := Counter }
+        | .Counter2 => { type := Counter }
+
+      defFunction lab Merge
+        (argsInfo := mergeArgsInfo)
+        (body := fun counters _args =>
+                  let c1 := counters .Counter1
+                  let c2 := counters .Counter2
+                  {created := [incrementBy c2.count c1]
+                   destroyed := [{anObject := c2}] })
+        (invariant := fun _counters _args => true)
