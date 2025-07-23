@@ -73,10 +73,9 @@ structure TransferArgs where
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
   rep := Rep.atomic "TransferArgs"
 
-def lab : Class.Label where
+def clab : Class.Label where
   name := "Kudos"
   PrivateFields := ⟨PublicIden⟩
-  PublicFields := ⟨Unit⟩
 
   MethodId := Methods
   MethodArgs := fun
@@ -91,51 +90,61 @@ def lab : Class.Label where
   DestructorArgs := fun
     | Destructors.Burn => ⟨UUnit⟩
 
-def toObject (c : Kudos) : Object lab where
-  publicFields := Unit.unit
+def toObject (c : Kudos) : Object clab where
   quantity := c.quantity
   privateFields := c.originator
   nullifierKeyCommitment := c.owner
 
-def fromObject (o : Object lab) : Option Kudos := do
+def fromObject (o : Object clab) : Option Kudos := do
   let key <- o.nullifierKeyCommitment
   some { owner := key
          quantity := o.quantity
          originator := o.privateFields }
 
 instance hasIsObject : IsObject Kudos where
-  lab := lab
+  label := clab
   toObject := Kudos.toObject
   fromObject := Kudos.fromObject
   roundTrip : Kudos.fromObject ∘ Kudos.toObject = some := by rfl
 
-def kudosMint : @Class.Constructor lab Constructors.Mint := defConstructor Kudos
+def kudosMint : @Class.Constructor clab Constructors.Mint := @defConstructor Kudos
   (body := fun (args : MintArgs) => { quantity := args.quantity
                                       owner := args.key.commitment
                                       originator := args.key.commitment })
   (invariant := fun (_args : MintArgs) => true)
 
-def kudosSplit : @Class.Method lab Methods.Split := defMethod Kudos
+def kudosSplit : @Class.Method clab Methods.Split := defMethod Kudos
   (body := fun (self : Kudos) (args : SplitArgs) =>
     let mk (q : Nat) : Kudos := {self with quantity := q}
     List.map (IsObject.toAnObject ∘ mk) args.quantities)
   (invariant := fun (_self : Kudos) (_args : SplitArgs) => true)
 
-def kudosTransfer : @Class.Method lab Methods.Transfer := defMethod Kudos
+def kudosTransfer : @Class.Method clab Methods.Transfer := defMethod Kudos
   (body := fun (self : Kudos) (args : TransferArgs) =>
     [{self with owner := args.newOwner : Kudos}])
   (invariant := fun (_self : Kudos) (_args : TransferArgs) => true)
 
-def kudosBurn : @Class.Destructor lab Destructors.Burn := defDestructor Kudos
+def kudosBurn : @Class.Destructor clab Destructors.Burn := @defDestructor Kudos
   (invariant := fun (self : Kudos) (_args : UUnit) => self.originator == self.owner)
 
-def kudosClass : Class lab where
+inductive Functions where
+  deriving Repr, DecidableEq, FinEnum
+
+def lab : Ecosystem.Label where
+  name := "UniversalCounter"
+  ClassId := UUnit
+  classLabel := fun _ => clab
+  classId := fun _ => none -- FIXME
+  FunctionId := Functions
+  FunctionObjectArgClass {f : Functions} (_a : _) := nomatch f
+
+def kudosClass : @Class lab UUnit.unit  where
   constructors := fun
     | Constructors.Mint => kudosMint
   methods := fun
     | Methods.Split => kudosSplit
     | Methods.Transfer => kudosTransfer
-  intents := fun x => nomatch x
+  intents := noIntents lab clab
   destructors := fun
     | Destructors.Burn => kudosBurn
   invariant _ _ := True
