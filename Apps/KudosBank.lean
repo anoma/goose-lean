@@ -18,8 +18,8 @@ structure PrivateKey where
   key : Nat
   deriving BEq, Hashable, DecidableEq
 
--- TODO
-def checkKey (pub : PublicKey) (priv : PrivateKey) : Bool := true
+-- mock function
+def checkKey (pub : PublicKey) (priv : PrivateKey) : Bool := pub.key == priv.key
 
 structure Denomination where
   originator : PublicKey
@@ -39,8 +39,10 @@ instance instInhabited : Inhabited Account where
 def isEmpty (a : Account) : Bool :=
   a.assets.values.all (fun n => n == 0)
 
+set_option diagnostics true
+
 instance instBEq : BEq Account where
-  beq _a _b := sorry
+  beq _a _b := false
 
 def addTokens (a : Account) (d : Denomination) (n : Nat) : Account where
   assets := a.assets.modifyDefault d (fun v => v + n)
@@ -58,8 +60,9 @@ structure Balances where
 
 namespace Balances
 
+-- TODO mock implementation
 instance instBEq : BEq Balances where
-  beq _a _b := sorry
+  beq _a _b := true
 
 def isEmpty (b : Balances) : Bool := b.accounts.values.all Account.isEmpty
 
@@ -157,10 +160,9 @@ structure BurnArgs where
 instance BurnArgs.hasTypeRep : TypeRep BurnArgs where
   rep := Rep.atomic "BurnArgs"
 
-def lab : Class.Label where
+def clab : Class.Label where
   name := "KudosBank"
   PrivateFields := ⟨Balances⟩
-  PublicFields := ⟨Unit⟩
 
   MethodId := Methods
   MethodArgs := fun
@@ -178,35 +180,34 @@ def lab : Class.Label where
 
 namespace KudosBank
 
-def toObject (c : KudosBank) : Object lab where
-  publicFields := Unit.unit
+def toObject (c : KudosBank) : Object clab where
   quantity := 1
   privateFields := c.balances
   nullifierKeyCommitment := c.nfc
 
-def fromObject (o : Object lab) : Option KudosBank := do
+def fromObject (o : Object clab) : Option KudosBank := do
   let key <- o.nullifierKeyCommitment
   some { nfc := key
          balances := o.privateFields }
 
-instance hasIsObject : IsObject KudosBank where
-  lab := lab
+instance instIsObject : IsObject KudosBank where
+  label := clab
   toObject := KudosBank.toObject
   fromObject := KudosBank.fromObject
   roundTrip : KudosBank.fromObject ∘ KudosBank.toObject = some := by rfl
 
 end KudosBank
 
-def kudosNew : @Class.Constructor lab Constructors.New := defConstructor KudosBank
+def kudosNew : @Class.Constructor clab Constructors.New := defConstructor
   (body := fun (nfc : Anoma.NullifierKeyCommitment) => KudosBank.new nfc)
   (invariant := fun (_args : Anoma.NullifierKeyCommitment) => true)
 
-def kudosMint : @Class.Method lab Methods.Mint := defMethod KudosBank
+def kudosMint : @Class.Method clab Methods.Mint := defMethod KudosBank
   (body := fun (self : KudosBank) (args : MintArgs) =>
     [self.overBalances (fun b => b.addTokens args.denom.originator args.denom args.quantity)])
   (invariant := fun (_self : KudosBank) (args : MintArgs) => checkKey args.denom.originator args.key)
 
-def kudosTransfer : @Class.Method lab Methods.Transfer := defMethod KudosBank
+def kudosTransfer : @Class.Method clab Methods.Transfer := defMethod KudosBank
   (body := fun (self : KudosBank) (args : TransferArgs) =>
     [self.overBalances (fun b => b
       |> Balances.addTokens args.newOwner args.denom args.quantity
@@ -216,7 +217,7 @@ def kudosTransfer : @Class.Method lab Methods.Transfer := defMethod KudosBank
     && 0 < args.quantity
     && args.quantity <= self.getBalance args.oldOwner args.denom)
 
-def kudosBurn : @Class.Method lab Methods.Burn := defMethod KudosBank
+def kudosBurn : @Class.Method clab Methods.Burn := defMethod KudosBank
   (body := fun (self : KudosBank) (args : BurnArgs) =>
     [self.overBalances (fun b => b
       |> Balances.subTokens args.denom.originator args.denom args.quantity)])
@@ -225,17 +226,32 @@ def kudosBurn : @Class.Method lab Methods.Burn := defMethod KudosBank
     && 0 < args.quantity
     && args.quantity <= self.getBalance args.denom.originator args.denom)
 
-def kudosClose : @Class.Destructor lab Destructors.Close := defDestructor KudosBank
+def kudosClose : @Class.Destructor clab Destructors.Close := defDestructor
   (invariant := fun (self : KudosBank) (_args : UUnit) => self.balances.isEmpty)
 
-def kudosClass : Class lab where
+inductive Functions where
+  deriving Repr, DecidableEq, FinEnum
+
+def lab : Ecosystem.Label where
+  name := "KudosBank"
+  ClassId := UUnit
+  classLabel := fun _ => clab
+  classId := fun _ => none -- FIXME
+  FunctionId := Functions
+  FunctionObjectArgClass {f : Functions} (_a : _) := nomatch f
+
+def kudosClass : @Class lab UUnit.unit where
   constructors := fun
     | Constructors.New => kudosNew
   methods := fun
     | Methods.Transfer => kudosTransfer
     | Methods.Mint => kudosMint
     | Methods.Burn => kudosBurn
-  intents := noIntents
+  intents := noIntents lab clab
   destructors := fun
     | Destructors.Close => kudosClose
   invariant _ _ := True
+
+def kudosEcosystem : Ecosystem lab where
+  classes := fun _ => kudosClass
+  functions (f : Functions) := nomatch f

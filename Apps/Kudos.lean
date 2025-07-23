@@ -128,15 +128,32 @@ def kudosBurn : @Class.Destructor clab Destructors.Burn := @defDestructor Kudos
   (invariant := fun (self : Kudos) (_args : UUnit) => self.originator == self.owner)
 
 inductive Functions where
+  | Merge
   deriving Repr, DecidableEq, FinEnum
 
+export Functions (Merge)
+
+namespace Merge
+
+inductive ArgNames where
+  | Kudos1
+  | Kudos2
+  deriving DecidableEq, Repr, FinEnum
+
+export ArgNames (Kudos1 Kudos2)
+
+end Merge
+
 def lab : Ecosystem.Label where
-  name := "UniversalCounter"
+  name := "Kudos"
   ClassId := UUnit
   classLabel := fun _ => clab
   classId := fun _ => none -- FIXME
   FunctionId := Functions
-  FunctionObjectArgClass {f : Functions} (_a : _) := nomatch f
+  FunctionObjectArgClass {f : Functions} (_a : _) := match f with
+   | Merge => UUnit.unit
+  FunctionObjectArgNames : Functions → Type := fun
+   | Merge => Merge.ArgNames
 
 def kudosClass : @Class lab UUnit.unit  where
   constructors := fun
@@ -148,3 +165,25 @@ def kudosClass : @Class lab UUnit.unit  where
   destructors := fun
     | Destructors.Burn => kudosBurn
   invariant _ _ := True
+
+def kudosEcosystem : Ecosystem lab where
+  classes := fun _ => kudosClass
+  functions (f : Functions) := match f with
+    | .Merge =>
+      let mergeArgsInfo (a : lab.FunctionObjectArgNames Merge)
+      : ObjectArgInfo lab Merge a :=
+      match a with
+      | .Kudos1 => { type := Kudos }
+      | .Kudos2 => { type := Kudos }
+
+      defFunction lab Merge
+        (argsInfo := mergeArgsInfo)
+        (body := fun kudos _args =>
+                  let k1 := kudos .Kudos1
+                  let k2 := kudos .Kudos2
+                  {created := [{k1 with quantity := k1.quantity + k2.quantity : Kudos}]})
+        (invariant := fun kudos _args =>
+                  let k1 := kudos .Kudos1
+                  let k2 := kudos .Kudos2
+                  k1.originator == k2.originator
+                  && k1.owner == k2.owner)
