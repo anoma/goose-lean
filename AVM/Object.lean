@@ -60,7 +60,7 @@ def SomeObject.toResource
     nonce,
     nullifierKeyCommitment := obj.nullifierKeyCommitment }
 
-/-- Converts Object to a Resource. Requires object's `nonce` to be set beforehand. -/
+/-- Converts Object to a Resource. -/
 def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) (nonce : Anoma.Nonce) : Anoma.Resource
  := obj.toSomeObject.toResource ephemeral nonce
 

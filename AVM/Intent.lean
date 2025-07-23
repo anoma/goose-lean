@@ -31,6 +31,7 @@ instance Intent.ResourceData.hasBEq : BEq Intent.ResourceData where
 structure Intent.LabelData : Type (u + 1) where
   /-- The unique label of the intent. -/
   label : Intent.Label.{u}
+  /-- The data of the intent resource (intent arguments and provided objects). -/
   data : Intent.ResourceData.{u}
   deriving BEq
 
