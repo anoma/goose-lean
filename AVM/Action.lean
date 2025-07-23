@@ -41,13 +41,7 @@ def create'
     Std.HashMap.emptyWithCapacity
     |>.insertMany (List.map (Prod.map id (mkLogicVerifierInput Consumed) ∘ mkTagDataPairConsumed) sconsumed)
     |>.insertMany (List.map (Prod.map id (mkLogicVerifierInput Created) ∘ mkTagDataPairCreated) createdResources)
-  let (r, g'') := stdNext g'
-  let mkConsumedWitness : SomeConsumedObject → Anoma.ComplianceWitness := fun ⟨c⟩ =>
-      { consumedResource := c.resource
-        createdResource := dummyResource c.can_nullify.nullifier.toNonce
-        nfKey := c.key,
-        rcv := r.repr }
-  let consumedWitnesses := List.map mkConsumedWitness sconsumed
+  let (consumedWitnesses, g'') := List.foldr mkConsumedComplianceWitness ([], g') sconsumed
   let consumedUnits : List Anoma.ComplianceUnit := List.map Anoma.ComplianceUnit.create consumedWitnesses
   let action : Anoma.Action :=
     { complianceUnits := consumedUnits ++ createdUnits,
@@ -56,6 +50,15 @@ def create'
     Anoma.DeltaWitness.fromComplianceWitnesses (consumedWitnesses ++ createdWitnesses)
   (action, deltaWitness, g'')
   where
+    mkConsumedComplianceWitness : SomeConsumedObject → List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+      | ⟨c⟩, (acc, g) =>
+        let (r, g') := stdNext g
+        let witness :=
+          { consumedResource := c.resource,
+            createdResource := dummyResource c.can_nullify.nullifier.toNonce,
+            nfKey := c.key,
+            rcv := r.repr }
+        (witness :: acc, g')
     mkCreatedComplianceWitness  (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
       | (acc, g) =>
         let (r, g') := stdNext g
