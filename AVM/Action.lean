@@ -14,14 +14,14 @@ namespace AVM.Action
 structure CreatedObject where
   {label : Class.Label}
   object : Object label
-  resource : Anoma.Resource
-  commitment : Anoma.Commitment
+  ephemeral : Bool
 
-def CreatedObject.fromSomeObject (o : SomeObject) (ephemeral : Bool) (nonce : Anoma.Nonce) : CreatedObject :=
-  let res : Anoma.Resource := o.toResource ephemeral nonce
+def CreatedObject.fromSomeObject (o : SomeObject) (ephemeral : Bool) : CreatedObject :=
   { object := o.object
-    resource := res
-    commitment := res.commitment }
+    ephemeral }
+
+def CreatedObject.resource (c : CreatedObject) (nonce : Anoma.Nonce) : Anoma.Resource :=
+  Object.toResource c.object (ephemeral := c.ephemeral) nonce
 
 def create'
   (g : StdGen)
@@ -31,15 +31,16 @@ def create'
   (sconsumed : List SomeConsumedObject)
   (created : List CreatedObject) -- no appdata/logic
   : Anoma.Action × Anoma.DeltaWitness × StdGen :=
-  let createdResources : List Anoma.Resource := created.map CreatedObject.resource
   let (createdWitnesses, g') : List Anoma.ComplianceWitness × StdGen :=
-    createdResources.foldr mkCreatedComplianceWitness ([], g)
+    created.foldr mkCreatedComplianceWitness ([], g)
   let createdUnits : List Anoma.ComplianceUnit :=
     createdWitnesses.map Anoma.ComplianceUnit.create
+  let createdResources : List Anoma.Resource :=
+    createdWitnesses.map Anoma.ComplianceWitness.createdResource
   let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
     Std.HashMap.emptyWithCapacity
     |>.insertMany (List.map (Prod.map id (mkLogicVerifierInput Consumed) ∘ mkTagDataPairConsumed) sconsumed)
-    |>.insertMany (List.map (Prod.map id (mkLogicVerifierInput Created) ∘ mkTagDataPairCreated) created)
+    |>.insertMany (List.map (Prod.map id (mkLogicVerifierInput Created) ∘ mkTagDataPairCreated) createdResources)
   let (r, g'') := stdNext g'
   let mkConsumedWitness : SomeConsumedObject → Anoma.ComplianceWitness := fun ⟨c⟩ =>
       { consumedResource := c.resource
@@ -55,13 +56,16 @@ def create'
     Anoma.DeltaWitness.fromComplianceWitnesses (consumedWitnesses ++ createdWitnesses)
   (action, deltaWitness, g'')
   where
-    mkCreatedComplianceWitness  (res : Anoma.Resource) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+    mkCreatedComplianceWitness  (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
       | (acc, g) =>
         let (r, g') := stdNext g
         let (r', g'') := stdNext g'
+        let res := dummyResource ⟨r⟩
+        let can_nullify := Anoma.nullifyUniversal res Anoma.NullifierKey.universal rfl rfl
+        let nonce := can_nullify.nullifier.toNonce
         let complianceWitness :=
-            { consumedResource := dummyResource ⟨r⟩
-              createdResource := res
+            { consumedResource := res
+              createdResource := obj.resource nonce
               nfKey := Anoma.NullifierKey.universal,
               rcv := r'.repr }
         (complianceWitness :: acc, g'')
@@ -78,9 +82,9 @@ def create'
             memberId := memberId,
             memberArgs := args }})
 
-    mkTagDataPairCreated (i : CreatedObject)
+    mkTagDataPairCreated (r : Anoma.Resource)
      : Anoma.Tag × SomeAppData :=
-      (Anoma.Tag.Created i.commitment,
+      (Anoma.Tag.Created r.commitment,
         { label := lab,
           appData := {
             memberId := .falseLogicId,
