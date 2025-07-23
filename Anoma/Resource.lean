@@ -38,7 +38,7 @@ structure Logic.Args.{u, v, w} (Data : Type w) where
 def Logic.Args.isConsumed {Data : Type u} (d : Logic.Args Data) := d.status.isConsumed
 
 /-- Corresponds to Anoma Resource (with resource logic). -/
-structure ResourceWithLogic (Data) where
+structure ResourceWithLogic (Data : Type u) where
   val : Resource
   logic : Logic.Args Data → Bool
 
