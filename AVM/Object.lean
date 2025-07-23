@@ -10,7 +10,7 @@ structure Object (lab : Class.Label) : Type u where
   /-- The nonce should be available for objects fetched from Anoma. -/
   nonce : Option Anoma.Nonce := none
   /-- Used to prove ownership -/
-  nullifierKeyCommitment : Option Anoma.NullifierKeyCommitment
+  nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default
   quantity : Nat
   /-- `privateFields` go into the `value` field of the resource -/
   privateFields : lab.PrivateFields.type
@@ -18,9 +18,6 @@ structure Object (lab : Class.Label) : Type u where
 
 instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
   rep := Rep.composite "AVM.Object" [Rep.atomic lab.name]
-
-def Object.nullifierKeyCommitment! {lab : Class.Label} (o : Object lab) : Anoma.NullifierKeyCommitment :=
-  o.nullifierKeyCommitment.getD Anoma.NullifierKeyCommitment.universal
 
 structure SomeObject where
   {label : Class.Label}
@@ -61,7 +58,7 @@ def SomeObject.toResource
     value := obj.privateFields,
     ephemeral := ephemeral,
     nonce,
-    nullifierKeyCommitment := obj.nullifierKeyCommitment!}
+    nullifierKeyCommitment := obj.nullifierKeyCommitment }
 
 /-- Converts Object to a Resource. Requires object's `nonce` to be set beforehand. -/
 def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) (nonce : Anoma.Nonce) : Anoma.Resource

@@ -40,7 +40,6 @@ def lab : Ecosystem.Label := Ecosystem.Label.singleton clab
 def toObject (c : Counter) : Object clab where
   quantity := 1
   privateFields := c.count
-  nullifierKeyCommitment := none
 
 def fromObject (o : Object clab) : Option Counter := do
   guard (o.quantity == 1)
