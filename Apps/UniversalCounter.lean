@@ -21,7 +21,7 @@ inductive Constructors where
 
 inductive Functions where
   | Mutual : Functions
-  | Merge : Functions
+  | Absorb : Functions
   deriving DecidableEq, Fintype, Repr, FinEnum
 
 namespace Functions
@@ -37,16 +37,16 @@ export ArgNames (Counter1 Counter2)
 
 end Mutual
 
-namespace Merge
+namespace Absorb
 
 inductive ArgNames where
-  | Counter1
-  | Counter2
+  | Absorbing
+  | Absorbed
   deriving DecidableEq, Repr, FinEnum
 
-export ArgNames (Counter1 Counter2)
+export ArgNames (Absorbing Absorbed)
 
-end Merge
+end Absorb
 
 end Functions
 
@@ -101,16 +101,16 @@ def lab : Ecosystem.Label where
   FunctionId := Functions
   FunctionObjectArgNames : Functions → Type := fun
    | Functions.Mutual => Mutual.ArgNames
-   | Functions.Merge => Merge.ArgNames
+   | Functions.Absorb => Absorb.ArgNames
   objectArgNamesEnum (f : Functions) : FinEnum _ := match h : f with
    | Functions.Mutual => by rw [h]; exact inferInstance
-   | Functions.Merge => by rw [h]; exact inferInstance
+   | Functions.Absorb => by rw [h]; exact inferInstance
   objectArgNamesBEq (f : Functions) : BEq _ := match h : f with
    | Functions.Mutual => by rw [h]; exact inferInstance
-   | Functions.Merge => by rw [h]; exact inferInstance
+   | Functions.Absorb => by rw [h]; exact inferInstance
   FunctionObjectArgClass {f : Functions} (_a : _) := match f with
    | Functions.Mutual => UUnit.unit
-   | Functions.Merge => UUnit.unit
+   | Functions.Absorb => UUnit.unit
 
 def counterClass : @Class lab UUnit.unit where
   constructors := fun
@@ -139,18 +139,18 @@ def counterEcosystem : Ecosystem lab where
                                incrementBy c1.count c2]})
         (invariant := fun _counters _args => true)
 
-    | .Merge =>
-      let mergeArgsInfo (a : lab.FunctionObjectArgNames Merge)
-      : ObjectArgInfo lab Merge a :=
+    | .Absorb =>
+      let AbsorbArgsInfo (a : lab.FunctionObjectArgNames Absorb)
+      : ObjectArgInfo lab Absorb a :=
         match a with
-        | .Counter1 => { type := Counter }
-        | .Counter2 => { type := Counter }
+        | .Absorbed => { type := Counter }
+        | .Absorbing => { type := Counter }
 
-      defFunction lab Merge
-        (argsInfo := mergeArgsInfo)
+      defFunction lab Absorb
+        (argsInfo := AbsorbArgsInfo)
         (body := fun counters _args =>
-                  let c1 := counters .Counter1
-                  let c2 := counters .Counter2
-                  {created := [incrementBy c2.count c1]
-                   destroyed := [{anObject := c2}] })
+                  let absorbed := counters .Absorbed
+                  let absorbing := counters .Absorbing
+                  {created := [incrementBy absorbed.count absorbing]
+                   destroyed := [{anObject := absorbed}] })
         (invariant := fun _counters _args => true)
