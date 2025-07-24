@@ -126,9 +126,9 @@ def counterEcosystem : Ecosystem lab where
     | .Mutual =>
       let mutualArgsInfo (a : lab.FunctionObjectArgNames Mutual)
       : ObjectArgInfo lab Mutual a :=
-      match a with
-      | .Counter1 => { type := Counter }
-      | .Counter2 => { type := Counter }
+        match a with
+        | .Counter1 => { type := Counter }
+        | .Counter2 => { type := Counter }
 
       defFunction lab Mutual
         (argsInfo := mutualArgsInfo)
