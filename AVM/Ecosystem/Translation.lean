@@ -69,8 +69,15 @@ def Function.action
   let createdObjects : List CreatedObject := funRes.created |>
       List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false))
   let try destroyed : List SomeConsumedObject := funRes.destroyed.map (·.consume) |>.getSome
-  let destroyedEph : List CreatedObject := destroyed.map CreatedObject.balanceDestroyed
-  let r ← Action.create lab (.functionId funId) fargs (consumedSelves ++ destroyed) (createdObjects ++ destroyedEph)
+  let destroyedEph : List CreatedObject := destroyed.map (·.balanceDestroyed)
+  let constructed : List CreatedObject := funRes.constructed.map (fun c => CreatedObject.fromSomeObject c false)
+  let constructedEph : List SomeConsumedObject := funRes.constructed.map (·.balanceConstructed)
+  let funData : FunctionData :=
+    { numConstructed := constructed.length
+      numDestroyed := destroyed.length }
+  let r ← Action.create lab (.functionId funId) funData fargs
+          (consumed := consumedSelves ++ constructedEph ++ destroyed)
+          (created := createdObjects ++ constructed ++ destroyedEph)
   pure (some r)
 
 private def logic'
@@ -86,8 +93,8 @@ private def logic'
   | Consumed =>
     match args.data with
     | {memberId := .falseLogicId, ..} => false
-    | {memberId := .classMember mem, memberArgs} => Class.checkClassMemberLogic args eco mem memberArgs
-    | {memberId := .functionId fn, memberArgs} => Function.logic eco args fn memberArgs
+    | {memberId := .classMember mem, memberArgs, ..} => Class.checkClassMemberLogic args eco mem memberArgs
+    | {memberId := .functionId fn, memberArgs, .. } => Function.logic eco args fn memberArgs
 
 def logic
   {lab : Ecosystem.Label}

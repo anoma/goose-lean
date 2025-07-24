@@ -9,17 +9,13 @@ import AVM.Object.Consumable
 import AVM.Class.Member
 import AVM.Logic
 
+
 namespace AVM.Action
 
 structure CreatedObject where
   {label : Class.Label}
   object : Object label
   ephemeral : Bool
-
-/-- Used to balance a consumed object that's meant to be destroyed -/
-def CreatedObject.balanceDestroyed (destroyed : SomeConsumedObject) : CreatedObject where
-  object := destroyed.consumed.object
-  ephemeral := true
 
 def CreatedObject.fromSomeObject (o : SomeObject) (ephemeral : Bool) : CreatedObject :=
   { object := o.object
@@ -32,6 +28,7 @@ def create'
   (g : StdGen)
   (lab : Ecosystem.Label)
   (memberId : lab.MemberId)
+  (memberData : memberId.Data)
   (args : memberId.Args.type)
   (sconsumed : List SomeConsumedObject)
   (created : List CreatedObject) -- no appdata/logic
@@ -88,6 +85,7 @@ def create'
       (Anoma.Tag.Consumed c.can_nullify.nullifier,
         { appData := {
             memberId := memberId,
+            memberData,
             memberArgs := args }})
 
     mkTagDataPairCreated (r : Anoma.Resource)
@@ -96,17 +94,39 @@ def create'
         { label := lab,
           appData := {
             memberId := .falseLogicId,
+            memberData := UUnit.unit,
             memberArgs := UUnit.unit }})
 
 /-- Helper function to create an Action. -/
 def create
   (lab : Ecosystem.Label)
   (memberId : lab.MemberId)
+  (memberData : memberId.Data)
   (args : memberId.Args.type)
   (consumed : List SomeConsumedObject)
   (created : List CreatedObject) -- no appdata/logic
   : Rand (Anoma.Action × Anoma.DeltaWitness) := do
   let g ← get
-  let (action, witness, g') := Action.create' g.down lab memberId args consumed created
+  let (action, witness, g') := Action.create' g.down lab memberId memberData args consumed created
   set (ULift.up g')
   return (action, witness)
+
+end Action
+
+/-- Used to balance a consumed object that's meant to be destroyed -/
+def SomeConsumedObject.balanceDestroyed (destroyed : SomeConsumedObject) : Action.CreatedObject where
+  object := destroyed.consumed.object
+  ephemeral := true
+
+/-- Used to balance a constructed object -/
+def SomeObject.balanceConstructed (constructed : SomeObject) : SomeConsumedObject where
+  consumed :=
+   {
+     object := obj,
+     can_nullify := _
+     ephemeral := true
+     key := Anoma.NullifierKey.universal }
+    where
+    obj : Object (constructed.label) :=
+      { constructed.object
+        with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal }

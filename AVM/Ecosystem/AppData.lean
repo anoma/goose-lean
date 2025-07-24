@@ -4,12 +4,21 @@ import AVM.Ecosystem.Label
 
 namespace AVM
 
+structure FunctionData : Type where
+  numConstructed : Nat
+  numDestroyed : Nat
+
+def Ecosystem.Label.MemberId.Data {lab : Ecosystem.Label} : lab.MemberId → Type
+  | .functionId _ => FunctionData
+  | _ => UUnit
+
 /-- The app data for an object in a given class consists of:
     1. member logic indicator (indicator which member is being called)
     2. member arguments
   -/
 structure AppData (lab : Ecosystem.Label) where
   memberId : lab.MemberId
+  memberData : memberId.Data
   memberArgs : memberId.Args.type
 
 structure SomeAppData where

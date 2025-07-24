@@ -8,6 +8,7 @@ structure FunctionResult : Type (u + 1) where
   created : List SomeObject
   /-- List of objects destroyed. Destroyed elements will be balanced with automatically generated ephemeral resources -/
   destroyed : List SomeConsumableObject
+  constructed : List SomeObject
 
 structure Function {lab : Ecosystem.Label} (functionId : lab.FunctionId) where
   /-- Computes the result of a function call. See `FunctionResult`. -/

@@ -101,6 +101,7 @@ where
         { label := label,
           appData := {
             memberId := .classMember (classId := classId) (Class.Label.MemberId.intentId ilab),
+            memberData := UUnit.unit
             memberArgs := UUnit.unit }})
 
 /-- An action which consumes the provided objects and creates the intent. -/

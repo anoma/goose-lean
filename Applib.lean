@@ -76,10 +76,15 @@ structure DestroyableObject where
 
 structure FunctionResult where
   created : List AnObject := []
+  constructed : List AnObject := []
   destroyed : List DestroyableObject := []
+
+def FunctionResult.empty : FunctionResult :=
+  {created := [], destroyed := [], constructed := []}
 
 def FunctionResult.toAVM (r : FunctionResult) : AVM.FunctionResult where
   created := r.created.map (·.toSomeObject)
+  constructed := r.constructed.map (·.toSomeObject)
   destroyed := r.destroyed.map (fun d => d.anObject.toSomeObject.toConsumable false d.key)
 
 def defFunction
@@ -91,7 +96,7 @@ def defFunction
   : Function funId where
   body (selves : funId.Selves) (args : funId.Args.type) : AVM.FunctionResult :=
     match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
-    | none => {created := [], destroyed := []}
+    | none => FunctionResult.empty.toAVM
     | some (p : (argName : funId.ObjectArgNames) → (argsInfo argName).type) => (body p args).toAVM
   invariant (selves : funId.Selves) (args : funId.Args.type) : Bool :=
     match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
