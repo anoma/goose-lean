@@ -45,7 +45,7 @@ structure Label : Type (u + 1) where
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
 
-  intentLabels : Std.HashSet Intent.Label
+  intentLabels : Std.HashSet Intent.Label := ∅
 
 end Class
 

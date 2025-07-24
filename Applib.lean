@@ -20,6 +20,8 @@ structure AnObject where
   [isObject : IsObject ty]
   obj : ty
 
+def IsObject.toAnObject {cl : Type} [i : IsObject cl] (o : cl) : AnObject := ⟨o⟩
+
 def AnObject.toSomeObject (g : AnObject) : SomeObject :=
   let i : IsObject g.ty := g.isObject
   (i.toObject g.obj).toSomeObject
