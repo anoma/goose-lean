@@ -102,15 +102,11 @@ def lab : Ecosystem.Label where
   FunctionObjectArgNames : Functions → Type := fun
    | Functions.Mutual => Mutual.ArgNames
    | Functions.Absorb => Absorb.ArgNames
-  objectArgNamesEnum (f : Functions) : FinEnum _ := match h : f with
-   | Functions.Mutual => by rw [h]; exact inferInstance
-   | Functions.Absorb => by rw [h]; exact inferInstance
-  objectArgNamesBEq (f : Functions) : BEq _ := match h : f with
-   | Functions.Mutual => by rw [h]; exact inferInstance
-   | Functions.Absorb => by rw [h]; exact inferInstance
-  FunctionObjectArgClass {f : Functions} (_a : _) := match f with
-   | Functions.Mutual => UUnit.unit
-   | Functions.Absorb => UUnit.unit
+  objectArgNamesEnum (f : Functions) : FinEnum _ := by
+    cases f <;> exact inferInstance
+  objectArgNamesBEq (f : Functions) : BEq _ := by
+    cases f <;> exact inferInstance
+  FunctionObjectArgClass {f : Functions} (_a : _) := UUnit.unit
 
 def counterClass : @Class lab UUnit.unit where
   constructors := fun
