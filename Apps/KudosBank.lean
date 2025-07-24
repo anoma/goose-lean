@@ -27,6 +27,7 @@ structure Denomination where
 
 structure Account where
   assets : Std.HashMap Denomination Nat
+  deriving BEq
 
 namespace Account
 
@@ -41,9 +42,6 @@ def isEmpty (a : Account) : Bool :=
 
 set_option diagnostics true
 
-instance instBEq : BEq Account where
-  beq _a _b := false
-
 def addTokens (a : Account) (d : Denomination) (n : Nat) : Account where
   assets := a.assets.modifyDefault d (fun v => v + n)
 
@@ -57,12 +55,9 @@ end Account
 
 structure Balances where
   accounts : Std.HashMap PublicKey Account
+  deriving BEq
 
 namespace Balances
-
--- TODO mock implementation
-instance instBEq : BEq Balances where
-  beq _a _b := true
 
 def isEmpty (b : Balances) : Bool := b.accounts.values.all Account.isEmpty
 
