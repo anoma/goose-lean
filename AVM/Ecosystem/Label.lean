@@ -14,6 +14,7 @@ structure Label : Type 1 where
 
   -- TODO consider grouping these fields in a struct so that all default values can be provided
   FunctionId : Type := Empty
+  /-- Type of function arguments excluding `self` arguments. -/
   FunctionArgs : FunctionId → SomeType := fun _ => ⟨UUnit⟩
   /-- Names of `self` arguments for a given function. -/
   FunctionObjectArgNames : FunctionId → Type := fun _ => UUnit
