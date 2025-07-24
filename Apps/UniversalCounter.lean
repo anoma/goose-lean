@@ -136,9 +136,7 @@ def counterEcosystem : Ecosystem lab where
     | .Absorb =>
       let AbsorbArgsInfo (a : lab.FunctionObjectArgNames Absorb)
       : ObjectArgInfo lab Absorb a :=
-        match a with
-        | .Absorbed => { type := Counter }
-        | .Absorbing => { type := Counter }
+        { type := Counter }
 
       defFunction lab Absorb
         (argsInfo := AbsorbArgsInfo)
