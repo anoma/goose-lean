@@ -257,6 +257,7 @@ def kudosClose : @Class.Destructor BankLabel Destructors.Close := defDestructor
 
 inductive Functions where
   | IssueCheck
+  | DepositCheck
   deriving Repr, DecidableEq, FinEnum
 
 namespace IssueCheck
@@ -270,12 +271,21 @@ structure Args where
 
 inductive ClassArgNames where
   | Bank
-  deriving Repr, DecidableEq, FinEnum
+  deriving Repr, BEq, DecidableEq, FinEnum
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "IssueCheck.Args"
 
 end IssueCheck
+
+namespace DepositCheck
+
+inductive ClassArgNames where
+  | Bank
+  | Check
+  deriving Repr, BEq, DecidableEq, FinEnum
+
+end DepositCheck
 
 inductive Classes where
   | Bank
@@ -286,27 +296,34 @@ def lab : Ecosystem.Label where
   name := "KudosBank"
   ClassId := Classes
   classLabel := fun
-   | Classes.Bank => BankLabel
-   | Classes.Check => Check.Label
+   | .Bank => BankLabel
+   | .Check => Check.Label
   FunctionId := Functions
   FunctionArgs := fun
-    | Functions.IssueCheck => ⟨IssueCheck.Args⟩
+    | .IssueCheck => ⟨IssueCheck.Args⟩
+    | .DepositCheck => ⟨UUnit⟩
   FunctionObjectArgNames := fun
-    | Functions.IssueCheck => IssueCheck.ClassArgNames
+    | .IssueCheck => IssueCheck.ClassArgNames
+    | .DepositCheck => DepositCheck.ClassArgNames
   FunctionObjectArgClass {f : Functions} := match f with
    | Functions.IssueCheck => fun
      | _ => Classes.Bank
+   | Functions.DepositCheck => fun
+     | .Bank => Classes.Bank
+     | .Check => Classes.Check
+  objectArgNamesBEq (f : Functions) := by cases f <;> exact inferInstance
+  objectArgNamesEnum (f : Functions) := by cases f <;> exact inferInstance
 
 def kudosClass : @Class lab Classes.Bank where
   constructors := fun
     | Constructors.Open => kudosNew
   methods := fun
-    | Methods.Transfer => kudosTransfer
-    | Methods.Mint => kudosMint
-    | Methods.Burn => kudosBurn
+    | .Transfer => kudosTransfer
+    | .Mint => kudosMint
+    | .Burn => kudosBurn
   intents := noIntents lab BankLabel
   destructors := fun
-    | Destructors.Close => kudosClose
+    | .Close => kudosClose
 
 def checkClass : @Class lab Classes.Check where
   constructors := noConstructors
@@ -314,13 +331,13 @@ def checkClass : @Class lab Classes.Check where
   intents := noIntents lab Check.Label
   destructors := noDestructors
 
-def issueCheck : @Function lab Functions.IssueCheck :=
+def issueCheck : @Function lab .IssueCheck :=
   defFunction lab Functions.IssueCheck
   (argsInfo := fun
-    | IssueCheck.ClassArgNames.Bank => { type := KudosBank })
+    | .Bank => { type := KudosBank })
   (body := fun selves args =>
     { created :=
-      [(selves IssueCheck.ClassArgNames.Bank).overBalances (fun b => b
+      [(selves .Bank).overBalances (fun b => b
         |> Balances.subTokens args.owner args.denomination args.quantity)]
 
       constructed := [{ denomination := args.denomination
@@ -333,9 +350,22 @@ def issueCheck : @Function lab Functions.IssueCheck :=
     && args.quantity <= (selves IssueCheck.ClassArgNames.Bank
                          |>.getBalance args.owner args.denomination))
 
+def depositCheck : @Function lab .DepositCheck :=
+  defFunction lab .DepositCheck
+  (argsInfo := fun
+    | .Bank => { type := KudosBank }
+    | .Check => { type := Check })
+  (body := fun selves args =>
+    { created :=
+      let bank := selves .Bank
+      let check := selves .Check
+      [bank.overBalances (fun b => b
+        |> Balances.addTokens check.owner check.denomination check.quantity)]})
+
 def kudosEcosystem : Ecosystem lab where
   classes := fun
     | Classes.Bank => kudosClass
     | Classes.Check => checkClass
   functions := fun
     | Functions.IssueCheck => issueCheck
+    | Functions.DepositCheck => depositCheck
