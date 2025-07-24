@@ -78,6 +78,7 @@ end Balances
 structure KudosBank where
   nfc : Anoma.NullifierKeyCommitment
   balances : Balances
+  deriving Inhabited
 
 namespace KudosBank
 
@@ -106,8 +107,6 @@ inductive Constructors where
 inductive Destructors where
   | Close : Destructors
   deriving DecidableEq, Fintype, Repr
-
-deriving instance Inhabited for KudosBank
 
 open AVM
 
