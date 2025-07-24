@@ -107,7 +107,7 @@ inductive Methods where
   deriving DecidableEq, Fintype, Repr
 
 inductive Constructors where
-  | New : Constructors
+  | Open : Constructors
   deriving DecidableEq, Fintype, Repr
 
 inductive Destructors where
@@ -172,7 +172,7 @@ def clab : Class.Label where
 
   ConstructorId := Constructors
   ConstructorArgs := fun
-    | Constructors.New => ⟨Anoma.NullifierKeyCommitment⟩
+    | Constructors.Open => ⟨Anoma.NullifierKeyCommitment⟩
 
   DestructorId := Destructors
   DestructorArgs := fun
@@ -198,7 +198,7 @@ instance instIsObject : IsObject KudosBank where
 
 end KudosBank
 
-def kudosNew : @Class.Constructor clab Constructors.New := defConstructor
+def kudosNew : @Class.Constructor clab Constructors.Open := defConstructor
   (body := fun (nfc : Anoma.NullifierKeyCommitment) => KudosBank.new nfc)
 
 def kudosMint : @Class.Method clab Methods.Mint := defMethod KudosBank
@@ -240,7 +240,7 @@ def lab : Ecosystem.Label where
 
 def kudosClass : @Class lab UUnit.unit where
   constructors := fun
-    | Constructors.New => kudosNew
+    | Constructors.Open => kudosNew
   methods := fun
     | Methods.Transfer => kudosTransfer
     | Methods.Mint => kudosMint
