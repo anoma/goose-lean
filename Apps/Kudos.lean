@@ -107,22 +107,19 @@ instance hasIsObject : IsObject Kudos where
   fromObject := Kudos.fromObject
   roundTrip : Kudos.fromObject ∘ Kudos.toObject = some := by rfl
 
-def kudosMint : @Class.Constructor clab Constructors.Mint := @defConstructor Kudos
+def kudosMint : @Class.Constructor clab Constructors.Mint := defConstructor
   (body := fun (args : MintArgs) => { quantity := args.quantity
                                       owner := args.key.commitment
-                                      originator := args.key.commitment })
-  (invariant := fun (_args : MintArgs) => true)
+                                      originator := args.key.commitment : Kudos})
 
 def kudosSplit : @Class.Method clab Methods.Split := defMethod Kudos
   (body := fun (self : Kudos) (args : SplitArgs) =>
     let mk (q : Nat) : Kudos := {self with quantity := q}
     List.map (IsObject.toAnObject ∘ mk) args.quantities)
-  (invariant := fun (_self : Kudos) (_args : SplitArgs) => true)
 
 def kudosTransfer : @Class.Method clab Methods.Transfer := defMethod Kudos
   (body := fun (self : Kudos) (args : TransferArgs) =>
     [{self with owner := args.newOwner : Kudos}])
-  (invariant := fun (_self : Kudos) (_args : TransferArgs) => true)
 
 def kudosBurn : @Class.Destructor clab Destructors.Burn := @defDestructor Kudos
   (invariant := fun (self : Kudos) (_args : UUnit) => self.originator == self.owner)
@@ -148,7 +145,6 @@ def lab : Ecosystem.Label where
   name := "Kudos"
   ClassId := UUnit
   classLabel := fun _ => clab
-  classId := fun _ => none -- FIXME
   FunctionId := Functions
   FunctionObjectArgClass {f : Functions} (_a : _) := match f with
    | Merge => UUnit.unit
@@ -164,7 +160,6 @@ def kudosClass : @Class lab UUnit.unit  where
   intents := noIntents lab clab
   destructors := fun
     | Destructors.Burn => kudosBurn
-  invariant _ _ := True
 
 def kudosEcosystem : Ecosystem lab where
   classes := fun _ => kudosClass

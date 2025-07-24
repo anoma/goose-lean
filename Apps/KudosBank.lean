@@ -200,7 +200,6 @@ end KudosBank
 
 def kudosNew : @Class.Constructor clab Constructors.New := defConstructor
   (body := fun (nfc : Anoma.NullifierKeyCommitment) => KudosBank.new nfc)
-  (invariant := fun (_args : Anoma.NullifierKeyCommitment) => true)
 
 def kudosMint : @Class.Method clab Methods.Mint := defMethod KudosBank
   (body := fun (self : KudosBank) (args : MintArgs) =>
@@ -236,7 +235,6 @@ def lab : Ecosystem.Label where
   name := "KudosBank"
   ClassId := UUnit
   classLabel := fun _ => clab
-  classId := fun _ => none -- FIXME
   FunctionId := Functions
   FunctionObjectArgClass {f : Functions} (_a : _) := nomatch f
 
@@ -250,7 +248,6 @@ def kudosClass : @Class lab UUnit.unit where
   intents := noIntents lab clab
   destructors := fun
     | Destructors.Close => kudosClose
-  invariant _ _ := True
 
 def kudosEcosystem : Ecosystem lab where
   classes := fun _ => kudosClass
