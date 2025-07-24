@@ -16,6 +16,11 @@ structure CreatedObject where
   object : Object label
   ephemeral : Bool
 
+/-- Used to balance a consumed object that's meant to be destroyed -/
+def CreatedObject.balanceDestroyed (destroyed : SomeConsumedObject) : CreatedObject where
+  object := destroyed.consumed.object
+  ephemeral := true
+
 def CreatedObject.fromSomeObject (o : SomeObject) (ephemeral : Bool) : CreatedObject :=
   { object := o.object
     ephemeral }

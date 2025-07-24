@@ -3,7 +3,7 @@ import AVM.Object
 
 namespace AVM.Ecosystem
 
-structure Label where
+structure Label : Type 1 where
   name : String
 
   ClassId : Type

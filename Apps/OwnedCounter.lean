@@ -53,8 +53,8 @@ def fromObject (o : Object clab) : Option OwnedCounter := do
   let key ← o.nullifierKeyCommitment
   some (OwnedCounter.mk (o.privateFields) key)
 
-instance hasIsObject : IsObject OwnedCounter where
-  lab := clab
+instance instIsObject : IsObject OwnedCounter where
+  label := clab
   toObject := OwnedCounter.toObject
   fromObject := OwnedCounter.fromObject
   roundTrip : OwnedCounter.fromObject ∘ OwnedCounter.toObject = some := by rfl
