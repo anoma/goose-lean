@@ -15,7 +15,9 @@ structure Label : Type 1 where
   -- TODO consider grouping these fields in a struct so that all default values can be provided
   FunctionId : Type := Empty
   FunctionArgs : FunctionId → SomeType := fun _ => ⟨UUnit⟩
+  /-- Names of `self` arguments for a given function. -/
   FunctionObjectArgNames : FunctionId → Type := fun _ => UUnit
+  /-- Class identifiers for `self` arguments. -/
   FunctionObjectArgClass : {f : FunctionId} → FunctionObjectArgNames f → ClassId
   [objectArgNamesEnum (f : FunctionId) : FinEnum (FunctionObjectArgNames f)]
   [objectArgNamesBEq (f : FunctionId) : BEq (FunctionObjectArgNames f)]
