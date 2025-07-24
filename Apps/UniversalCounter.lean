@@ -73,7 +73,7 @@ def toObject (c : Counter) : Object clab where
 
 def fromObject (o : Object clab) : Option Counter := do
   guard (o.quantity == 1)
-  some (Counter.mk (o.privateFields))
+  some (Counter.mk o.privateFields)
 
 instance instIsObject : IsObject Counter where
   label := clab
