@@ -28,11 +28,14 @@ def Function.logic
   (eco : Ecosystem lab)
   (args : Logic.Args lab)
   (funId : lab.FunctionId)
+  (funData : FunctionData)
   (fargs : funId.Args.type)
   : Bool :=
   let fn : Function funId := eco.functions funId
-  let try (argsConsumedSelves, argsDestroyed) :=
-      args.consumed |> Logic.filterOutDummy |>.splitAtExact funId.numObjectArgs
+  let try (argsConsumedSelves, argsConstructedEph, argsDestroyed, UUnit.unit) :=
+      args.consumed
+      |> Logic.filterOutDummy
+      |>.splitsExact [funId.numObjectArgs, funData.numConstructed, funData.numDestroyed]
   let try argsConsumedObjects : funId.Selves := Function.parseObjectArgs argsConsumedSelves.toList funId
   let consumedSelvesList : List SomeObject :=
      (lab.objectArgNamesEnum funId).toList.map
@@ -42,11 +45,16 @@ def Function.logic
    && let funRes : FunctionResult := fn.body argsConsumedObjects fargs
       let createdObjects : List SomeObject := funRes.created
       let destroyedObjects : List SomeObject := funRes.destroyed.map SomeConsumableObject.toSomeObject
-      let try (argsCreated, argsDestroyedEph) := args.created |> Logic.filterOutDummy
-              |>.splitAtExact createdObjects.length
+      let constructedObjects : List SomeObject := funRes.constructed
+      let try (argsCreated, argsConstructed, argsDestroyedEph, UUnit.unit) :=
+        args.created
+        |> Logic.filterOutDummy
+        |>.splitsExact [createdObjects.length, funData.numConstructed, funData.numDestroyed]
       Logic.checkResourceData createdObjects argsCreated.toList
-      && Logic.checkResourceData destroyedObjects argsDestroyed
-      && Logic.checkResourceData destroyedObjects argsDestroyedEph
+      && Logic.checkResourceData destroyedObjects argsDestroyed.toList
+      && Logic.checkResourceData destroyedObjects argsDestroyedEph.toList
+      && Logic.checkResourceData constructedObjects argsConstructed.toList
+      && Logic.checkResourceData constructedObjects argsConstructedEph.toList
 
 def Function.action
   {lab : Ecosystem.Label}
@@ -94,7 +102,7 @@ private def logic'
     match args.data with
     | {memberId := .falseLogicId, ..} => false
     | {memberId := .classMember mem, memberArgs, ..} => Class.checkClassMemberLogic args eco mem memberArgs
-    | {memberId := .functionId fn, memberArgs, .. } => Function.logic eco args fn memberArgs
+    | {memberId := .functionId fn, memberArgs, memberData} => Function.logic eco args fn memberData memberArgs
 
 def logic
   {lab : Ecosystem.Label}

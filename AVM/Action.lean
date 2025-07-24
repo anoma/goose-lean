@@ -121,13 +121,10 @@ def SomeConsumedObject.balanceDestroyed (destroyed : SomeConsumedObject) : Actio
 /-- Used to balance a constructed object -/
 def SomeObject.balanceConstructed (constructed : SomeObject) : SomeConsumedObject where
   consumed :=
-   {
-     object := obj,
-     can_nullify := Anoma.nullifyUniversal (obj.toResource true Nonce.todo)
-                 (by )
-     ephemeral := true
-     key := Anoma.NullifierKey.universal }
-    where
-    obj : Object (constructed.label) :=
+  let obj : Object (constructed.label) :=
       { constructed.object
         with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal }
+  { object := obj,
+    can_nullify := Anoma.nullifyUniversal (obj.toResource true obj.nonce.get!)
+    ephemeral := true
+    key := Anoma.NullifierKey.universal }
