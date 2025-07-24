@@ -55,7 +55,7 @@ end Account
 
 structure Balances where
   accounts : Std.HashMap PublicKey Account
-  deriving BEq
+  deriving BEq, Inhabited
 
 namespace Balances
 
@@ -74,8 +74,6 @@ def getBalance (b : Balances) (u : PublicKey) (d : Denomination) : Nat :=
   (b.accounts.get! u).getBalance d
 
 end Balances
-
-deriving instance Inhabited for Balances
 
 structure KudosBank where
   nfc : Anoma.NullifierKeyCommitment
