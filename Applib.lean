@@ -8,6 +8,7 @@ macro "noIntents" lab:ident clab:ident : term => `(fun _ h => by simp [$lab:iden
 macro "noDestructors" : term => `(fun x => Empty.elim x)
 macro "noFunctions" : term => `(fun x => Empty.elim x)
 macro "noMethods" : term => `(fun x => Empty.elim x)
+macro "noConstructors" : term => `(fun x => Empty.elim x)
 
 class IsObject (s : Type) where
   label : Class.Label
