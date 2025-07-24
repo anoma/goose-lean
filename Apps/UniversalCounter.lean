@@ -131,7 +131,6 @@ def counterEcosystem : Ecosystem lab where
                   let c2 := counters .Counter2
                   {created := [incrementBy c2.count c1,
                                incrementBy c1.count c2]})
-        (invariant := fun _counters _args => true)
 
     | .Absorb =>
       let AbsorbArgsInfo (a : lab.FunctionObjectArgNames Absorb)
@@ -145,4 +144,3 @@ def counterEcosystem : Ecosystem lab where
                   let absorbing := counters .Absorbing
                   {created := [incrementBy absorbed.count absorbing]
                    destroyed := [{anObject := absorbed}] })
-        (invariant := fun _counters _args => true)

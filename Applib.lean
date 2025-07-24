@@ -85,7 +85,7 @@ def defFunction
   (funId : lab.FunctionId)
   (argsInfo : (a : funId.ObjectArgNames) → ObjectArgInfo lab funId a)
   (body : ObjectArgs lab funId argsInfo → funId.Args.type → FunctionResult)
-  (invariant : ObjectArgs lab funId argsInfo → funId.Args.type → Bool)
+  (invariant : ObjectArgs lab funId argsInfo → funId.Args.type → Bool := fun _ _ => true)
   : Function funId where
   body (selves : funId.Selves) (args : funId.Args.type) : AVM.FunctionResult :=
     match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
