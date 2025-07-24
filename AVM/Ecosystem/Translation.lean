@@ -11,28 +11,17 @@ open AVM.Action
 
 def Function.parseObjectArgs
   {lab : Ecosystem.Label}
-  (args : Logic.Args lab)
+  (consumed : List Anoma.Resource)
   (funId : lab.FunctionId)
   : Option funId.Selves
   :=
-  let try consumedVec : Vector Anoma.Resource funId.numObjectArgs := args.consumed.toSizedVector
+  let try consumedVec : Vector Anoma.Resource funId.numObjectArgs := consumed.toSizedVector
   let mkConsumedObject (a : funId.ObjectArgNames) : Option (Object a.classId.label) := Object.fromResource (consumedVec.get a.ix)
-  match @FinEnum.decImageOption
+  @FinEnum.decImageOption'
         funId.ObjectArgNames
         (lab.objectArgNamesEnum funId)
         (fun a => Object a.classId.label)
         mkConsumedObject
-  with
-  -- there is at least one resource that cannot be decoded
-  | .inr (_ : Σ (a : funId.ObjectArgNames), PLift (¬ (mkConsumedObject a).isSome)) => none
-  | .inl (p : ∀ (a : funId.ObjectArgNames), PLift (mkConsumedObject a).isSome) =>
-    pure fun (argName : funId.ObjectArgNames) =>
-      match p1 : mkConsumedObject argName with
-      | some obj => obj
-      | none => by
-            have c := (p argName).down
-            rw [p1] at c
-            contradiction
 
 def Function.logic
   {lab : Ecosystem.Label}
@@ -42,13 +31,22 @@ def Function.logic
   (fargs : funId.Args.type)
   : Bool :=
   let fn : Function funId := eco.functions funId
-  let try consumedObjects : funId.Selves := Function.parseObjectArgs args funId
-  let consumedList : List SomeObject :=
-    List.map (fun arg => (consumedObjects arg).toSomeObject) (lab.objectArgNamesEnum funId).toList
-  (eco.functions funId).invariant consumedObjects fargs
-   && Logic.checkResourceData consumedList args.consumed
-   && let createdObjects : List SomeObject := fn.created consumedObjects fargs
-      Logic.checkResourceData createdObjects args.created
+  let try (argsConsumedSelves, argsDestroyed) :=
+      args.consumed |> Logic.filterOutDummy |>.splitAtExact funId.numObjectArgs
+  let try argsConsumedObjects : funId.Selves := Function.parseObjectArgs argsConsumedSelves.toList funId
+  let consumedSelvesList : List SomeObject :=
+     (lab.objectArgNamesEnum funId).toList.map
+     (fun arg => argsConsumedObjects arg |>.toSomeObject)
+  (eco.functions funId).invariant argsConsumedObjects fargs
+   && Logic.checkResourceData consumedSelvesList argsConsumedSelves.toList
+   && let funRes : FunctionResult := fn.body argsConsumedObjects fargs
+      let createdObjects : List SomeObject := funRes.created
+      let destroyedObjects : List SomeObject := funRes.destroyed.map SomeConsumableObject.toSomeObject
+      let try (argsCreated, argsDestroyedEph) := args.created |> Logic.filterOutDummy
+              |>.splitAtExact createdObjects.length
+      Logic.checkResourceData createdObjects argsCreated.toList
+      && Logic.checkResourceData destroyedObjects argsDestroyed
+      && Logic.checkResourceData destroyedObjects argsDestroyedEph
 
 def Function.action
   {lab : Ecosystem.Label}
@@ -59,17 +57,20 @@ def Function.action
   (keys : funId.ObjectArgNames → Anoma.NullifierKey)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let fn : Function funId := eco.functions funId
-  let try consumedObjects : funId.Selves := Function.parseObjectArgs args funId
-  let try consumedList : List SomeConsumedObject :=
+  let try consumedObjects : funId.Selves := Function.parseObjectArgs args.consumed funId
+  let try consumedSelves : List SomeConsumedObject :=
     (lab.objectArgNamesEnum funId).toList
     |>.map (fun arg =>
       (consumedObjects arg).toSomeObject
       |> SomeObject.toConsumable false (keys arg)
       |> SomeConsumableObject.consume)
     |>.getSome
-  let createdObjects : List CreatedObject := fn.created consumedObjects fargs |>
+  let funRes : FunctionResult := fn.body consumedObjects fargs
+  let createdObjects : List CreatedObject := funRes.created |>
       List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false))
-  let r ← Action.create lab (.functionId funId) fargs consumedList createdObjects
+  let try destroyed : List SomeConsumedObject := funRes.destroyed.map (·.consume) |>.getSome
+  let destroyedEph : List CreatedObject := destroyed.map CreatedObject.balanceDestroyed
+  let r ← Action.create lab (.functionId funId) fargs (consumedSelves ++ destroyed) (createdObjects ++ destroyedEph)
   pure (some r)
 
 private def logic'
