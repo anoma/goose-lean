@@ -40,8 +40,6 @@ instance instInhabited : Inhabited Account where
 def isEmpty (a : Account) : Bool :=
   a.assets.values.all (fun n => n == 0)
 
-set_option diagnostics true
-
 def addTokens (a : Account) (d : Denomination) (n : Nat) : Account where
   assets := a.assets.modifyDefault d (fun v => v + n)
 
