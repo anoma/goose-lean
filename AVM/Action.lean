@@ -66,7 +66,7 @@ def create'
         let (r, g') := stdNext g
         let (r', g'') := stdNext g'
         let res := dummyResource ⟨r⟩
-        let can_nullify := Anoma.nullifyUniversal res Anoma.NullifierKey.universal rfl rfl
+        let can_nullify := Anoma.nullifyUniversal res
         let nonce := can_nullify.nullifier.toNonce
         let complianceWitness :=
             { consumedResource := res
@@ -123,7 +123,8 @@ def SomeObject.balanceConstructed (constructed : SomeObject) : SomeConsumedObjec
   consumed :=
    {
      object := obj,
-     can_nullify := _
+     can_nullify := Anoma.nullifyUniversal (obj.toResource true Nonce.todo)
+                 (by )
      ephemeral := true
      key := Anoma.NullifierKey.universal }
     where

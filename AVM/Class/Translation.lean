@@ -44,7 +44,7 @@ def Constructor.action
       { object := {newObj with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal}
         ephemeral := true
         key := Anoma.NullifierKey.universal }
-  let consumed : ConsumedObject classId.label := { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource consumable.key }
+  let consumed : ConsumedObject classId.label := { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource }
   let created : List CreatedObject :=
         [CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)]
   Action.create lab (.classMember (.constructorId constrId)) UUnit.unit args [consumed] created
