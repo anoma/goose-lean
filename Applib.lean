@@ -49,8 +49,8 @@ def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.label.Destruct
  (invariant : (self : cl) -> destructorId.Args.type → Bool := fun _ _ => true)
  : Class.Destructor destructorId where
     invariant (self : Object i.label) (args : destructorId.Args.type) :=
-    let try self' := i.fromObject self
-    invariant self' args
+      let try self' := i.fromObject self
+      invariant self' args
 
 structure ObjectArgInfo
   (label : Ecosystem.Label)
