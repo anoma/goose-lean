@@ -8,8 +8,7 @@ structure Label : Type 1 where
 
   ClassId : Type
   classLabel : ClassId → Class.Label
-  classId : Class.Label → Option ClassId
-  [classesFinite : Fintype ClassId]
+  [classesEnum : FinEnum ClassId]
   [classesRepr : Repr ClassId]
   [classesBEq : BEq ClassId]
 
@@ -24,6 +23,9 @@ structure Label : Type 1 where
   [functionsRepr : Repr FunctionId]
   [functionsBEq : BEq FunctionId]
 
+def Label.classId (l : Label) (clab : Class.Label) : Option l.ClassId :=
+  l.classesEnum.toList.find? (fun b => l.classLabel b == clab)
+
 end AVM.Ecosystem
 
 namespace AVM.Ecosystem.Label
@@ -34,7 +36,6 @@ def singleton (l : Class.Label) : Ecosystem.Label where
 
   ClassId := UUnit
   classLabel := fun _ => l
-  classId := fun l' => if l' == l then some UUnit.unit else none
 
   FunctionObjectArgClass := fun _ => UUnit.unit
   objectArgNamesEnum := fun f => f.elim
