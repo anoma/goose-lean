@@ -41,8 +41,7 @@ def Function.logic
    && Logic.checkResourceData consumedSelvesList argsConsumedSelves.toList
    && let funRes : FunctionResult := fn.body argsConsumedObjects fargs
       let createdObjects : List SomeObject := funRes.created
-      let destroyedObjects : List SomeObject := funRes.destroyed.map
-          (fun x => SomeConsumableObject.toSomeObject x)
+      let destroyedObjects : List SomeObject := funRes.destroyed.map SomeConsumableObject.toSomeObject
       let try (argsCreated, argsDestroyedEph) := args.created |> Logic.filterOutDummy
               |>.splitAtExact createdObjects.length
       Logic.checkResourceData createdObjects argsCreated.toList
