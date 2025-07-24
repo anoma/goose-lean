@@ -60,12 +60,14 @@ def Intent.action'
     consumedWitnesses.map Anoma.ComplianceUnit.create
   let (r1, g2) := stdNext g1
   let (r2, g3) := stdNext g2
-  let (r3, g4) := stdNext g3
-  let intentResource : Anoma.Resource := Intent.toResource intent args provided (nonce := ⟨r3⟩)
+  let res := Action.dummyResource ⟨r1⟩
+  let can_nullify := Anoma.nullifyUniversal res Anoma.NullifierKey.universal rfl rfl
+  let nonce := can_nullify.nullifier.toNonce
+  let intentResource : Anoma.Resource := Intent.toResource intent args provided nonce
   let createdWitness : Anoma.ComplianceWitness :=
-    { consumedResource := Action.dummyResource ⟨r1⟩,
+    { consumedResource := res,
       createdResource := intentResource,
-      nfKey := key,
+      nfKey := Anoma.NullifierKey.universal,
       rcv := r2.repr }
   let createdUnit : Anoma.ComplianceUnit :=
     Anoma.ComplianceUnit.create createdWitness
@@ -74,7 +76,7 @@ def Intent.action'
         logicVerifierInputs }
   let witness : Anoma.DeltaWitness :=
     Anoma.DeltaWitness.fromComplianceWitnesses (consumedWitnesses ++ [createdWitness])
-  (some (action, witness), g4)
+  (some (action, witness), g3)
 where
   mkConsumedComplianceWitness (obj : SomeConsumedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
     | (acc, g) =>
