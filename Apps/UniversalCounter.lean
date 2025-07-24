@@ -97,7 +97,7 @@ def lab : Ecosystem.Label where
   name := "UniversalCounter"
   ClassId := UUnit
   classLabel := fun _ => clab
-  classId := fun _ => none -- FIXME
+  classId := fun clab' => if clab' == clab then some UUnit.unit else none
   FunctionId := Functions
   FunctionObjectArgNames : Functions → Type := fun
    | Functions.Mutual => Mutual.ArgNames
