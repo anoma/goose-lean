@@ -15,8 +15,9 @@ instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) wh
               mkDynamicLabel := fun _ => default}
 
 /-- A class label uniquely identifies and specifies a class. The class
-    specification provided by a label consists of unique class name, private
-    field types, constructor and method ids. -/
+  specification provided by a label consists of unique class name, private
+  field types, constructor, destructor and method ids, and labels of allowed
+  intents. -/
 structure Label : Type (u + 1) where
   /-- The name of the class uniquely identifying the class.
       Assumption: lab1.name = lab2.name -> lab1 = lab2. -/
@@ -26,12 +27,6 @@ structure Label : Type (u + 1) where
 
   /-- The dynamic label is used to put dynamic data into the Resource label -/
   DynamicLabel : DynamicLabel.{u} PrivateFields.type := default
-
-  MethodId : Type
-  MethodArgs : MethodId -> SomeType.{u}
-  [methodsFinite : Fintype MethodId]
-  [methodsRepr : Repr MethodId]
-  [methodsBEq : BEq MethodId]
 
   ConstructorId : Type
   ConstructorArgs : ConstructorId -> SomeType.{u}
@@ -45,6 +40,13 @@ structure Label : Type (u + 1) where
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
 
+  MethodId : Type
+  MethodArgs : MethodId -> SomeType.{u}
+  [methodsFinite : Fintype MethodId]
+  [methodsRepr : Repr MethodId]
+  [methodsBEq : BEq MethodId]
+
+  /-- Labels of intents allowed to consume objects of the class. -/
   intentLabels : Std.HashSet Intent.Label := ∅
 
 end Class

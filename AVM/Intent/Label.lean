@@ -4,9 +4,10 @@ import Prelude
 namespace AVM
 
 structure Intent.Label where
-  /-- The type of intent arguments. The arguments are stored in the `value`
-    field of the intent resource. They are not provided in the app data for any
-    resource logics. -/
+  /-- The type of intent arguments. The arguments are stored in the `label`
+    field of the intent resource (see `Intent.ResourceData` in
+    `AVM/Intent.lean`). The intent arguments are not provided in the
+    app data for any resource logics. -/
   Args : SomeType
   /-- The unique name of the intent. -/
   name : String
