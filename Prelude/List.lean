@@ -51,4 +51,22 @@ def splitAtExact (n : Nat) (lst : List A) : Option (Vector A n × List A) :=
   let try l' := l.toSizedVector
   pure (l', r)
 
+def SplitsType (A : Type u) (lengths : List Nat) : Type u :=
+  match lengths with
+  | [] => UUnit
+  | n :: ns => Vector A n × SplitsType A ns
+
+def splits (lst : List A) (lengths : List Nat) : Option (SplitsType A lengths × List A) :=
+  match lengths with
+  | [] => some (UUnit.unit, lst)
+  | n :: ns =>
+  let try ⟨h, t⟩ := splitAtExact n lst
+  let try ⟨hs, rem⟩ := splits t ns
+  some (⟨h , hs⟩, rem)
+
+def splitsExact (lst : List A) (lengths : List Nat) : Option (SplitsType A lengths) :=
+  match splits lst lengths with
+  | .some (_, []) => none
+  | _ => none
+
 end List

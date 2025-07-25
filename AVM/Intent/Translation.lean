@@ -61,7 +61,7 @@ def Intent.action'
   let (r1, g2) := stdNext g1
   let (r2, g3) := stdNext g2
   let res := Action.dummyResource ⟨r1⟩
-  let can_nullify := Anoma.nullifyUniversal res Anoma.NullifierKey.universal rfl rfl
+  let can_nullify := Anoma.nullifyUniversal res
   let nonce := can_nullify.nullifier.toNonce
   let intentResource : Anoma.Resource := Intent.toResource intent args provided nonce
   let createdWitness : Anoma.ComplianceWitness :=
@@ -101,6 +101,7 @@ where
         { label := label,
           appData := {
             memberId := .classMember (classId := classId) (Class.Label.MemberId.intentId ilab),
+            memberData := UUnit.unit
             memberArgs := UUnit.unit }})
 
 /-- An action which consumes the provided objects and creates the intent. -/

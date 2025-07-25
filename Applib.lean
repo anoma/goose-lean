@@ -8,6 +8,7 @@ macro "noIntents" lab:ident clab:ident : term => `(fun _ h => by simp [$lab:iden
 macro "noDestructors" : term => `(fun x => Empty.elim x)
 macro "noFunctions" : term => `(fun x => Empty.elim x)
 macro "noMethods" : term => `(fun x => Empty.elim x)
+macro "noConstructors" : term => `(fun x => Empty.elim x)
 
 class IsObject (s : Type) where
   label : Class.Label
@@ -74,24 +75,31 @@ structure DestroyableObject where
   anObject : AnObject
   key : Anoma.NullifierKey := Anoma.NullifierKey.universal
 
-structure FunctionResult where
+structure FunctionResult {lab : Ecosystem.Label} (funId : lab.FunctionId) where
   created : List AnObject := []
+  constructed : List AnObject := []
   destroyed : List DestroyableObject := []
+  argDeconstruction : funId.ObjectArgNames → DeconstructionKind := fun _ => .Disassembled
 
-def FunctionResult.toAVM (r : FunctionResult) : AVM.FunctionResult where
-  created := r.created.map (·.toSomeObject)
+def FunctionResult.empty {lab : Ecosystem.Label} (funId : lab.FunctionId) : FunctionResult funId :=
+  {created := [], destroyed := [], constructed := []}
+
+def FunctionResult.toAVM {lab : Ecosystem.Label} {funId : lab.FunctionId} (r : FunctionResult funId) : AVM.FunctionResult funId where
+  assembled := r.created.map (·.toSomeObject)
+  constructed := r.constructed.map (·.toSomeObject)
   destroyed := r.destroyed.map (fun d => d.anObject.toSomeObject.toConsumable false d.key)
+  argDeconstruction := r.argDeconstruction
 
 def defFunction
   (lab : Ecosystem.Label)
   (funId : lab.FunctionId)
   (argsInfo : (a : funId.ObjectArgNames) → ObjectArgInfo lab funId a)
-  (body : ObjectArgs lab funId argsInfo → funId.Args.type → FunctionResult)
+  (body : ObjectArgs lab funId argsInfo → funId.Args.type → FunctionResult funId)
   (invariant : ObjectArgs lab funId argsInfo → funId.Args.type → Bool := fun _ _ => true)
   : Function funId where
-  body (selves : funId.Selves) (args : funId.Args.type) : AVM.FunctionResult :=
+  body (selves : funId.Selves) (args : funId.Args.type) : AVM.FunctionResult funId :=
     match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
-    | none => {created := [], destroyed := []}
+    | none => FunctionResult.empty funId |>.toAVM
     | some (p : (argName : funId.ObjectArgNames) → (argsInfo argName).type) => (body p args).toAVM
   invariant (selves : funId.Selves) (args : funId.Args.type) : Bool :=
     match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
