@@ -9,7 +9,6 @@ import AVM.Object.Consumable
 import AVM.Class.Member
 import AVM.Logic
 
-
 namespace AVM.Action
 
 structure CreatedObject where
