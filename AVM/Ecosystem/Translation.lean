@@ -34,11 +34,7 @@ def Function.logic
   let try (argsConsumedSelves, argsDestroyed) :=
       args.consumed |> Logic.filterOutDummy |>.splitAtExact funId.numObjectArgs
   let try argsConsumedObjects : funId.Selves := Function.parseObjectArgs argsConsumedSelves.toList funId
-  let consumedSelvesList : List SomeObject :=
-     (lab.objectArgNamesEnum funId).toList.map
-     (fun arg => argsConsumedObjects arg |>.toSomeObject)
   (eco.functions funId).invariant argsConsumedObjects fargs
-   && Logic.checkResourceData consumedSelvesList argsConsumedSelves.toList
    && let funRes : FunctionResult := fn.body argsConsumedObjects fargs
       let createdObjects : List SomeObject := funRes.created
       let destroyedObjects : List SomeObject := funRes.destroyed.map SomeConsumableObject.toSomeObject
