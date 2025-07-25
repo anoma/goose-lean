@@ -357,10 +357,15 @@ def depositCheck : @Function lab .DepositCheck :=
     | .Check => { type := Check })
   (body := fun selves args =>
     { created :=
-      let bank := selves .Bank
-      let check := selves .Check
-      [bank.overBalances (fun b => b
-        |> Balances.addTokens check.owner check.denomination check.quantity)]})
+        let bank := selves .Bank
+        let check := selves .Check
+        [bank.overBalances (fun b => b
+          |> Balances.addTokens check.owner check.denomination check.quantity)]
+      argDeconstruction arg :=
+        match arg with
+        | .Bank => .Disassembled
+        | .Check => .Destroyed })
+
 
 def kudosEcosystem : Ecosystem lab where
   classes := fun

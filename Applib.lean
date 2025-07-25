@@ -79,6 +79,7 @@ structure FunctionResult {lab : Ecosystem.Label} (funId : lab.FunctionId) where
   created : List AnObject := []
   constructed : List AnObject := []
   destroyed : List DestroyableObject := []
+  argDeconstruction : funId.ObjectArgNames → DeconstructionKind := fun _ => .Disassembled
 
 def FunctionResult.empty {lab : Ecosystem.Label} (funId : lab.FunctionId) : FunctionResult funId :=
   {created := [], destroyed := [], constructed := []}
@@ -87,6 +88,7 @@ def FunctionResult.toAVM {lab : Ecosystem.Label} {funId : lab.FunctionId} (r : F
   assembled := r.created.map (·.toSomeObject)
   constructed := r.constructed.map (·.toSomeObject)
   destroyed := r.destroyed.map (fun d => d.anObject.toSomeObject.toConsumable false d.key)
+  argDeconstruction := r.argDeconstruction
 
 def defFunction
   (lab : Ecosystem.Label)

@@ -19,7 +19,7 @@ structure FunctionResult {lab : Ecosystem.Label} (functionId : lab.FunctionId) :
   constructed : List SomeObject
   /-- For each object argument we specify its usage. See `Usage`.
   Note that if `argUsage arg = .Destroyed`, then the object that corresponds to `arg` should *not* be put in the destroyed list -/
-  argDeconstruction : functionId.ObjectArgNames → DeconstructionKind := fun _ => .Disassembled
+  argDeconstruction : functionId.ObjectArgNames → DeconstructionKind
 
 def FunctionResult.numSelvesDestroyed
   {lab : Ecosystem.Label}
