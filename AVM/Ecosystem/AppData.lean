@@ -7,6 +7,7 @@ namespace AVM
 structure FunctionData : Type where
   numConstructed : Nat
   numDestroyed : Nat
+  numSelvesDestroyed : Nat
 
 def Ecosystem.Label.MemberId.Data {lab : Ecosystem.Label} : lab.MemberId → Type
   | .functionId _ => FunctionData
