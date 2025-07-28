@@ -50,12 +50,17 @@ def Function.logic
         args.created
         |> Logic.filterOutDummy
         |>.splitsExact [createdObjects.length, funData.numConstructed, funData.numDestroyed, funData.numSelvesDestroyed]
-      Logic.checkResourceData createdObjects argsCreated.toList
-      && Logic.checkResourceData destroyedObjects argsDestroyed.toList
-      && Logic.checkResourceData destroyedObjects argsDestroyedEph.toList
-      && Logic.checkResourceData constructedObjects argsConstructed.toList
-      && Logic.checkResourceData constructedObjects argsConstructedEph.toList
-      && Logic.checkResourceData consumedDestroyedObjects argsSelvesDestroyedEph.toList
+      Logic.checkResourcesData createdObjects argsCreated.toList
+      && Logic.checkResourcesData destroyedObjects argsDestroyed.toList
+      && Logic.checkResourcesData destroyedObjects argsDestroyedEph.toList
+      && Logic.checkResourcesData constructedObjects argsConstructed.toList
+      && Logic.checkResourcesData constructedObjects argsConstructedEph.toList
+      && Logic.checkResourcesData consumedDestroyedObjects argsSelvesDestroyedEph.toList
+      && Logic.checkResourcesPersistent args.consumed
+      && Logic.checkResourcesPersistent argsCreated.toList
+      && Logic.checkResourcesPersistent argsDestroyed.toList
+      && Logic.checkResourcesEphemeral argsDestroyedEph.toList
+      && Logic.checkResourcesEphemeral argsConstructedEph.toList
 
 def Function.action
   {lab : Ecosystem.Label}

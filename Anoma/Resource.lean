@@ -27,6 +27,12 @@ instance Resource.instBEq : BEq Resource where
     && a.nonce === b.nonce
     && a.nullifierKeyCommitment === b.nullifierKeyCommitment
 
+def Resource.isEphemeral (r : Resource) : Bool :=
+  r.ephemeral
+
+def Resource.isPersistent (r : Resource) : Bool :=
+  not r.isEphemeral
+
 structure Logic.Args.{u, v, w} (Data : Type w) where
   self : Resource.{u, v}
   status : ConsumedCreated
