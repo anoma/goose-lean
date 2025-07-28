@@ -31,7 +31,7 @@ def Intent.logic {ilab : Intent.Label} (intent : Intent ilab) (args : Anoma.Logi
     BoolCheck.run do
       let data ← BoolCheck.some <| Intent.ResourceData.fromResource args.self
       BoolCheck.ret <|
-        Logic.checkResourceData data.provided args.consumed
+        Logic.checkResourcesData data.provided args.consumed
 
 /-- An action which consumes the provided objects and creates the intent. This
   is a helper function which handles the random number generator explicitly to

@@ -27,8 +27,10 @@ def Constructor.logic
   : Bool :=
   let try argsData := SomeType.cast args.data.memberArgs
   let newObj := constr.created argsData
-  Logic.checkResourceData [newObj.toSomeObject] args.consumed
-    && Logic.checkResourceData [newObj.toSomeObject] args.created
+  Logic.checkResourcesData [newObj.toSomeObject] args.consumed
+    && Logic.checkResourcesData [newObj.toSomeObject] args.created
+    && Logic.checkResourcesEphemeral args.consumed
+    && Logic.checkResourcesPersistent args.created
     && constr.invariant argsData
 
 def Constructor.action
@@ -73,9 +75,11 @@ def Method.logic
   let try argsData := SomeType.cast args.data.memberArgs
   let try selfObj : Object classId.label := Object.fromResource args.self
   method.invariant selfObj argsData
-  && Logic.checkResourceData [selfObj.toSomeObject] args.consumed
+  && Logic.checkResourcesData [selfObj.toSomeObject] args.consumed
   && let createdObjects := method.created selfObj argsData
-     Logic.checkResourceData createdObjects args.created
+     Logic.checkResourcesData createdObjects args.created
+  && Logic.checkResourcesPersistent args.consumed
+  && Logic.checkResourcesPersistent args.created
 
 def Method.action
   {lab : Ecosystem.Label}
@@ -125,7 +129,10 @@ def Destructor.logic
   : Bool :=
   let try argsData := SomeType.cast args.data.memberArgs
   let try selfObj : Object classId.label := Object.fromResource args.self
-  Logic.checkResourceData [selfObj.toSomeObject] args.consumed
+  Logic.checkResourcesData [selfObj.toSomeObject] args.consumed
+    && Logic.checkResourcesData [selfObj.toSomeObject] args.created
+    && Logic.checkResourcesPersistent args.consumed
+    && Logic.checkResourcesEphemeral args.created
     && destructor.invariant selfObj argsData
 
 def Destructor.action
@@ -186,7 +193,7 @@ def Intent.logic
       labelData.label === ilab
       && intentRes.quantity == 1
       && intentRes.ephemeral
-      && Logic.checkResourceData labelData.data.provided args.consumed
+      && Logic.checkResourcesData labelData.data.provided args.consumed
   | _ =>
     false
 

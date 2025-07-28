@@ -38,15 +38,18 @@ def Function.logic
      (lab.objectArgNamesEnum funId).toList.map
      (fun arg => argsConsumedObjects arg |>.toSomeObject)
   (eco.functions funId).invariant argsConsumedObjects fargs
-   && Logic.checkResourceData consumedSelvesList argsConsumedSelves.toList
+   && Logic.checkResourcesData consumedSelvesList argsConsumedSelves.toList
    && let funRes : FunctionResult := fn.body argsConsumedObjects fargs
       let createdObjects : List SomeObject := funRes.created
       let destroyedObjects : List SomeObject := funRes.destroyed.map SomeConsumableObject.toSomeObject
       let try (argsCreated, argsDestroyedEph) := args.created |> Logic.filterOutDummy
               |>.splitAtExact createdObjects.length
-      Logic.checkResourceData createdObjects argsCreated.toList
-      && Logic.checkResourceData destroyedObjects argsDestroyed
-      && Logic.checkResourceData destroyedObjects argsDestroyedEph
+      Logic.checkResourcesData createdObjects argsCreated.toList
+      && Logic.checkResourcesData destroyedObjects argsDestroyed
+      && Logic.checkResourcesData destroyedObjects argsDestroyedEph
+      && Logic.checkResourcesPersistent args.consumed
+      && Logic.checkResourcesPersistent argsCreated.toList
+      && Logic.checkResourcesEphemeral argsDestroyedEph
 
 def Function.action
   {lab : Ecosystem.Label}
