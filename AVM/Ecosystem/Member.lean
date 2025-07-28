@@ -11,7 +11,9 @@ inductive DeconstructionKind : Type where
   deriving BEq
 
 structure FunctionResult {lab : Ecosystem.Label} (functionId : lab.FunctionId) : Type (u + 1) where
-  /-- List of created objects -/
+  /-- List of assembled objects. Assembled objects will be created.
+      It is the responsibility of the user to ensure that
+      assembled objects balance with the object arguments that are disassembled -/
   assembled : List SomeObject
   /-- List of destroyed objects. Destroyed objects will be balanced with automatically generated ephemeral resources -/
   destroyed : List SomeConsumableObject
