@@ -90,12 +90,24 @@ open AVM
 instance hasTypeRep : TypeRep Check where
   rep := Rep.atomic "Check"
 
+inductive Methods where
+  | Transfer
+  deriving Repr, BEq, Fintype
+
+structure TransferArgs where
+  newOwner : PublicKey
+  key : PrivateKey
+  deriving DecidableEq
+
+instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
+  rep := Rep.atomic "Check.TransferArgs"
+
 def Label : Class.Label where
   name := "Check"
   PrivateFields := ⟨Check⟩
 
-  MethodId := Empty
-  MethodArgs := noMethods
+  MethodId := Methods
+  MethodArgs := fun _ => ⟨TransferArgs⟩
 
   ConstructorId := Empty
   ConstructorArgs := noConstructors
@@ -325,9 +337,16 @@ def kudosClass : @Class lab Classes.Bank where
   destructors := fun
     | .Close => kudosClose
 
+def checkTransfer : @Class.Method Check.Label .Transfer := defMethod Check
+  (body := fun (self : Check) (args : Check.TransferArgs) =>
+    [{self with owner := args.newOwner : Check}])
+  (invariant := fun (self : Check) (args : Check.TransferArgs) =>
+    checkKey self.owner args.key)
+
 def checkClass : @Class lab Classes.Check where
   constructors := noConstructors
-  methods := noMethods
+  methods := fun
+    | .Transfer => checkTransfer
   intents := noIntents lab Check.Label
   destructors := noDestructors
 
