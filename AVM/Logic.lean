@@ -32,4 +32,4 @@ def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
   Logic.filterOutDummy resources |>.all Anoma.Resource.isEphemeral
 
 def checkResourcesPersistent (resources : List Anoma.Resource) : Bool :=
-  Logic.filterOutDummy resources |>.all Anoma.Resource.isEphemeral
+  Logic.filterOutDummy resources |>.all Anoma.Resource.isPersistent
