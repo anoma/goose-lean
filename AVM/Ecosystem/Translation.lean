@@ -47,6 +47,9 @@ def Function.logic
       Logic.checkResourcesData createdObjects argsCreated.toList
       && Logic.checkResourcesData destroyedObjects argsDestroyed
       && Logic.checkResourcesData destroyedObjects argsDestroyedEph
+      && Logic.checkResourcesPersistent args.consumed
+      && Logic.checkResourcesPersistent argsCreated.toList
+      && Logic.checkResourcesEphemeral argsDestroyedEph
 
 def Function.action
   {lab : Ecosystem.Label}

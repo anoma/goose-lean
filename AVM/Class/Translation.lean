@@ -29,6 +29,8 @@ def Constructor.logic
   let newObj := constr.created argsData
   Logic.checkResourcesData [newObj.toSomeObject] args.consumed
     && Logic.checkResourcesData [newObj.toSomeObject] args.created
+    && Logic.checkResourcesEphemeral args.consumed
+    && Logic.checkResourcesPersistent args.created
     && constr.invariant argsData
 
 def Constructor.action
@@ -76,6 +78,8 @@ def Method.logic
   && Logic.checkResourcesData [selfObj.toSomeObject] args.consumed
   && let createdObjects := method.created selfObj argsData
      Logic.checkResourcesData createdObjects args.created
+  && Logic.checkResourcesPersistent args.consumed
+  && Logic.checkResourcesPersistent args.created
 
 def Method.action
   {lab : Ecosystem.Label}
@@ -127,6 +131,8 @@ def Destructor.logic
   let try selfObj : Object classId.label := Object.fromResource args.self
   Logic.checkResourcesData [selfObj.toSomeObject] args.consumed
     && Logic.checkResourcesData [selfObj.toSomeObject] args.created
+    && Logic.checkResourcesPersistent args.consumed
+    && Logic.checkResourcesEphemeral args.created
     && destructor.invariant selfObj argsData
 
 def Destructor.action
