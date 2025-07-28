@@ -40,9 +40,12 @@ def Function.logic
       let destroyedObjects : List SomeObject := funRes.destroyed.map SomeConsumableObject.toSomeObject
       let try (argsCreated, argsDestroyedEph) := args.created |> Logic.filterOutDummy
               |>.splitAtExact createdObjects.length
-      Logic.checkResourceData createdObjects argsCreated.toList
-      && Logic.checkResourceData destroyedObjects argsDestroyed
-      && Logic.checkResourceData destroyedObjects argsDestroyedEph
+      Logic.checkResourcesData createdObjects argsCreated.toList
+        && Logic.checkResourcesData destroyedObjects argsDestroyed
+        && Logic.checkResourcesData destroyedObjects argsDestroyedEph
+        && Logic.checkResourcesPersistent args.consumed
+        && Logic.checkResourcesPersistent argsCreated.toList
+        && Logic.checkResourcesEphemeral argsDestroyedEph
 
 def Function.action
   {lab : Ecosystem.Label}
