@@ -13,7 +13,7 @@ def filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resourc
     resources' private data and labels match the objects' private data and
     labels. This check is used in the constructor and method logics. Dummy
     resources in the `resources` list are ignored. -/
-def checkResourceData (objects : List SomeObject) (resources : List Anoma.Resource) : Bool :=
+def checkResourcesData (objects : List SomeObject) (resources : List Anoma.Resource) : Bool :=
   let resources' := Logic.filterOutDummy resources
   objects.length == resources'.length
     && List.and (List.zipWith resourceDataEq objects resources')
@@ -27,3 +27,9 @@ def checkResourceData (objects : List SomeObject) (resources : List Anoma.Resour
       sobj.object.quantity == res.quantity &&
         let try privateFields := tryCast sobj.object.privateFields
         res.value == privateFields
+
+def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
+  Logic.filterOutDummy resources |>.all Anoma.Resource.isEphemeral
+
+def checkResourcesPersistent (resources : List Anoma.Resource) : Bool :=
+  Logic.filterOutDummy resources |>.all Anoma.Resource.isEphemeral
