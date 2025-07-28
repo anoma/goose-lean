@@ -385,7 +385,6 @@ def depositCheck : @Function lab .DepositCheck :=
         | .Bank => .Disassembled
         | .Check => .Destroyed })
 
-
 def kudosEcosystem : Ecosystem lab where
   classes := fun
     | Classes.Bank => kudosClass

@@ -66,7 +66,7 @@ def splits (lst : List A) (lengths : List Nat) : Option (SplitsType A lengths ×
 
 def splitsExact (lst : List A) (lengths : List Nat) : Option (SplitsType A lengths) :=
   match splits lst lengths with
-  | .some (_, []) => none
+  | .some (l, []) => some l
   | _ => none
 
 end List
