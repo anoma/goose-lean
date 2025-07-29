@@ -153,10 +153,12 @@ The translation from AVM to the Resource Machine (RM) relies on the static natur
 	- `id : label.FunctionId` determines the unique id of the funtion.
 	- `Args := label.FunctionArgs id` is the type of function arguments excluding selves.
 	- `body : (selves : List Object) -> Args -> FunctionResult`. The body of the function. `FunctionResult` is a record which consists of:
-		- `created : List Object`. List of created objects.
-		- `destroyed : List Object`. List of destroyed objects. Destroyed object resources are balanced with automatically generated ephemeral resources.
+		- `assembled : List Object`. List of assembled objects which are created as a result of the function call. It is the responsibility of the user to ensure that assembled object resources balance with the `self` arguments that are not destructed.
+		- `destroyed : List Object`. List of destroyed objects. Destroyed object resources are balanced with automatically generated created ephemeral resources.
+		- `constructed : List Object`. List of constructed objects. Constructed object resources are balanced with automatically generated consumed ephemeral resources.
+		- `destructed : List Object`. List of destructed selves. This must be a sublist of `selves`.
 	- `invariant : (selves : List Object) -> Args -> Bool`. Extra function logic. The function member logic is a conjunction of the auto-generated function logic and the extra function logic.
-- `selves : List Object` in `body` and `invariant` above is a list of objects whose classes are described by `label.FunctionSelves id`.
+- `selves : List Object` in `body` and `invariant` above is a list of `self` arguments - objects whose classes are described by `label.FunctionSelves id`.
 
 ### Ecosystem
 - `Ecosystem` in `AVM/Ecosystem.lean`
@@ -405,10 +407,13 @@ Function call is translated to a single-action transaction. The action for a cal
 - `Function.action` in `AVM/Ecosystem/Translation.lean`
 - Consumed resources:
 	- persistent resources corresponding to `selves`,
-	- persistent resources corresponding to the destroyed objects `(fun.body selves args).destroyed`.
+	- persistent resources corresponding to the destroyed objects `(fun.body selves args).destroyed`,
+	- ephemeral resources corresponding to the constructed objects `(fun.body selves args).constructed`.
 - Created resources:
-	- persistent resources corresponding to the created objects `(fun.body selves args).created`,
-	- ephemeral resources corresponding to the destroyed objects `(fun.body selves args).destroyed`.
+	- persistent resources corresponding to the assembled objects `(fun.body selves args).assembled`,
+	- ephemeral resources corresponding to the destroyed objects `(fun.body selves args).destroyed`,
+	- persistent resources corresponding to the constructed objects `(fun.body selves args).constructed`,
+	- ephemeral resources corresponding to the destructed selves `(fun.body selves args).destructed`.
 
 #### Function member logic
 Function member logic is the member logic associated with a function. Function member logic is implemented in `Function.logic` in `AVM/Ecosystem/Translation.lean`.
@@ -417,17 +422,43 @@ Function member logic has access to RL arguments which contain the following.
 
 - `consumed : List Resource`. List of resources consumed in the transaction.
 - `created : List Resource`. List of resources created in the transaction.
-- App Data containing the method call arguments `args`.
+- App Data containing the method call arguments `args` and the numbers of:
+  - selves,
+  - constructed objects,
+  - destroyed objects,
+  - destructed selves.
 
-For a given function `fun`, we can re-create the `selves` and `destroyed` objects from `consumed` – `selves` correspond to the first `n = (fun.label.FunctionSelves fun.id).size` resources in `consumed`. Similarly, the `created` list can be partitioned into a list `created'` of length `n` of persistent resources corresponding to objects created in the function body, and a list `destroyedEph` of ephemeral resources corresponding to the objects destroyed in the function body.
+For a given function `fun`, we use the numbers stored in App Data to partition `consumed` into:
+
+- `assembledSelves` list of persistent resources corresponding to reassembled selves,
+- `destructedSelves` list of persistent resources corresponding to destructed selves,
+- `constructedEph` list of ephemeral resources corresponding to constructed objects,
+- `destroyed` list of persistent resources corresponding to destroyed obects.
+
+We re-create the `selves` objects from `assembledSelves` and `destructedSelves`.
+
+Similarly, the `created` list is partitioned into:
+
+- `assembled` list of persistent resources corresponding to the selves reassembled in the function body,
+- `destructedEph` list of ephemeral resources corresponding to the selves destructed by the function,
+- `constructed` list of persistent resources corresponding to the objects constructed in the function body,
+- `destroyedEph` list of ephemeral resources corresponding to the objects destroyed in the function body.
 
 Function member logic for a function `fun` performs the following checks.
 
-- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip created' (fun.body selves args).created`.
+- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip assembled (fun.body selves args).assembled`.
+- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destructedEph (fun.body selves args).destructed`.
+- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip constructed (fun.body selves args).constructed`.
+- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip constructedEph (fun.body selves args).constructed`.
 - `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyed (fun.body selves args).destroyed`.
 - `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyedEph (fun.body selves args).destroyed`.
-- resources in `consumed` are persistent.
-- resources in `creates'` are persistent.
+- resources in `assembledSelves` are persistent.
+- resources in `destructedSelves` are persistent.
+- resources in `constructedEph` are ephemeral.
+- resources in `destroyed` are persistent.
+- resources in `assembled` are persistent.
+- resources in `destructedEph` are ephemeral.
+- resources in `constructed` are persistent.
 - resources in `destroyedEph` are ephemeral.
 - `fun.invariant selves args` holds.
 

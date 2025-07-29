@@ -56,10 +56,12 @@ def Function.logic
         && Logic.checkResourcesData constructedObjects argsConstructed.toList
         && Logic.checkResourcesData constructedObjects argsConstructedEph.toList
         && Logic.checkResourcesData consumedDestroyedObjects argsSelvesDestroyedEph.toList
-        && Logic.checkResourcesPersistent args.consumed
-        && Logic.checkResourcesPersistent argsCreated.toList
+        && Logic.checkResourcesPersistent argsConsumedSelves.toList
         && Logic.checkResourcesPersistent argsDestroyed.toList
+        && Logic.checkResourcesPersistent argsCreated.toList
+        && Logic.checkResourcesEphemeral argsConstructedEph.toList
         && Logic.checkResourcesEphemeral argsDestroyedEph.toList
+        && Logic.checkResourcesEphemeral argsSelvesDestroyedEph.toList
         && Logic.checkResourcesEphemeral argsConstructedEph.toList
 
 def Function.action
