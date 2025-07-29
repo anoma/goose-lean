@@ -45,7 +45,7 @@ def Constructor.action
   let clab := classId.label
   let newObj : Object clab := constr.created args
   let consumable : ConsumableObject clab :=
-      { object := {newObj with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal}
+      { object := newObj
         ephemeral := true
         key := Anoma.NullifierKey.universal }
   let consumed : ConsumedObject classId.label := { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource }

@@ -58,7 +58,7 @@ def SomeObject.toResource
     value := obj.privateFields,
     ephemeral := ephemeral,
     nonce,
-    nullifierKeyCommitment := obj.nullifierKeyCommitment }
+    nullifierKeyCommitment := default }
 
 /-- Converts Object to a Resource. -/
 def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) (nonce : Anoma.Nonce) : Anoma.Resource
@@ -70,7 +70,6 @@ def Object.fromResource
   : Option (Object lab) :=
   let try privateFields : lab.PrivateFields.type := SomeType.cast res.value
   some { quantity := res.quantity,
-         nullifierKeyCommitment := res.nullifierKeyCommitment,
          nonce := res.nonce,
          privateFields := privateFields }
 

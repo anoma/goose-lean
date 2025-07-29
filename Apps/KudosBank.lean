@@ -10,20 +10,6 @@ def Std.HashMap.modifyDefault
   | none => some (f default)
   | some v => some (f v)
 
-structure PublicKey where
-  key : Nat
-  deriving BEq, Hashable, DecidableEq, Inhabited
-
-instance PublicKey.hasTypeRep : TypeRep PublicKey where
-  rep := Rep.atomic "PublicKey"
-
-structure PrivateKey where
-  key : Nat
-  deriving BEq, Hashable, DecidableEq
-
--- mock function
-def checkKey (pub : PublicKey) (priv : PrivateKey) : Bool := pub.key == priv.key
-
 structure Denomination where
   originator : PublicKey
   deriving BEq, Hashable, DecidableEq
