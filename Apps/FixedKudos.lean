@@ -9,6 +9,9 @@ import Mathlib.Data.Fintype.Basic
 import Mathlib.Tactic.DeriveFintype
 
 open Applib
+open AVM
+
+namespace FixedKudos
 
 /-- Public name of someone -/
 abbrev PublicIden := Nat
@@ -18,8 +21,6 @@ structure Kudos where
   originator : PublicIden
   owner : PublicIden
   deriving DecidableEq, Inhabited
-
-namespace Kudos
 
 inductive Constructors where
   | Mint : Constructors
@@ -40,8 +41,6 @@ structure SwapArgs where
 instance SwapArgs.hasTypeRep : TypeRep SwapArgs where
   rep := Rep.atomic "SwapArgs"
 
-open AVM
-
 def swapLabel : Intent.Label where
   Args := ⟨SwapArgs⟩
   name := "Kudos.Swap"
@@ -59,11 +58,11 @@ def kudosLabel : Class.Label where
 
   intentLabels := {swapLabel}
 
-def toObject (c : Kudos) : Object kudosLabel where
+def Kudos.toObject (c : Kudos) : Object kudosLabel where
   quantity := c.quantity
   privateFields := (c.originator, c.owner)
 
-def fromObject (o : Object kudosLabel) : Option Kudos := do
+def Kudos.fromObject (o : Object kudosLabel) : Option Kudos := do
   some { owner := o.privateFields.2,
          quantity := o.quantity
          originator := o.privateFields.1 }
@@ -99,7 +98,7 @@ def kudosClass : @Class eco UUnit.unit  where
   methods := noMethods
   intents := fun
     | swapLabel, h =>
-      let h' : Intent Kudos.swapLabel = Intent swapLabel := by
+      let h' : Intent FixedKudos.swapLabel = Intent swapLabel := by
         congr
         sorry
       cast h' kudosSwap
