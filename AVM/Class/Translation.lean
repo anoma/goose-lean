@@ -185,15 +185,14 @@ def Intent.logic
   : Bool :=
   -- Check that exactly one resource is created that corresponds to the intent
   match Logic.filterOutDummy args.created with
-  | [intentRes] => BoolCheck.run do
-    let labelData ← BoolCheck.some <| Intent.LabelData.fromResource intentRes
-    BoolCheck.ret <|
-      -- NOTE: We should also check that the intent logic hashes of
-      -- `intentRes` and `intent` match.
-      labelData.label === ilab
-      && intentRes.quantity == 1
-      && intentRes.ephemeral
-      && Logic.checkResourcesData labelData.data.provided args.consumed
+  | [intentRes] =>
+    let try labelData := Intent.LabelData.fromResource intentRes
+    -- NOTE: We should also check that the intent logic hashes of
+    -- `intentRes` and `intent` match.
+    labelData.label === ilab
+    && intentRes.quantity == 1
+    && intentRes.ephemeral
+    && Logic.checkResourcesData labelData.data.provided args.consumed
   | _ =>
     false
 
@@ -207,21 +206,20 @@ def checkClassMemberLogic
   (eco : Ecosystem lab)
   (memberId : classId.label.MemberId)
   (margs : memberId.Args.type)
-  : Bool := BoolCheck.run do
-  let selfObj : Object classId.label ← BoolCheck.some (Object.fromResource args.self)
+  : Bool :=
+  let try selfObj : Object classId.label := Object.fromResource args.self
   let cls : Class classId := eco.classes classId
-  BoolCheck.ret <|
-    cls.invariant selfObj args &&
-    match memberId with
-    | .constructorId c =>
-      Constructor.logic (cls.constructors c) args
-    | .methodId m =>
-      Method.logic (cls.methods m) args
-    | .destructorId m =>
-      Destructor.logic (cls.destructors m) args
-    | .intentId l =>
-      if h : l ∈ classId.label.intentLabels then
-        let intent : Intent l := cls.intents l h
-        Intent.logic intent args
-      else
-        false
+  cls.invariant selfObj args &&
+  match memberId with
+  | .constructorId c =>
+    Constructor.logic (cls.constructors c) args
+  | .methodId m =>
+    Method.logic (cls.methods m) args
+  | .destructorId m =>
+    Destructor.logic (cls.destructors m) args
+  | .intentId l =>
+    if h : l ∈ classId.label.intentLabels then
+      let intent : Intent l := cls.intents l h
+      Intent.logic intent args
+    else
+      false

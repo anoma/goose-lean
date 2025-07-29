@@ -15,23 +15,18 @@ open Ecosystem
   intent logic checks the intent's condition. -/
 def Intent.logic {ilab : Intent.Label} (intent : Intent ilab) (args : Anoma.Logic.Args Unit) : Bool :=
   if args.isConsumed then
-    BoolCheck.run do
-      let data ← BoolCheck.some <| Intent.ResourceData.fromResource args.self
-      let receivedObjects ←
-        BoolCheck.some <|
-          List.mapSome SomeObject.fromResource <|
-          Logic.filterOutDummy args.created
-      let argsData ← BoolCheck.some <| tryCast data.args
-      BoolCheck.ret <|
-        intent.condition argsData data.provided receivedObjects
+    let try data := Intent.ResourceData.fromResource args.self
+    let try receivedObjects :=
+        List.mapSome SomeObject.fromResource <|
+        Logic.filterOutDummy args.created
+    let try argsData := tryCast data.args
+    intent.condition argsData data.provided receivedObjects
   else
     -- In the created case, we need to check that the list of provided objects
     -- corresponds to the list consumed resources. See:
     -- https://github.com/anoma/goose-lean/issues/32.
-    BoolCheck.run do
-      let data ← BoolCheck.some <| Intent.ResourceData.fromResource args.self
-      BoolCheck.ret <|
-        Logic.checkResourcesData data.provided args.consumed
+    let try data := Intent.ResourceData.fromResource args.self
+    Logic.checkResourcesData data.provided args.consumed
 
 /-- An action which consumes the provided objects and creates the intent. This
   is a helper function which handles the random number generator explicitly to
