@@ -62,13 +62,12 @@ def nullify (key : Anoma.NullifierKey) (res : Resource) : Decidable (CanNullifyR
   | isTrue p => isTrue (by constructor; exact p)
   | isFalse n => isFalse (by intro h; cases h; contradiction)
 
-def nullifyUniversal (res : Resource) (key : Anoma.NullifierKey)
-  (p1 : key = .universal)
-  (p2 : res.nullifierKeyCommitment = .universal)
-  : CanNullifyResource key res
+def nullifyUniversal (res : Resource)
+  (p1 : res.nullifierKeyCommitment = .universal := by rfl)
+  : CanNullifyResource .universal res
   := by
   constructor
-  rw [p1, p2]
+  rw [p1]
   constructor
 
 inductive Commitment where
