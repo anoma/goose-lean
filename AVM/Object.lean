@@ -7,13 +7,13 @@ namespace AVM
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
 structure Object (lab : Class.Label) : Type u where
-  /-- The nonce should be available for objects fetched from Anoma. -/
-  nonce : Option Anoma.Nonce := none
-  /-- Used to prove ownership -/
-  nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default
   quantity : Nat
   /-- `privateFields` go into the `value` field of the resource -/
   privateFields : lab.PrivateFields.type
+  /-- Used to prove ownership -/
+  nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default
+  /-- The nonce should be available for objects fetched from Anoma. -/
+  nonce : Option Anoma.Nonce := none
   deriving BEq
 
 instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
@@ -60,7 +60,7 @@ def SomeObject.toResource
     nonce,
     nullifierKeyCommitment := obj.nullifierKeyCommitment }
 
-/-- Converts Object to a Resource. Requires object's `nonce` to be set beforehand. -/
+/-- Converts Object to a Resource. -/
 def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) (nonce : Anoma.Nonce) : Anoma.Resource
  := obj.toSomeObject.toResource ephemeral nonce
 

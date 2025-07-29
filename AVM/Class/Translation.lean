@@ -33,6 +33,8 @@ def Constructor.logic
     && Logic.checkResourcesPersistent args.created
     && constr.invariant argsData
 
+/-- Creates an action for a given constructor. This action consumes creates the
+  object specified by the constructor. -/
 def Constructor.action
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
@@ -72,14 +74,17 @@ def Method.logic
   (method : Class.Method methodId)
   (args : Logic.Args lab)
   : Bool :=
-  let try argsData := SomeType.cast args.data.memberArgs
+  -- Note that this logic is triggered only for objects of the class described
+  -- by `classId.label`. So `args.self` should always correspond a valid object
+  -- of the class.
   let try selfObj : Object classId.label := Object.fromResource args.self
+  let try argsData := SomeType.cast args.data.memberArgs
   method.invariant selfObj argsData
-  && Logic.checkResourcesData [selfObj.toSomeObject] args.consumed
-  && let createdObjects := method.created selfObj argsData
-     Logic.checkResourcesData createdObjects args.created
-  && Logic.checkResourcesPersistent args.consumed
-  && Logic.checkResourcesPersistent args.created
+    && Logic.checkResourcesData [selfObj.toSomeObject] args.consumed
+    && let createdObjects := method.created selfObj argsData
+       Logic.checkResourcesData createdObjects args.created
+    && Logic.checkResourcesPersistent args.consumed
+    && Logic.checkResourcesPersistent args.created
 
 def Method.action
   {lab : Ecosystem.Label}

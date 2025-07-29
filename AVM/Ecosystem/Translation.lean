@@ -51,16 +51,18 @@ def Function.logic
         |> Logic.filterOutDummy
         |>.splitsExact [createdObjects.length, funData.numConstructed, funData.numDestroyed, funData.numSelvesDestroyed]
       Logic.checkResourcesData createdObjects argsCreated.toList
-      && Logic.checkResourcesData destroyedObjects argsDestroyed.toList
-      && Logic.checkResourcesData destroyedObjects argsDestroyedEph.toList
-      && Logic.checkResourcesData constructedObjects argsConstructed.toList
-      && Logic.checkResourcesData constructedObjects argsConstructedEph.toList
-      && Logic.checkResourcesData consumedDestroyedObjects argsSelvesDestroyedEph.toList
-      && Logic.checkResourcesPersistent args.consumed
-      && Logic.checkResourcesPersistent argsCreated.toList
-      && Logic.checkResourcesPersistent argsDestroyed.toList
-      && Logic.checkResourcesEphemeral argsDestroyedEph.toList
-      && Logic.checkResourcesEphemeral argsConstructedEph.toList
+        && Logic.checkResourcesData destroyedObjects argsDestroyed.toList
+        && Logic.checkResourcesData destroyedObjects argsDestroyedEph.toList
+        && Logic.checkResourcesData constructedObjects argsConstructed.toList
+        && Logic.checkResourcesData constructedObjects argsConstructedEph.toList
+        && Logic.checkResourcesData consumedDestroyedObjects argsSelvesDestroyedEph.toList
+        && Logic.checkResourcesPersistent argsConsumedSelves.toList
+        && Logic.checkResourcesPersistent argsDestroyed.toList
+        && Logic.checkResourcesPersistent argsCreated.toList
+        && Logic.checkResourcesEphemeral argsConstructedEph.toList
+        && Logic.checkResourcesEphemeral argsDestroyedEph.toList
+        && Logic.checkResourcesEphemeral argsSelvesDestroyedEph.toList
+        && Logic.checkResourcesEphemeral argsConstructedEph.toList
 
 def Function.action
   {lab : Ecosystem.Label}
