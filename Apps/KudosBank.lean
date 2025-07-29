@@ -12,7 +12,10 @@ def Std.HashMap.modifyDefault
 
 structure PublicKey where
   key : Nat
-  deriving BEq, Hashable, DecidableEq
+  deriving BEq, Hashable, DecidableEq, Inhabited
+
+instance PublicKey.hasTypeRep : TypeRep PublicKey where
+  rep := Rep.atomic "PublicKey"
 
 structure PrivateKey where
   key : Nat
@@ -73,15 +76,64 @@ def getBalance (b : Balances) (u : PublicKey) (d : Denomination) : Nat :=
 
 end Balances
 
+/-- Spending a check allows a user to make a transfer of a certain denomination -/
+structure Check where
+  denomination : Denomination
+  owner : PublicKey
+  quantity : Nat
+  deriving BEq
+
+namespace Check
+
+open AVM
+
+instance hasTypeRep : TypeRep Check where
+  rep := Rep.atomic "Check"
+
+inductive Methods where
+  | Transfer
+  deriving Repr, BEq, Fintype
+
+structure TransferArgs where
+  newOwner : PublicKey
+  key : PrivateKey
+  deriving DecidableEq
+
+instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
+  rep := Rep.atomic "Check.TransferArgs"
+
+def Label : Class.Label where
+  name := "Check"
+  PrivateFields := ⟨Check⟩
+
+  MethodId := Methods
+  MethodArgs := fun _ => ⟨TransferArgs⟩
+
+  ConstructorId := Empty
+  ConstructorArgs := noConstructors
+
+  DestructorId := Empty
+  DestructorArgs := noDestructors
+
+instance instIsObject : IsObject Check where
+  label := Label
+  toObject := fun (c : Check) =>
+   { quantity := 1
+     privateFields := c }
+  fromObject := fun (o : Object Label) => some o.privateFields
+  roundTrip := by rfl
+
+end Check
+
 structure KudosBank where
-  nfc : Anoma.NullifierKeyCommitment
+  owner : PublicKey
   balances : Balances
-  deriving Inhabited
+  deriving Inhabited, BEq
 
 namespace KudosBank
 
-def new (nfc : Anoma.NullifierKeyCommitment) : KudosBank where
-  nfc
+def new (owner : PublicKey) : KudosBank where
+  owner
   balances := Balances.empty
 
 def overBalances (b : KudosBank) (f : Balances -> Balances) : KudosBank :=
@@ -150,9 +202,9 @@ structure BurnArgs where
 instance BurnArgs.hasTypeRep : TypeRep BurnArgs where
   rep := Rep.atomic "BurnArgs"
 
-def clab : Class.Label where
+def BankLabel : Class.Label where
   name := "KudosBank"
-  PrivateFields := ⟨Balances⟩
+  PrivateFields := ⟨KudosBank⟩
 
   MethodId := Methods
   MethodArgs := fun
@@ -162,7 +214,7 @@ def clab : Class.Label where
 
   ConstructorId := Constructors
   ConstructorArgs := fun
-    | Constructors.Open => ⟨Anoma.NullifierKeyCommitment⟩
+    | Constructors.Open => ⟨PublicKey⟩
 
   DestructorId := Destructors
   DestructorArgs := fun
@@ -170,33 +222,30 @@ def clab : Class.Label where
 
 namespace KudosBank
 
-def toObject (c : KudosBank) : Object clab where
+def toObject (c : KudosBank) : Object BankLabel where
   quantity := 1
-  privateFields := c.balances
-  nullifierKeyCommitment := c.nfc
+  privateFields := c
 
-def fromObject (o : Object clab) : Option KudosBank := do
-  let key <- o.nullifierKeyCommitment
-  some { nfc := key
-         balances := o.privateFields }
+def fromObject (o : Object BankLabel) : Option KudosBank :=
+  some o.privateFields
 
 instance instIsObject : IsObject KudosBank where
-  label := clab
+  label := BankLabel
   toObject := KudosBank.toObject
   fromObject := KudosBank.fromObject
   roundTrip : KudosBank.fromObject ∘ KudosBank.toObject = some := by rfl
 
 end KudosBank
 
-def kudosNew : @Class.Constructor clab Constructors.Open := defConstructor
-  (body := fun (nfc : Anoma.NullifierKeyCommitment) => KudosBank.new nfc)
+def kudosNew : @Class.Constructor BankLabel Constructors.Open := defConstructor
+  (body := fun (owner : PublicKey) => KudosBank.new owner)
 
-def kudosMint : @Class.Method clab Methods.Mint := defMethod KudosBank
+def kudosMint : @Class.Method BankLabel Methods.Mint := defMethod KudosBank
   (body := fun (self : KudosBank) (args : MintArgs) =>
     [self.overBalances (fun b => b.addTokens args.denom.originator args.denom args.quantity)])
   (invariant := fun (_self : KudosBank) (args : MintArgs) => checkKey args.denom.originator args.key)
 
-def kudosTransfer : @Class.Method clab Methods.Transfer := defMethod KudosBank
+def kudosTransfer : @Class.Method BankLabel Methods.Transfer := defMethod KudosBank
   (body := fun (self : KudosBank) (args : TransferArgs) =>
     [self.overBalances (fun b => b
       |> Balances.addTokens args.newOwner args.denom args.quantity
@@ -206,7 +255,7 @@ def kudosTransfer : @Class.Method clab Methods.Transfer := defMethod KudosBank
     && 0 < args.quantity
     && args.quantity <= self.getBalance args.oldOwner args.denom)
 
-def kudosBurn : @Class.Method clab Methods.Burn := defMethod KudosBank
+def kudosBurn : @Class.Method BankLabel Methods.Burn := defMethod KudosBank
   (body := fun (self : KudosBank) (args : BurnArgs) =>
     [self.overBalances (fun b => b
       |> Balances.subTokens args.denom.originator args.denom args.quantity)])
@@ -215,30 +264,131 @@ def kudosBurn : @Class.Method clab Methods.Burn := defMethod KudosBank
     && 0 < args.quantity
     && args.quantity <= self.getBalance args.denom.originator args.denom)
 
-def kudosClose : @Class.Destructor clab Destructors.Close := defDestructor
+def kudosClose : @Class.Destructor BankLabel Destructors.Close := defDestructor
   (invariant := fun (self : KudosBank) (_args : UUnit) => self.balances.isEmpty)
 
 inductive Functions where
+  | IssueCheck
+  | DepositCheck
+  deriving Repr, DecidableEq, FinEnum
+
+namespace IssueCheck
+
+structure Args where
+  denomination : Denomination
+  owner : PublicKey
+  key : PrivateKey
+  quantity : Nat
+  deriving BEq
+
+inductive ClassArgNames where
+  | Bank
+  deriving Repr, BEq, DecidableEq, FinEnum
+
+instance Args.hasTypeRep : TypeRep Args where
+  rep := Rep.atomic "IssueCheck.Args"
+
+end IssueCheck
+
+namespace DepositCheck
+
+inductive ClassArgNames where
+  | Bank
+  | Check
+  deriving Repr, BEq, DecidableEq, FinEnum
+
+end DepositCheck
+
+inductive Classes where
+  | Bank
+  | Check
   deriving Repr, DecidableEq, FinEnum
 
 def lab : Ecosystem.Label where
   name := "KudosBank"
-  ClassId := UUnit
-  classLabel := fun _ => clab
+  ClassId := Classes
+  classLabel := fun
+   | .Bank => BankLabel
+   | .Check => Check.Label
   FunctionId := Functions
-  FunctionObjectArgClass {f : Functions} (_a : _) := nomatch f
+  FunctionArgs := fun
+    | .IssueCheck => ⟨IssueCheck.Args⟩
+    | .DepositCheck => ⟨UUnit⟩
+  FunctionObjectArgNames := fun
+    | .IssueCheck => IssueCheck.ClassArgNames
+    | .DepositCheck => DepositCheck.ClassArgNames
+  FunctionObjectArgClass {f : Functions} := match f with
+   | Functions.IssueCheck => fun
+     | _ => Classes.Bank
+   | Functions.DepositCheck => fun
+     | .Bank => Classes.Bank
+     | .Check => Classes.Check
+  objectArgNamesBEq (f : Functions) := by cases f <;> exact inferInstance
+  objectArgNamesEnum (f : Functions) := by cases f <;> exact inferInstance
 
-def kudosClass : @Class lab UUnit.unit where
+def kudosClass : @Class lab Classes.Bank where
   constructors := fun
     | Constructors.Open => kudosNew
   methods := fun
-    | Methods.Transfer => kudosTransfer
-    | Methods.Mint => kudosMint
-    | Methods.Burn => kudosBurn
-  intents := noIntents lab clab
+    | .Transfer => kudosTransfer
+    | .Mint => kudosMint
+    | .Burn => kudosBurn
+  intents := noIntents lab BankLabel
   destructors := fun
-    | Destructors.Close => kudosClose
+    | .Close => kudosClose
+
+def checkTransfer : @Class.Method Check.Label .Transfer := defMethod Check
+  (body := fun (self : Check) (args : Check.TransferArgs) =>
+    [{self with owner := args.newOwner : Check}])
+  (invariant := fun (self : Check) (args : Check.TransferArgs) =>
+    checkKey self.owner args.key)
+
+def checkClass : @Class lab Classes.Check where
+  constructors := noConstructors
+  methods := fun
+    | .Transfer => checkTransfer
+  intents := noIntents lab Check.Label
+  destructors := noDestructors
+
+def issueCheck : @Function lab .IssueCheck :=
+  defFunction lab Functions.IssueCheck
+  (argsInfo := fun
+    | .Bank => { type := KudosBank })
+  (body := fun selves args =>
+    { created :=
+      [(selves .Bank).overBalances (fun b => b
+        |> Balances.subTokens args.owner args.denomination args.quantity)]
+
+      constructed := [{ denomination := args.denomination
+                        owner := args.owner
+                        quantity := args.quantity
+                        : Check }]})
+  (invariant := fun selves args =>
+    checkKey args.owner args.key
+    && 0 < args.quantity
+    && args.quantity <= (selves IssueCheck.ClassArgNames.Bank
+                         |>.getBalance args.owner args.denomination))
+
+def depositCheck : @Function lab .DepositCheck :=
+  defFunction lab .DepositCheck
+  (argsInfo := fun
+    | .Bank => { type := KudosBank }
+    | .Check => { type := Check })
+  (body := fun selves args =>
+    { created :=
+        let bank := selves .Bank
+        let check := selves .Check
+        [bank.overBalances (fun b => b
+          |> Balances.addTokens check.owner check.denomination check.quantity)]
+      argDeconstruction arg :=
+        match arg with
+        | .Bank => .Disassembled
+        | .Check => .Destroyed })
 
 def kudosEcosystem : Ecosystem lab where
-  classes := fun _ => kudosClass
-  functions (f : Functions) := nomatch f
+  classes := fun
+    | Classes.Bank => kudosClass
+    | Classes.Check => checkClass
+  functions := fun
+    | Functions.IssueCheck => issueCheck
+    | Functions.DepositCheck => depositCheck

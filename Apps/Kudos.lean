@@ -22,6 +22,7 @@ abbrev PublicIden := Anoma.NullifierKeyCommitment
 /- 3. Split: The onwer of a kudos can partition a kudos token into a list of tokens with smaller quantities -/
 /-           such that the aggregate quantity is equal to the original -/
 /- 4. Burn: The owner of a kudos token can destroy it if themself is the originator of the token -/
+/- 5. Merge: Merge two Kudos object of the same denomination and owner into a single one -/
 
 structure Kudos where
   quantity : Nat

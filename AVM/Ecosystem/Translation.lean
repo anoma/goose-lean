@@ -28,28 +28,39 @@ def Function.logic
   (eco : Ecosystem lab)
   (args : Logic.Args lab)
   (funId : lab.FunctionId)
+  (funData : FunctionData)
   (fargs : funId.Args.type)
   : Bool :=
   let fn : Function funId := eco.functions funId
-  let try (argsConsumedSelves, argsDestroyed) :=
-      args.consumed |> Logic.filterOutDummy |>.splitAtExact funId.numObjectArgs
+  let try (argsConsumedSelves, argsConstructedEph, argsDestroyed, UUnit.unit) :=
+      args.consumed
+      |> Logic.filterOutDummy
+      |>.splitsExact [funId.numObjectArgs, funData.numConstructed, funData.numDestroyed]
   let try argsConsumedObjects : funId.Selves := Function.parseObjectArgs argsConsumedSelves.toList funId
-  let consumedSelvesList : List SomeObject :=
-     (lab.objectArgNamesEnum funId).toList.map
-     (fun arg => argsConsumedObjects arg |>.toSomeObject)
   (eco.functions funId).invariant argsConsumedObjects fargs
-   && Logic.checkResourcesData consumedSelvesList argsConsumedSelves.toList
-   && let funRes : FunctionResult := fn.body argsConsumedObjects fargs
-      let createdObjects : List SomeObject := funRes.created
+   && let funRes : FunctionResult funId := fn.body argsConsumedObjects fargs
+      let createdObjects : List SomeObject := funRes.assembled
       let destroyedObjects : List SomeObject := funRes.destroyed.map SomeConsumableObject.toSomeObject
-      let try (argsCreated, argsDestroyedEph) := args.created |> Logic.filterOutDummy
-              |>.splitAtExact createdObjects.length
+      let constructedObjects : List SomeObject := funRes.constructed
+      let consumedDestroyedObjects : List SomeObject :=
+        funId.objectArgNames.filterMap (fun arg => match funRes.argDeconstruction arg with
+        | .Destroyed => argsConsumedObjects arg |>.toSomeObject |> some
+        | .Disassembled => none)
+      let try (argsCreated, argsConstructed, argsDestroyedEph, argsSelvesDestroyedEph, UUnit.unit) :=
+        args.created
+        |> Logic.filterOutDummy
+        |>.splitsExact [createdObjects.length, funData.numConstructed, funData.numDestroyed, funData.numSelvesDestroyed]
       Logic.checkResourcesData createdObjects argsCreated.toList
-      && Logic.checkResourcesData destroyedObjects argsDestroyed
-      && Logic.checkResourcesData destroyedObjects argsDestroyedEph
+      && Logic.checkResourcesData destroyedObjects argsDestroyed.toList
+      && Logic.checkResourcesData destroyedObjects argsDestroyedEph.toList
+      && Logic.checkResourcesData constructedObjects argsConstructed.toList
+      && Logic.checkResourcesData constructedObjects argsConstructedEph.toList
+      && Logic.checkResourcesData consumedDestroyedObjects argsSelvesDestroyedEph.toList
       && Logic.checkResourcesPersistent args.consumed
       && Logic.checkResourcesPersistent argsCreated.toList
-      && Logic.checkResourcesEphemeral argsDestroyedEph
+      && Logic.checkResourcesPersistent argsDestroyed.toList
+      && Logic.checkResourcesEphemeral argsDestroyedEph.toList
+      && Logic.checkResourcesEphemeral argsConstructedEph.toList
 
 def Function.action
   {lab : Ecosystem.Label}
@@ -61,19 +72,34 @@ def Function.action
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let fn : Function funId := eco.functions funId
   let try consumedObjects : funId.Selves := Function.parseObjectArgs args.consumed funId
-  let try consumedSelves : List SomeConsumedObject :=
+  let try consumedSelves : List (funId.ObjectArgNames × SomeConsumedObject) :=
     (lab.objectArgNamesEnum funId).toList
-    |>.map (fun arg =>
-      (consumedObjects arg).toSomeObject
-      |> SomeObject.toConsumable false (keys arg)
-      |> SomeConsumableObject.consume)
+    |>.map (fun (arg : funId.ObjectArgNames) => do
+      let try obj := consumedObjects arg
+                     |>.toSomeObject
+                     |> SomeObject.toConsumable false (keys arg)
+                     |> SomeConsumableObject.consume
+      some (arg, obj))
     |>.getSome
-  let funRes : FunctionResult := fn.body consumedObjects fargs
-  let createdObjects : List CreatedObject := funRes.created |>
+  let funRes : FunctionResult funId := fn.body consumedObjects fargs
+  let selvesDestroyedEph : List CreatedObject :=
+    consumedSelves.filterMap (fun (arg, consumed) =>
+      match funRes.argDeconstruction arg with
+      | .Destroyed => some (consumed.balanceDestroyed)
+      | .Disassembled => none)
+  let createdObjects : List CreatedObject := funRes.assembled |>
       List.map (fun x => CreatedObject.fromSomeObject x (ephemeral := false))
   let try destroyed : List SomeConsumedObject := funRes.destroyed.map (·.consume) |>.getSome
-  let destroyedEph : List CreatedObject := destroyed.map CreatedObject.balanceDestroyed
-  let r ← Action.create lab (.functionId funId) fargs (consumedSelves ++ destroyed) (createdObjects ++ destroyedEph)
+  let destroyedEph : List CreatedObject := destroyed.map (·.balanceDestroyed)
+  let constructed : List CreatedObject := funRes.constructed.map (fun c => CreatedObject.fromSomeObject c false)
+  let constructedEph : List SomeConsumedObject := funRes.constructed.map (·.balanceConstructed)
+  let funData : FunctionData :=
+    { numConstructed := constructed.length
+      numDestroyed := destroyed.length
+      numSelvesDestroyed := selvesDestroyedEph.length }
+  let r ← Action.create lab (.functionId funId) funData fargs
+          (consumed := consumedSelves.map Prod.snd ++ constructedEph ++ destroyed)
+          (created := createdObjects ++ constructed ++ destroyedEph ++ selvesDestroyedEph)
   pure (some r)
 
 private def logic'
@@ -89,8 +115,8 @@ private def logic'
   | Consumed =>
     match args.data with
     | {memberId := .falseLogicId, ..} => false
-    | {memberId := .classMember mem, memberArgs} => Class.checkClassMemberLogic args eco mem memberArgs
-    | {memberId := .functionId fn, memberArgs} => Function.logic eco args fn memberArgs
+    | {memberId := .classMember mem, memberArgs, ..} => Class.checkClassMemberLogic args eco mem memberArgs
+    | {memberId := .functionId fn, memberArgs, memberData} => Function.logic eco args fn memberData memberArgs
 
 def logic
   {lab : Ecosystem.Label}
