@@ -90,3 +90,17 @@ def kudosSwap : Intent swapLabel where
       providedKudos.owner == receivedKudos.owner
       && receivedKudos.originator == args.wantOriginator
     | _, _ => false
+
+def eco : Ecosystem.Label := Ecosystem.Label.singleton kudosLabel
+
+def kudosClass : @Class eco UUnit.unit  where
+  constructors := fun
+    | Constructors.Mint => kudosMint
+  methods := noMethods
+  intents := fun
+    | swapLabel, h =>
+      let h' : Intent Kudos.swapLabel = Intent swapLabel := by
+        congr
+        sorry
+      cast h' kudosSwap
+  destructors := noDestructors
