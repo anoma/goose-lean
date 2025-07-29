@@ -82,7 +82,7 @@ The translation from AVM to the Resource Machine (RM) relies on the static natur
 	- `classLabels : Set Class.Label`. Classes in the ecosystem. A class can be in only one ecosystem.
 	- `FunctionId : Type`. Enumeration type for functions in the described ecosystem.
 	- `FunctionArgs : FunctionId -> Type`. Type of function arguments excluding selves.
-	- `FunctionSelves : FunctionId -> Set Class.Label`. Class identifiers for selves. Every class label of a `self` argument must be in the `classLabels` set.
+	- `FunctionSelves : FunctionId -> List Class.Label`. Class identifiers for selves. Every class label of a `self` argument must be in the `classLabels` set.
 
 ### Object
 - `Object` in `AVM/Object.lean`
@@ -154,7 +154,7 @@ The translation from AVM to the Resource Machine (RM) relies on the static natur
 		- `created : List Object`. List of created objects.
 		- `destroyed : List Object`. List of destroyed objects. Destroyed object resources are balanced with automatically generated ephemeral resources.
 	- `invariant : (selves : List Object) -> Args -> Bool`. Extra function logic. The function member logic is a conjunction of the auto-generated function logic and the extra function logic.
-- `selves : List Object` in `body` and `invariant` above is list of objects which contains exactly one object of each class described by `label.FunctionSelves id`.
+- `selves : List Object` in `body` and `invariant` above is a list of objects whose classes are described by `label.FunctionSelves id`.
 
 ### Ecosystem
 - `Ecosystem` in `AVM/Ecosystem.lean`
