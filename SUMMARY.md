@@ -46,7 +46,7 @@ A high-level summary description of GOOSE v0.2.0. The description intentionally 
 
 ## Overview
 
-The Anoma Virtual Machine (AVM) data structures provide an object-oriented abstraction over the Anoma Resource Machine (RM). Ecosystems encapsulate collections of related classes and functions. Each class within an ecosystem uniquely defines its structure through private fields, a set of allowed intents, and member operations — constructors, destructors, and methods. Functions in an ecosystem operate over sets of objects from these classes. Every class belongs to a single ecosystem, and the relationships between classes, their operations, and functions must be fully specified ahead of time — there is no dynamic addition of members or runtime reflection. Intents must be statically declared as allowed for each class of the objects they consume, leading to a rigid dependency graph.
+The Anoma Virtual Machine (AVM) data structures provide an object-oriented abstraction over the Anoma Resource Machine (RM). Ecosystems encapsulate collections of related classes and functions. Each class within an ecosystem uniquely defines its structure through private fields, a set of allowed intents, and member operations — constructors, destructors, and methods. Functions in an ecosystem operate over sets of objects from these classes. Every class belongs to a single ecosystem, and the relationships between classes, their operations, and functions must be fully specified ahead of time — there is no dynamic addition of members or runtime reflection. Intents must be statically declared as allowed for each class of the objects they consume, leading to a rigid dependency graph. An intent is not associated with a single class, but can consume objects of different classes in the same ecosystem.
 
 The translation from AVM to the Resource Machine (RM) relies on the static nature of AVM programs. Each object is compiled to a single resource, tagged with its class and ecosystem metadata. Constructor, destructor, method and function calls, and intent creation, are all translated into single-action transactions. Because all class member operations, functions and intents are known statically, appropriate Resource Logic checks can be generated from their code. A single Resource Logic is generated for a given ecosystem and associated with each object of a class in the ecosystem. The action's App Data contains an indicator for which member's logic should be checked.
 
@@ -169,6 +169,7 @@ The translation from AVM to the Resource Machine (RM) relies on the static natur
 ### Object
 
 Objects are translated to Resources. Currently, it's a 1:1 translation.
+
 - `label` (the class label) is stored in the `label` field.
 - `quantity` is stored in the `quantity` field.
 - Private fields are stored in the `value` field.
@@ -182,6 +183,7 @@ Objects are translated to Resources. Currently, it's a 1:1 translation.
 
 #### Resource data check
 Resource data check `checkDataEq(res,obj)` compares a resource `res` against an object `obj`.
+
 - `Class.Member.Logic.checkResourceData` in `AVM/Class/Member/Logic.lean`.
 - Check `res.label == obj.label`.
 - Check `res.logicHash` is equal to the hash of the [ecosystem logic](#ecosystem-logic) for the ecosystem of the class of `obj`.
@@ -197,6 +199,7 @@ A Compliance Unit has exactly one consumed and one created resource. To ensure m
 
 #### Dummy Resource
 Dummy Resource has the unique dummy label and the always-true resource logic.
+
 - `dummyResource` in `AVM/Action/DummyResource.lean`.
 - Ephemeral with quantity 0.
 - Used as a placeholder in compliance units to ensure that the numbers of consumed and created resource match.
@@ -208,6 +211,7 @@ Dummy Resource has the unique dummy label and the always-true resource logic.
 
 #### Action partitioning
 An Action can be considered to contain lists of consumed and created non-dummy resources. We partition Actions into Compliance Units as follows.
+
 - We put every non-dummy consumed resource in a separate compliance unit with a created Dummy Resource.
 - We put every non-dummy created resource in a separate compliance unit with a consumed Dummy Resource.
 - See: `AVM/Action.lean`.
@@ -215,18 +219,21 @@ In what follows, when referring to consumed and created resources of an Action, 
 
 #### Member logics
 A member logic is a logic for a specific member call:
+
 - constructor,
 - destructor,
 - method,
 - function,
 - intent creation,
 - always false logic.
+
 The member logics check the constraints for the member call. App Data contains an indicator which member logic should be checked.
 
 The intent member logic is distinct from the intent logic. The intent member logic is checked for each object consumed on intent creation, asserting that the created intent is allowed for the object's class. The intent logic is checked on intent resource consumption, asserting that the intent condition holds.
 
 #### App Data
 App Data for each (non-dummy) resource in the action consists of:
+
 - member logic indicator:
 	- for consumed resources: member logic for the member being called,
 	- for created resources: always false logic[^1],
@@ -236,6 +243,7 @@ App Data for each (non-dummy) resource in the action consists of:
 
 #### Constructor call
 Constructor calls are translated to single-action transactions. The action for a call to a constructor `constr` with arguments `args : constr.Args` is specified by the following.
+
 - `Class.Constructor.action` in `AVM/Class/Translation.lean`.
 - Consumed resources:
 	- one ephemeral resource corresponding to the created object `constr.created args`.
@@ -246,11 +254,13 @@ Constructor calls are translated to single-action transactions. The action for a
 Constructor member logic is the member logic executed for the consumed ephemeral resource in the transaction for a constructor call. Constructor logic is implemented in `Class.Constructor.logic` in `AVM/Class/Translation.lean`.
 
 Constructor member logic has access to RL arguments which contain the following.
+
 - `consumed : List Resource`. List of resources consumed in the transaction.
 - `created : List Resource`. List of resources created in the transaction.
 - App Data for the consumed ephemeral resource, which contains the constructor call arguments `args`.
 
 Constructor member logic for a constructor `constr` performs the following checks.
+
 - `consumed` contains exactly one ephemeral resource `res` and `checkDataEq(res, constr.created args)` holds.
 - `created` contains exactly one persistent resource `res'` and `checkDataEq(res', constr.created args)` holds.
 - `constr.invariant args` holds.
@@ -259,6 +269,7 @@ Constructor member logic for a constructor `constr` performs the following check
 
 #### Destructor call
 Destructor calls are translated to single-action transactions. The action for a call to a destructor `destr` on `self : Object` with arguments `args : destr.Args` is specified by the following.
+
 - `Class.Destructor.action` in `AVM/Class/Translation.lean`.
 - Consumed resources:
 	- one persistent resource corresponding to `self`.
@@ -269,13 +280,16 @@ Destructor calls are translated to single-action transactions. The action for a 
 Destructor member logic is the member logic executed for the consumed persistent resource in the transaction for a destructor call. The consumed resource `selfRes` corresponds to the `self` object in the destructor call. Destructor logic is implemented in `Class.Destructor.logic` in `AVM/Class/Translation.lean`.
 
 Destructor member logic has access to RL arguments which contain the following.
+
 - `selfRes` consumed resource.
 - `consumed : List Resource`. List of resources consumed in the transaction.
 - `created : List Resource`. List of resources created in the transaction.
 - App Data for the consumed persistent resource `selfRes`, which contains the destructor call arguments `args`.
+
 The `self` object is re-created from `selfRes`.
 
 Destructor member logic for a destructor `destr` performs the following checks.
+
 - `consumed` contains exactly one persistent resource `selfRes` and `checkDataEq(selfRes, self)` holds.
 - `created` contains exactly one emphemeral resource `selfRes'` and `checkDataEq(selfRes', self)` holds.
 - `destr.invariant self args` holds.
@@ -284,6 +298,7 @@ Destructor member logic for a destructor `destr` performs the following checks.
 
 #### Method call
 Method calls are translated to single-action transactions. The action for a call to a method `method` on `self : Object` with arguments `args : method.Args` is specified by the following.
+
 - `Class.Method.action` in `AVM/Class/Translation.lean`
 - Consumed resources:
 	- one persistent resource corresponding to `self`.
@@ -294,13 +309,16 @@ Method calls are translated to single-action transactions. The action for a call
 Method member logic is the member logic executed for the consumed persistent resource in the transaction for a method call. The consumed resource `selfRes` corresponds to the `self` object in the method call. Method logic is implemented in `Class.Method.logic` in `AVM/Class/Translation.lean`.
 
 Method member logic has access to RL arguments which contain the following.
+
 - `selfRes` consumed resource.
 - `consumed : List Resource`. List of resources consumed in the transaction.
 - `created : List Resource`. List of resources created in the transaction.
 - App Data for the consumed resource `selfRes`, which contains the method call arguments `args`.
+
 The `self` object is re-created from `selfRes`.
 
 Method member logic for a method `method` performs the following checks.
+
 - `consumed` contains exactly one persistent resource `selfRes` and `checkDataEq(selfRes, self)` holds.
 - `created` contains resources corresponding to the created objects:
 	- `created.length == method.created self args`,
@@ -310,6 +328,7 @@ Method member logic for a method `method` performs the following checks.
 
 ### Intent
 Intents are translated to intent resources.
+
 - The intent label, the intent arguments and the provided objects are all stored in the resource label.
 - The intent resource is ephemeral with quantity 1.
 - The nonce is set on intent resource creation to the nullifier of the dummy resource consumed in the same compliance unit.
@@ -317,6 +336,7 @@ Intents are translated to intent resources.
 
 #### Intent creation
 Intent creation is translated to a single-action transaction. The action for the creation of an intent `intent` with arguments `args : intent.label.Args` and provided objects `provided` is specified by the following.
+
 - `Intent.action` in `AVM/Intent.lean`.
 - Consumed resources:
 	- persistent resources corresponding to the provided objects `provided`.
@@ -327,13 +347,16 @@ Intent creation is translated to a single-action transaction. The action for the
 Intent logic is the RL associated with the intent resource. Intent logic is distinct from the intent member logic associated with objects provided to the intent. Intent logic is implemented in `Intent.logic` in `AVM/Intent.lean`.
 
 Intent logic has access to RL arguments which contain the following.
+
 - `intentRes` consumed intent resource.
 - `consumed : List Resource`. List of resources consumed in the transaction.
 - `created : List Resource`. List of resources created in the transaction.
 - `isConsumed : Bool` indicates whether `intentRes` is consumed or created in the transaction.
+
 The intent arguments `args` and provided objects `provided` are retrieved from the label of `intentRes`.
 
 Intent logic for an intent `intent` performs the following checks.
+
 - If `intentRes` is consumed, then re-create received objects `received` from `created` and check `intent.condition args provided received`.
 - If `intentRes` is created, then check:
 	- `consumed.length == provided.length`,
@@ -343,10 +366,12 @@ Intent logic for an intent `intent` performs the following checks.
 Intent member logic is checked for each object consumed (provided) on intent creation. It checks that the intent is allowed for the object's class. The intent member logic is implemented in `Class.Intent.Logic` in `AVM/Class/Translation.lean`.
 
 Intent member logic has access to RL arguments which contain the following.
+
 - `consumed : List Resource`. List of resources consumed in the transaction.
 - `created : List Resource`. List of resources created in the transaction.
 
 Intent member logic for an intent `intent` performs the following checks.
+
 - `created` contains exactly one resource `intentRes` with:
 	- `intentRes.label.intentLabel == intent.label`.
 	- `intentRes.logicHash` equal to the hash of the intent logic for `intent`.
@@ -359,11 +384,14 @@ Intent member logic for an intent `intent` performs the following checks.
 Class logic is the logic associated with a class. Class logic is implemented in `Class.logic` in `AVM/Class/Translation.lean`.
 
 Class logic has access to RL arguments `logicArgs : Logic.Args` which contain the following.
+
 - `selfRes` consumed resource.
 - App Data for the consumed resource `selfRes`, which contains the member logic indicator.
+
 The `self` object is re-created from `selfRes`.
 
 Class logic for a class `cls` performs the following checks.
+
 - Execute the member logic (constructor, destructor, method or intent member logic) based on the member logic indicator stored in App Data.
 - Check `cls.invariant self logicArgs` holds.
 
@@ -371,6 +399,7 @@ Class logic for a class `cls` performs the following checks.
 
 #### Function call
 Function call is translated to a single-action transaction. The action for a call to a function `fun` on `selves : List Object` with arguments `args : fun.Args` is specified by the following.
+
 - `Function.action` in `AVM/Ecosystem/Translation.lean`
 - Consumed resources:
 	- persistent resources corresponding to `selves`,
@@ -383,12 +412,15 @@ Function call is translated to a single-action transaction. The action for a cal
 Function member logic is the member logic associated with a function. Function member logic is implemented in `Function.logic` in `AVM/Ecosystem/Translation.lean`.
 
 Function member logic has access to RL arguments which contain the following.
+
 - `consumed : List Resource`. List of resources consumed in the transaction.
 - `created : List Resource`. List of resources created in the transaction.
 - App Data containing the method call arguments `args`.
+
 For a given function `fun`, we can re-create the `selves` and `destroyed` objects from `consumed` – `selves` correspond to the first `n = (fun.label.FunctionSelves fun.id).size` resources in `consumed`. Similarly, the `created` list can be partitioned into a list `created'` of length `n` of persistent resources corresponding to objects created in the function body, and a list `destroyedEph` of ephemeral resources corresponding to the objects destroyed in the function body.
 
 Function member logic for a function `fun` performs the following checks.
+
 - `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip created' (fun.body selves args).created`.
 - `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyed (fun.body selves args).destroyed`.
 - `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyedEph (fun.body selves args).destroyed`.
@@ -402,10 +434,12 @@ Function member logic for a function `fun` performs the following checks.
 Ecosystem logic is the RL associated with an ecosystem. The RL of a resource corresponding to an object is always the ecosystem logic of the ecosystem of the object's class.
 
 Ecosystem logic has access to RL arguments `logicArgs : Logic.Args` which contain the following.
+
 - App Data containing the member logic indicator.
 - `isConsumed : Bool` indicates whether the resource associated with the RL is consumed or created in the transaction.
 
 Ecosystem logic for an ecosystem `eco` performs the following checks.
+
 - If `isConsumed == true`, then:
 	- If the member logic indiator is a class member logic indicator (constructor, destructor, method or intent member logic), then execute the class logic for the class associated with this member logic.
 	- If the member logic indicator is a function member logic indicator, then execute the corresponding function member logic.
