@@ -23,7 +23,6 @@ def checkResourcesData (objects : List SomeObject) (resources : List Anoma.Resou
       -- of checking just the label. We should also check that the intent logic
       -- hashes of `sobj.object` and `res` match.
       sobj.label === res.label &&
-      sobj.object.nullifierKeyCommitment == res.nullifierKeyCommitment &&
       sobj.object.quantity == res.quantity &&
         let try privateFields := tryCast sobj.object.privateFields
         res.value == privateFields
