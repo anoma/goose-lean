@@ -50,6 +50,8 @@ The Anoma Virtual Machine (AVM) data structures provide an object-oriented abstr
 
 The translation from AVM to the Resource Machine (RM) relies on the static nature of AVM programs. Each object is compiled to a single resource, tagged with its class and ecosystem metadata. Constructor, destructor, method and function calls, and intent creation, are all translated into single-action transactions. Because all class member operations, functions and intents are known statically, appropriate Resource Logic checks can be generated from their code. A single Resource Logic is generated for a given ecosystem and associated with each object of a class in the ecosystem. The action's App Data contains an indicator for which member's logic should be checked. Logically, the ecosystem logic is a disjunction of the member logics.
 
+![GOOSE v0.2.0 Summary](Goose-v0.2.0-summary.png)
+
 ## AVM data structures
 
 ### Intent.Label
