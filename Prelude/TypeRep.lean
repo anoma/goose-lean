@@ -45,12 +45,20 @@ instance Rep.instBEq : BEq Rep where
 instance Rep.instReflBEq : ReflBEq Rep where
   rfl := by intro; unfold BEq.beq instBEq; simp
 
+instance Rep.instLawfulBEq : LawfulBEq Rep where
+  eq_of_beq := by
+    intro a b eq
+    unfold BEq.beq instBEq at eq; simp at eq; assumption
+
 class TypeRep (A : Type u) where
   /-- A unique representation of the type. -/
   rep : Rep
 
-private axiom uniqueTypeRep (A : Type u) (B : Type w) [TypeRep A] [TypeRep B] :
+axiom uniqueTypeRep (A : Type u) (B : Type w) [TypeRep A] [TypeRep B] :
   TypeRep.rep A = TypeRep.rep B → ULift.{max u w} A = ULift.{max u w} B
+
+axiom uniqueTypeRepU (A : Type u) (B : Type u) [TypeRep A] [TypeRep B] :
+  TypeRep.rep A = TypeRep.rep B → A = B
 
 /-- Casting based on equality of type representations. -/
 def rcast {A : Type u} {B : Type w} [TypeRep A] [TypeRep B] (h : TypeRep.rep A = TypeRep.rep B) (x : A) : B :=

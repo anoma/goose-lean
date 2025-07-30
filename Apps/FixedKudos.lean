@@ -99,7 +99,6 @@ def kudosClass : @Class eco UUnit.unit where
   intents := fun swapLabel h =>
       let h' : FixedKudos.swapLabel = swapLabel := by
           unfold Ecosystem.Label.ClassId.label eco Ecosystem.Label.singleton kudosLabel at h
-          simp at h
-          assumption
+          simp at h; assumption
       h' ▸ kudosSwap
   destructors := noDestructors
