@@ -9,7 +9,7 @@ inductive Rep where
   | atomic (encoding : String)
   /-- `Rep.composite` is used for parameterised data types -/
   | composite (name : String) (params : List Rep)
-deriving Inhabited, Repr, BEq
+  deriving Inhabited, Repr
 
 partial def Rep.decEq (a b : Rep) : Decidable (Eq a b) :=
   match a with
@@ -38,6 +38,12 @@ partial def Rep.decEq (a b : Rep) : Decidable (Eq a b) :=
         isFalse (fun h => by cases h; contradiction)
 
 instance Rep.hasDecEq : DecidableEq Rep := Rep.decEq
+
+instance Rep.instBEq : BEq Rep where
+  beq a b := decide (a = b)
+
+instance Rep.instReflBEq : ReflBEq Rep where
+  rfl := by intro; unfold BEq.beq instBEq; simp
 
 class TypeRep (A : Type u) where
   /-- A unique representation of the type. -/

@@ -5,6 +5,7 @@ swap intents.
 
 import AVM
 import Applib
+import Std.Data.HashSet.Lemmas
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Tactic.DeriveFintype
 
@@ -71,7 +72,6 @@ instance hasIsObject : IsObject Kudos where
   label := kudosLabel
   toObject := Kudos.toObject
   fromObject := Kudos.fromObject
-  roundTrip : Kudos.fromObject ∘ Kudos.toObject = some := by rfl
 
 def kudosMint : @Class.Constructor kudosLabel Constructors.Mint := defConstructor
   (body := fun (args : MintArgs) => { quantity := args.quantity
@@ -92,14 +92,14 @@ def kudosSwap : Intent swapLabel where
 
 def eco : Ecosystem.Label := Ecosystem.Label.singleton kudosLabel
 
-def kudosClass : @Class eco UUnit.unit  where
+def kudosClass : @Class eco UUnit.unit where
   constructors := fun
     | Constructors.Mint => kudosMint
   methods := noMethods
-  intents := fun
-    | swapLabel, h =>
-      let h' : Intent FixedKudos.swapLabel = Intent swapLabel := by
-        congr
-        sorry
-      cast h' kudosSwap
+  intents := fun swapLabel h =>
+      let h' : FixedKudos.swapLabel = swapLabel := by
+          unfold Ecosystem.Label.ClassId.label eco Ecosystem.Label.singleton kudosLabel at h
+          simp at h
+          assumption
+      h' ▸ kudosSwap
   destructors := noDestructors
