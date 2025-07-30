@@ -14,7 +14,7 @@ class IsObject (s : Type) where
   label : Class.Label
   toObject : s → Object label
   fromObject : Object label → Option s
-  roundTrip : fromObject ∘ toObject = some
+  roundTrip : fromObject ∘ toObject = some := by rfl
 
 structure AnObject where
   {ty : Type}
