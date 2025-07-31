@@ -16,7 +16,11 @@ class IsObject (s : Type) where
   fromObject : Object label → Option s
   roundTrip : fromObject ∘ toObject = some := by rfl
 
-structure AnObject where
+structure AnObjectType : Type 1 where
+  ty : Type
+  [isObject : IsObject ty]
+
+structure AnObject : Type 1 where
   {ty : Type}
   [isObject : IsObject ty]
   obj : ty
@@ -110,3 +114,42 @@ def defFunction
     (argsInfo argName).isObject.fromObject
     (by rw [(argsInfo argName).withLabel]
         exact selves argName)
+
+def ObjectsOf (l : List AnObjectType) : Type 1 :=
+  match l with
+  | [] => UUnit
+  | t :: ts => t.ty × ObjectsOf ts
+
+def ObjectsOf.tryMk (types : List AnObjectType) (objects : List SomeObject) : Option (ObjectsOf types) :=
+  match types, objects with
+  | [], [] => some UUnit.unit
+  | t :: ts, o :: os =>
+    let try r := tryMk ts os
+    let try o' := tryCast o.object
+    let try h := t.isObject.fromObject o'
+    some (h, r)
+  | _, _ => none
+
+structure IntentCase where
+  providedArgs : List AnObjectType
+  receivedArgs : List AnObjectType
+  condition (provided : ObjectsOf providedArgs) (received : ObjectsOf receivedArgs) : Bool
+
+/-- A simple interface for creating intents. This interface is not fully general but covers most cases -/
+def defIntent
+  (lab : Intent.Label)
+  (cases : (args : lab.Args.type) → List IntentCase)
+  : Intent lab where
+  condition (args : lab.Args.type) (provided : List SomeObject) (received : List SomeObject) :=
+  let rec runCases (cases : List IntentCase) : Bool :=
+         match cases with
+         | [] => false
+         | c :: cs =>
+           let x : Option Bool :=
+             let try prov := ObjectsOf.tryMk c.providedArgs provided
+             let try rec := ObjectsOf.tryMk c.receivedArgs received
+             some (c.condition prov rec)
+           match x with
+           | none => runCases cs
+           | some b => b
+  runCases (cases args)

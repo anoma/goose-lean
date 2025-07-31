@@ -78,17 +78,14 @@ def kudosMint : @Class.Constructor kudosLabel Constructors.Mint := defConstructo
                                       owner := args.owner
                                       originator := args.owner : Kudos})
 
-def kudosSwap : Intent swapLabel where
-  condition (args : SwapArgs) (provided : List SomeObject) (received : List SomeObject) : Bool :=
-    match provided, received with
-    | [providedObj], [receivedObj] =>
-      let try providedObj' : Object kudosLabel := tryCast providedObj.object
-      let try receivedObj' : Object kudosLabel := tryCast receivedObj.object
-      let try providedKudos : Kudos := Kudos.fromObject providedObj'
-      let try receivedKudos : Kudos := Kudos.fromObject receivedObj'
-      providedKudos.owner == receivedKudos.owner
-      && receivedKudos.originator == args.wantOriginator
-    | _, _ => false
+def kudosSwap : Intent swapLabel :=
+  defIntent swapLabel fun args =>
+  [{ providedArgs := [⟨Kudos⟩]
+     receivedArgs := [⟨Kudos⟩]
+     condition := fun
+       | (provided, UUnit.unit), (received, UUnit.unit) =>
+         provided.owner == received.owner
+         && received.originator == args.wantOriginator }]
 
 def eco : Ecosystem.Label := Ecosystem.Label.singleton kudosLabel
 
