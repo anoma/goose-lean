@@ -28,7 +28,7 @@ structure Kudos where
   quantity : Nat
   originator : PublicIden
   owner : PublicIden
-  deriving DecidableEq
+  deriving DecidableEq, Inhabited
 
 namespace Kudos
 
@@ -44,8 +44,6 @@ inductive Constructors where
 inductive Destructors where
   | Burn : Destructors
   deriving DecidableEq, Fintype, Repr
-
-deriving instance Inhabited for Kudos
 
 open AVM
 
