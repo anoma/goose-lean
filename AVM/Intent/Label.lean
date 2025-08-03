@@ -13,8 +13,20 @@ structure Intent.Label where
   name : String
   deriving BEq
 
-instance Intent.Label.hasTypeRep : TypeRep Intent.Label where
+namespace Intent.Label
+
+instance instReflBEq : ReflBEq Label where
+  rfl := by intro; unfold BEq.beq instBEqLabel; simp!
+
+instance instLawfulBEq : LawfulBEq Label where
+  eq_of_beq := by
+    intro a b eq
+    cases a; cases b; simp
+    unfold BEq.beq instBEqLabel at eq; simp! at eq; cases eq;
+    constructor <;> assumption
+
+instance hasTypeRep : TypeRep Intent.Label where
   rep := Rep.atomic "AVM.Intent.Label"
 
-instance Intent.Label.hasHashable : Hashable Intent.Label where
+instance hasHashable : Hashable Intent.Label where
   hash a := hash a.name
