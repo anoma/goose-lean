@@ -54,11 +54,8 @@ class TypeRep (A : Type u) where
   /-- A unique representation of the type. -/
   rep : Rep
 
-axiom uniqueTypeRep (A : Type u) (B : Type w) [TypeRep A] [TypeRep B] :
+private axiom uniqueTypeRep (A : Type u) (B : Type w) [TypeRep A] [TypeRep B] :
   TypeRep.rep A = TypeRep.rep B → ULift.{max u w} A = ULift.{max u w} B
-
-axiom uniqueTypeRepU (A : Type u) (B : Type u) [TypeRep A] [TypeRep B] :
-  TypeRep.rep A = TypeRep.rep B → A = B
 
 /-- Casting based on equality of type representations. -/
 def rcast {A : Type u} {B : Type w} [TypeRep A] [TypeRep B] (h : TypeRep.rep A = TypeRep.rep B) (x : A) : B :=
