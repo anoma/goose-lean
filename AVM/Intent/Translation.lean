@@ -38,10 +38,9 @@ def Intent.action'
   (intent : Intent ilab)
   (args : ilab.Args.type)
   (provided : List SomeObject)
-  (key : Anoma.NullifierKey)
   : Option (Anoma.Action × Anoma.DeltaWitness) × StdGen :=
   let try providedConsumed :=
-        provided.map (fun p => p.toConsumable false key |>.consume) |>.getSome
+        provided.map (fun p => p.toConsumable false |>.consume) |>.getSome
       failwith (none, g)
   let try appDataPairs :=
         providedConsumed.map mkTagDataPairConsumed |>.getSome
@@ -79,7 +78,7 @@ where
       let complianceWitness :=
         { consumedResource := obj.consumed.resource,
           createdResource := Action.dummyResource obj.consumed.can_nullify.nullifier.toNonce,
-          nfKey := obj.consumed.key
+          nfKey := Anoma.NullifierKey.universal
           rcv := r.repr }
       (complianceWitness :: acc, g')
 
@@ -106,10 +105,9 @@ def Intent.action
   (intent : Intent ilab)
   (args : ilab.Args.type)
   (provided : List SomeObject)
-  (key : Anoma.NullifierKey)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let g ← get
-  let (p, g') := Intent.action' lab g.down intent args provided key
+  let (p, g') := Intent.action' lab g.down intent args provided
   set (ULift.up g')
   pure p
 
@@ -121,9 +119,8 @@ def Intent.transaction
   (intent : Intent ilab)
   (args : ilab.Args.type)
   (provided : List SomeObject)
-  (key : Anoma.NullifierKey)
   : Rand (Option Anoma.Transaction) := do
-  let try (action, witness) ← intent.action label args provided key
+  let try (action, witness) ← intent.action label args provided
   pure <|
     some
       { actions := [action],

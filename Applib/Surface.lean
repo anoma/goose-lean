@@ -87,7 +87,7 @@ def FunctionResult.empty {lab : Ecosystem.Label} (funId : lab.FunctionId) : Func
 def FunctionResult.toAVM {lab : Ecosystem.Label} {funId : lab.FunctionId} (r : FunctionResult funId) : AVM.FunctionResult funId where
   assembled := r.created.map (·.toSomeObject)
   constructed := r.constructed.map (·.toSomeObject)
-  destroyed := r.destroyed.map (fun d => d.anObject.toSomeObject.toConsumable false d.key)
+  destroyed := r.destroyed.map (fun d => d.anObject.toSomeObject.toConsumable false)
   argDeconstruction := r.argDeconstruction
 
 def defFunction
