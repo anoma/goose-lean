@@ -10,8 +10,6 @@ structure Object (lab : Class.Label) : Type u where
   quantity : Nat
   /-- `privateFields` go into the `value` field of the resource -/
   privateFields : lab.PrivateFields.type
-  /-- Used to prove ownership -/
-  nullifierKeyCommitment : Anoma.NullifierKeyCommitment := default
   /-- The nonce should be available for objects fetched from Anoma. -/
   nonce : Option Anoma.Nonce := none
   deriving BEq
