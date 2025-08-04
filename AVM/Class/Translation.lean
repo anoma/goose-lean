@@ -45,9 +45,8 @@ def Constructor.action
   let clab := classId.label
   let newObj : Object clab := constr.created args
   let consumable : ConsumableObject clab :=
-      { object := {newObj with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal}
-        ephemeral := true
-        key := Anoma.NullifierKey.universal }
+      { object := newObj
+        ephemeral := true }
   let consumed : ConsumedObject classId.label := { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource }
   let created : List CreatedObject :=
         [CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)]
@@ -92,12 +91,10 @@ def Method.action
   (methodId : classId.label.MethodId)
   (method : Class.Method methodId)
   (self : Object classId.label)
-  (key : Anoma.NullifierKey)
   (args : methodId.Args.type)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let consumable : ConsumableObject classId.label :=
-      { key
-        object := self
+      { object := self
         ephemeral := false }
   let try consumed := consumable.consume
   let createObject (o : SomeObject) : CreatedObject :=
@@ -114,10 +111,9 @@ def Method.transaction
   (methodId : classId.label.MethodId)
   (method : Class.Method methodId)
   (self : Object classId.label)
-  (key : Anoma.NullifierKey)
   (args : methodId.Args.type)
   : Rand (Option Anoma.Transaction) := do
-  let try (action, witness) ← method.action methodId self key args
+  let try (action, witness) ← method.action methodId self args
   pure <|
     some
       { actions := [action],
@@ -146,12 +142,10 @@ def Destructor.action
   (destructorId : classId.label.DestructorId)
   (_destructor : Class.Destructor destructorId)
   (self : Object classId.label)
-  (key : Anoma.NullifierKey)
   (args : destructorId.Args.type)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
   let consumable : ConsumableObject classId.label :=
-       { key
-         object := self
+       { object := self
          ephemeral := false }
   let try consumed := consumable.consume
   let createdObject : CreatedObject :=
@@ -166,10 +160,9 @@ def Destructor.transaction
   (destructorId : classId.label.DestructorId)
   (destructor : Class.Destructor destructorId)
   (self : Object classId.label)
-  (key : Anoma.NullifierKey)
   (args : destructorId.Args.type)
   : Rand (Option Anoma.Transaction) := do
-  let try (action, witness) ← destructor.action destructorId self key args
+  let try (action, witness) ← destructor.action destructorId self args
   pure <|
     some
       { actions := [action],

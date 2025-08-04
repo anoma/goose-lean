@@ -57,7 +57,7 @@ def create'
         let witness :=
           { consumedResource := c.resource,
             createdResource := dummyResource c.can_nullify.nullifier.toNonce,
-            nfKey := c.key,
+            nfKey := Anoma.NullifierKey.universal,
             rcv := r.repr }
         (witness :: acc, g')
     mkCreatedComplianceWitness  (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
@@ -120,10 +120,7 @@ def SomeConsumedObject.balanceDestroyed (destroyed : SomeConsumedObject) : Actio
 /-- Used to balance a constructed object -/
 def SomeObject.balanceConstructed (constructed : SomeObject) : SomeConsumedObject where
   consumed :=
-  let obj : Object (constructed.label) :=
-      { constructed.object
-        with nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal }
+  let obj : Object constructed.label := constructed.object
   { object := obj,
     can_nullify := Anoma.nullifyUniversal (obj.toResource true obj.nonce.get!)
-    ephemeral := true
-    key := Anoma.NullifierKey.universal }
+    ephemeral := true }

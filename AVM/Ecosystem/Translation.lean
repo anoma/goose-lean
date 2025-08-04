@@ -70,7 +70,6 @@ def Function.action
   (args : Logic.Args lab)
   (funId : lab.FunctionId)
   (fargs : funId.Args.type)
-  (keys : funId.ObjectArgNames → Anoma.NullifierKey)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let fn : Function funId := eco.functions funId
   let try consumedObjects : funId.Selves := Function.parseObjectArgs args.consumed funId
@@ -79,7 +78,7 @@ def Function.action
     |>.map (fun (arg : funId.ObjectArgNames) => do
       let try obj := consumedObjects arg
                      |>.toSomeObject
-                     |> SomeObject.toConsumable false (keys arg)
+                     |> SomeObject.toConsumable false
                      |> SomeConsumableObject.consume
       some (arg, obj))
     |>.getSome

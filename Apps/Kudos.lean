@@ -5,9 +5,6 @@ import Mathlib.Tactic.DeriveFintype
 
 open Applib
 
-/-- Public name of someone -/
-abbrev PublicIden := Anoma.NullifierKeyCommitment
-
 /-- Kudos API Summary: -/
 /- 1. For this example, we define public key = NullifierKeyCommitment and private key = NullifierKey -/
 /- 2. Definition of *ownership*: We say that a user owns a resource R if it knows the -/
@@ -24,10 +21,13 @@ abbrev PublicIden := Anoma.NullifierKeyCommitment
 /- 4. Burn: The owner of a kudos token can destroy it if themself is the originator of the token -/
 /- 5. Merge: Merge two Kudos object of the same denomination and owner into a single one -/
 
-structure Kudos where
+structure KudosData where
+  originator : PublicKey
+  owner : PublicKey
+  deriving DecidableEq, Inhabited
+
+structure Kudos extends KudosData where
   quantity : Nat
-  originator : PublicIden
-  owner : PublicIden
   deriving DecidableEq, Inhabited
 
 namespace Kudos
@@ -47,11 +47,15 @@ inductive Destructors where
 
 open AVM
 
+instance KudosData.hasTypeRep : TypeRep KudosData where
+  rep := Rep.atomic "KudosData"
+
 instance hasTypeRep : TypeRep Kudos where
   rep := Rep.atomic "Kudos"
 
 structure MintArgs where
-  key : Anoma.NullifierKey
+  key : PrivateKey
+  originator : PublicKey
   quantity : Nat
   deriving BEq
 
@@ -66,7 +70,7 @@ instance SplitArgs.hasTypeRep : TypeRep SplitArgs where
   rep := Rep.atomic "SplitArgs"
 
 structure TransferArgs where
-  newOwner : PublicIden
+  newOwner : PublicKey
   deriving DecidableEq
 
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
@@ -74,7 +78,7 @@ instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
 
 def clab : Class.Label where
   name := "Kudos"
-  PrivateFields := ⟨PublicIden⟩
+  PrivateFields := ⟨KudosData⟩
 
   MethodId := Methods
   MethodArgs := fun
@@ -91,14 +95,12 @@ def clab : Class.Label where
 
 def toObject (c : Kudos) : Object clab where
   quantity := c.quantity
-  privateFields := c.originator
-  nullifierKeyCommitment := c.owner
+  privateFields := { originator := c.originator, owner := c.owner }
 
 def fromObject (o : Object clab) : Option Kudos := do
-  let key <- o.nullifierKeyCommitment
-  some { owner := key
+  some { owner := o.privateFields.owner
          quantity := o.quantity
-         originator := o.privateFields }
+         originator := o.privateFields.originator }
 
 instance hasIsObject : IsObject Kudos where
   label := clab
@@ -108,8 +110,9 @@ instance hasIsObject : IsObject Kudos where
 
 def kudosMint : @Class.Constructor clab Constructors.Mint := defConstructor
   (body := fun (args : MintArgs) => { quantity := args.quantity
-                                      owner := args.key.commitment
-                                      originator := args.key.commitment : Kudos})
+                                      owner := args.originator
+                                      originator := args.originator : Kudos})
+  (invariant := fun (args : MintArgs) => checkKey args.originator args.key)
 
 def kudosSplit : @Class.Method clab Methods.Split := defMethod Kudos
   (body := fun (self : Kudos) (args : SplitArgs) =>
