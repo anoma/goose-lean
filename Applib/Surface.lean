@@ -141,15 +141,15 @@ def defIntent
   (cases : (args : lab.Args.type) → List IntentCase)
   : Intent lab where
   condition (args : lab.Args.type) (provided : List SomeObject) (received : List SomeObject) :=
-  let rec runCases (cases : List IntentCase) : Bool :=
-         match cases with
-         | [] => false
-         | c :: cs =>
-           let x : Option Bool :=
-             let try prov := ObjectsOf.tryMk c.providedArgs provided
-             let try rec := ObjectsOf.tryMk c.receivedArgs received
-             some (c.condition prov rec)
-           match x with
-           | none => runCases cs
-           | some b => b
-  runCases (cases args)
+    let rec runCases (cases : List IntentCase) : Bool :=
+          match cases with
+          | [] => false
+          | c :: cs =>
+            let x : Option Bool :=
+              let try prov := ObjectsOf.tryMk c.providedArgs provided
+              let try recv := ObjectsOf.tryMk c.receivedArgs received
+              some (c.condition prov recv)
+            match x with
+            | none => runCases cs
+            | some b => b
+    runCases (cases args)
