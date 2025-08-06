@@ -91,6 +91,7 @@ instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
 def Label : Class.Label where
   name := "Check"
   PrivateFields := ⟨Check⟩
+  SubObjects := noSubObjects
 
   MethodId := Methods
   MethodArgs := fun _ => ⟨TransferArgs⟩
@@ -130,6 +131,7 @@ instance hasTypeRep : TypeRep Auction where
 def Label : Class.Label where
   name := "Auction"
   PrivateFields := ⟨Auction⟩
+  SubObjects := noSubObjects
 
   MethodId := Empty
   MethodArgs := noMethods
@@ -230,6 +232,7 @@ instance BurnArgs.hasTypeRep : TypeRep BurnArgs where
 def BankLabel : Class.Label where
   name := "KudosBank"
   PrivateFields := ⟨KudosBank⟩
+  SubObjects := noSubObjects
 
   MethodId := Methods
   MethodArgs := fun

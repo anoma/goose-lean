@@ -64,3 +64,14 @@ def decImageOption' {A : Type u} [enum : FinEnum A] {B : (a : A) → Type v}
         have c := (p a).down
         rw [p1] at c
         contradiction
+
+instance ext {T : Type} (A : T → Type u) [enum : FinEnum T] [instBEq : (t : T) → BEq (A t)]
+  : BEq ((t : T) → A t) where
+  beq f g :=
+    let rec go (args : List T) : Bool :=
+        match args with
+        | [] => true
+        | a :: as => f a == g a && go as
+    go enum.toList
+
+def toVector {T : Type u} [enum : FinEnum T] : Vector T enum.card := sorry

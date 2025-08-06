@@ -80,6 +80,8 @@ def clab : Class.Label where
   name := "Kudos"
   PrivateFields := ⟨KudosData⟩
 
+  SubObjects := noSubObjects
+
   MethodId := Methods
   MethodArgs := fun
     | Methods.Split => ⟨SplitArgs⟩

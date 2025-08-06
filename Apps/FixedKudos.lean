@@ -49,6 +49,7 @@ def swapLabel : Intent.Label where
 def kudosLabel : Class.Label where
   name := "Kudos"
   PrivateFields := ⟨PublicIden × PublicIden⟩
+  SubObjects := noSubObjects
 
   MethodId := Empty
   MethodArgs := fun x => nomatch x

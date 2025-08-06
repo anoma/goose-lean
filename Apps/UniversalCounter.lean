@@ -57,6 +57,8 @@ def clab : Class.Label where
   name := "UniversalCounter"
   PrivateFields := ⟨Nat⟩
 
+  SubObjects := noSubObjects
+
   MethodId := Methods
   MethodArgs := fun
     | Methods.Incr => ⟨Nat⟩

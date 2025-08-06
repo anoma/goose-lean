@@ -33,6 +33,7 @@ open AVM
 def clab : Class.Label where
   name := "OwnedCounter"
   PrivateFields := ⟨OwnedCounter⟩
+  SubObjects := noSubObjects
   MethodId := Methods
   MethodArgs := fun
     | Methods.Incr => ⟨Nat⟩
