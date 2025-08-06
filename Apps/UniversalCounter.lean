@@ -72,6 +72,7 @@ def clab : Class.Label where
 def toObject (c : Counter) : Object clab where
   quantity := 1
   privateFields := c.count
+  subObjects := noSubObjects
 
 def fromObject (o : Object clab) : Option Counter := do
   guard (o.quantity == 1)

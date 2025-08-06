@@ -106,7 +106,8 @@ instance instIsObject : IsObject Check where
   label := Label
   toObject := fun (c : Check) =>
    { quantity := 1
-     privateFields := c }
+     privateFields := c
+     subObjects := noSubObjects }
   fromObject := fun (o : Object Label) => some o.privateFields
   roundTrip := by rfl
 
@@ -146,7 +147,8 @@ instance instIsObject : IsObject Auction where
   label := Label
   toObject := fun (c : Auction) =>
    { quantity := 1
-     privateFields := c }
+     privateFields := c
+     subObjects := noSubObjects }
   fromObject := fun (o : Object Label) => some o.privateFields
   roundTrip := by rfl
 
@@ -253,6 +255,7 @@ namespace KudosBank
 def toObject (c : KudosBank) : Object BankLabel where
   quantity := 1
   privateFields := c
+  subObjects := noSubObjects
 
 def fromObject (o : Object BankLabel) : Option KudosBank :=
   some o.privateFields

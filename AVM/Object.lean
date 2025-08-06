@@ -13,6 +13,10 @@ structure SomeReference : Type where
   ref : Nat
   deriving BEq
 
+def Reference.forget {lab : Class.Label} (r : Reference lab) : SomeReference where
+  ref := r.ref
+
+-- unsafe
 def SomeReference.coerce {lab : Class.Label} (r : SomeReference) : Reference lab where
   ref := r.ref
 
@@ -60,7 +64,12 @@ instance : TypeRep Object.Resource.Label where
 instance : BEq Object.Resource.Label where
   beq o1 o2 := o1.classLabel == o2.classLabel && o1.dynamicLabel === o2.dynamicLabel
 
-def Class.Label.ValueType (clab : Class.Label) : SomeType := ⟨clab.PrivateFields.type × List SomeReference⟩
+-- TODO consider defining a structure
+def Class.Label.ValueType (clab : Class.Label) : SomeType :=
+  ⟨clab.PrivateFields.type × Vector SomeReference clab.subObjectEnum.card⟩
+
+def Object.references {clab : Class.Label} (obj : Object clab) : Vector SomeReference clab.subObjectEnum.card :=
+    Vector.map (fun c => obj.subObjects c |>.forget) clab.subObjectEnum.toVector
 
 /-- Converts SomeObject to a Resource. -/
 def SomeObject.toResource
@@ -74,7 +83,7 @@ def SomeObject.toResource
     Label := ⟨Object.Resource.Label⟩,
     label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.privateFields⟩,
     quantity := obj.quantity,
-    value := (obj.privateFields, sorry),
+    value := (obj.privateFields, obj.references),
     ephemeral := ephemeral,
     nonce,
     nullifierKeyCommitment := default }
@@ -90,10 +99,10 @@ def Object.fromResource
   let try fields : lab.ValueType.type := SomeType.cast res.value
   let privateFields := fields.1
   let enum := lab.subObjectEnum
-  let try subObjects : Vector SomeReference enum.card := fields.2.toSizedVector
+  let subObjects : Vector SomeReference enum.card := fields.2
   some { quantity := res.quantity,
          nonce := res.nonce,
-         subObjects := fun s => (subObjects.get (enum.equiv s)).coerce
+         subObjects := fun s => subObjects.get (enum.equiv s) |>.coerce
          privateFields := privateFields }
 
 def SomeObject.fromResource

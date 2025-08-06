@@ -63,6 +63,7 @@ def kudosLabel : Class.Label where
 def Kudos.toObject (c : Kudos) : Object kudosLabel where
   quantity := c.quantity
   privateFields := (c.originator, c.owner)
+  subObjects := noSubObjects
 
 def Kudos.fromObject (o : Object kudosLabel) : Option Kudos := do
   some { owner := o.privateFields.2,
