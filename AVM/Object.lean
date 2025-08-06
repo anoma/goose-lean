@@ -11,7 +11,7 @@ structure Reference (lab : Class.Label) : Type where
 
 structure SomeReference : Type where
   ref : Nat
-  deriving BEq
+  deriving BEq, Hashable
 
 def Reference.forget {lab : Class.Label} (r : Reference lab) : SomeReference where
   ref := r.ref
