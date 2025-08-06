@@ -74,4 +74,6 @@ instance ext {T : Type} (A : T → Type u) [enum : FinEnum T] [instBEq : (t : T)
         | a :: as => f a == g a && go as
     go enum.toList
 
-def toVector {T : Type u} [enum : FinEnum T] : Vector T enum.card := sorry
+def toVector {T : Type u} [enum : FinEnum T] : Vector T enum.card :=
+  Vector.finRange enum.card
+  |>.map enum.equiv.symm
