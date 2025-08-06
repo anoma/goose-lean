@@ -1,7 +1,7 @@
-# GOOSE v0.2.0 Summary
-A high-level summary description of GOOSE v0.2.0. The description intentionally simplifies some data structures in comparison to the actual Lean implementation. The aim is to provide a high-level overview of the essential features of the model and its translation to the Anoma Resource Machine.
+# GOOSE v0.2.1 Summary
+A high-level summary description of GOOSE v0.2.1. The description intentionally simplifies some data structures in comparison to the actual Lean implementation. The aim is to provide a high-level overview of the essential features of the model and its translation to the Anoma Resource Machine.
 
-- [GOOSE v0.2.0 Summary](#goose-v020-summary)
+- [GOOSE v0.2.1 Summary](#goose-v021-summary)
 	- [Overview](#overview)
 	- [AVM data structures](#avm-data-structures)
 		- [Intent.Label](#intentlabel)
@@ -50,7 +50,7 @@ The Anoma Virtual Machine (AVM) data structures provide an object-oriented abstr
 
 The translation from AVM to the Resource Machine (RM) relies on the static nature of AVM programs. Each object is compiled to a single resource, tagged with its class and ecosystem metadata. Constructor, destructor, method and function calls, and intent creation, are all translated into single-action transactions. Because all class member operations, functions and intents are known statically, appropriate Resource Logic checks can be generated from their code. A single Resource Logic is generated for a given ecosystem and associated with each object of a class in the ecosystem. The action's App Data contains an indicator for which member's logic should be checked. Logically, the ecosystem logic is a disjunction of the member logics.
 
-![GOOSE v0.2.0 Summary](Goose-v0.2.0-summary.png)
+![GOOSE v0.2.1 Summary](Goose-summary.png)
 
 ## AVM data structures
 
@@ -93,7 +93,6 @@ The translation from AVM to the Resource Machine (RM) relies on the static natur
 	- `label : Class.Label` determines the object's class,
 	- `quantity : Nat`,
 	- private fields,
-	- nullifier key commitment – "public key" used to prove ownership,
 	- optionally:
 		- nonce – ensures the uniqueness of resource commitment and nullifier, available for objects fetched from the Anoma system.
 
@@ -179,11 +178,11 @@ Objects are translated to Resources. Currently, it's a 1:1 translation.
 - Private fields are stored in the `value` field.
 - The Resource Logic (RL) of the resource corresponding to the object is determined by the ecosystem of the object's class. This way the resource kind (label + logic) determines the object class.
 - The ephemerality of the resource is _not_ determined by the object. An object can map to either an ephemeral or a persistent resource depending on how it is used in the action.
-- `nullifierKeyCommitment` is stored in the `nullifierKeyCommitment` field.
 - If `nonce` is not `none`, then it is stored in the `nonce` field. Otherwise, the nonce is computed as follows.
 	 - For consumed persistent resources the nonce must be available in the object.
 	 - For consumed ephemeral resources the nonce is random.
 	 - For created resources (persistent and ephemeral) the nonce is equal to the nullifier of the consumed resource in the same compliance unit.
+- The `nullifierKeyCommitment` field is computed using the universal nullifier key.
 
 #### Resource data check
 Resource data check `checkDataEq(res,obj)` compares a resource `res` against an object `obj`.
@@ -191,7 +190,6 @@ Resource data check `checkDataEq(res,obj)` compares a resource `res` against an 
 - `Class.Member.Logic.checkResourceData` in `AVM/Class/Member/Logic.lean`.
 - Check `res.label == obj.label`.
 - Check `res.logicHash` is equal to the hash of the [ecosystem logic](#ecosystem-logic) for the ecosystem of the class of `obj`.
-- Check `res.nullifierKeyCommitment == obj.nullifierKeyCommitment`.
 - Check `res.quantity == obj.quantity`.
 - Check `res.value` encodes the private fields of `obj`.
 
@@ -482,8 +480,7 @@ Ecosystem logic for an ecosystem `eco` performs the following checks.
 ## Translation issues
 
 - Handling of nullifier key commitments:
-	- needs conceptual work on how to represent them as identities/ownership on a higher level,
-	- nullifier key commitments shouldn't be visible to the end user.
+	- needs conceptual work on how to represent them as identities/ownership on a higher level.
 - RL checks for the created case:
 	- none for now, which is correct for the simple app examples we have, but not general enough,
 	- Yulia needs to think about this.
@@ -505,16 +502,24 @@ Ecosystem logic for an ecosystem `eco` performs the following checks.
 		- mutual increment,
 		- absorption of a counter into another counter.
 - Owned counter: `Apps/OwnerCounter.lean`.
-	- Counter with ownership implemented using nullifier keys.
+	- Counter with ownership.
 	- Constructor: create with count zero.
 	- Destructor: destroy when count $\ge 10$.
 	- Methods: increment, transfer ownership.
 - Kudos: `Apps/Kudos.lean`.
-	- Kudos with ownership implemented using nullifier keys.
+	- Kudos with ownership.
 	- Kudos token has: quantity, originator, owner.
 	- Operations: mint, burn, transfer, split, merge.
 - Kudos bank: `Apps/KudosBank.lean`.
 	- Kudos app implemented with a single object KudosBank which tracks all kudo balances.
 	- Operations: open, close, mint, burn, transfer.
+	- Functions:
+    	- cheques: issue, deposit.
+    	- auctions: new, bid, end.
+- Fixed Kudos:
+    - Kudos with 1-to-1 exchange.
+    - Kudos token has: quantity, originator, owner.
+    - Operations: mint.
+    - Intents: swap (1-to-1 exchange).
 
 [^1]: Member logics are checked only when a resource is consumed, so the always false logic will never be run. It needs to return false to prevent it from being maliciously misused to circumvent a member logic check.

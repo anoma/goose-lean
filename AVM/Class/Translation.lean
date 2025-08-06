@@ -47,10 +47,11 @@ def Constructor.action
   let consumable : ConsumableObject clab :=
       { object := newObj
         ephemeral := true }
-  let consumed : ConsumedObject classId.label := { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource }
-  let created : List CreatedObject :=
-        [CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)]
-  Action.create lab (.classMember (.constructorId constrId)) UUnit.unit args [consumed] created
+  let consumed : ConsumedObject classId.label :=
+    { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource }
+  let created : CreatedObject :=
+    CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)
+  Action.create lab (.classMember (.constructorId constrId)) UUnit.unit args [consumed] [created]
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Constructor.transaction

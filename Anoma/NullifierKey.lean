@@ -22,6 +22,9 @@ inductive NullifierKeyCommitment where
 instance NullifierKeyCommitment.instInhabited : Inhabited NullifierKeyCommitment where
   default := .universal
 
+instance NullifierKeyCommitment.hasTypeRep : TypeRep NullifierKeyCommitment where
+  rep := Rep.atomic "NullifierKeyCommitment"
+
 /-- A proof that a NullifierKey matches a NullifierKeyCommitment -/
 inductive NullifierKeyMatchesCommitment : (key : NullifierKey) → (nfc : NullifierKeyCommitment) → Prop where
   | universal : NullifierKeyMatchesCommitment .universal .universal
