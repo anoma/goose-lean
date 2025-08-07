@@ -65,7 +65,7 @@ def decImageOption' {A : Type u} [enum : FinEnum A] {B : (a : A) → Type v}
         rw [p1] at c
         contradiction
 
-instance ext {T : Type} (A : T → Type u) [enum : FinEnum T] [instBEq : (t : T) → BEq (A t)]
+instance extBEq {T : Type} (A : T → Type u) [enum : FinEnum T] [instBEq : (t : T) → BEq (A t)]
   : BEq ((t : T) → A t) where
   beq f g :=
     let rec go (args : List T) : Bool :=

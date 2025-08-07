@@ -1,9 +1,10 @@
-import AVM.Object
-import AVM.Object.Consumable
 import AVM.Class
 import AVM.Class.Member
-import AVM.Logic
 import AVM.Class.Translation
 import AVM.Ecosystem.Translation
 import AVM.Intent
 import AVM.Intent.Translation
+import AVM.Logic
+import AVM.Object
+import AVM.Object.Consumable
+import AVM.Program

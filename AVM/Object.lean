@@ -7,11 +7,14 @@ namespace AVM
 -- how to model references?
 structure Reference (lab : Class.Label) : Type where
   ref : Nat
-  deriving BEq
+  deriving BEq, Repr
 
 structure SomeReference : Type where
   ref : Nat
   deriving BEq, Hashable
+
+def SomeReference.todo : SomeReference where
+  ref := 0
 
 def Reference.forget {lab : Class.Label} (r : Reference lab) : SomeReference where
   ref := r.ref
@@ -23,8 +26,11 @@ def SomeReference.coerce {lab : Class.Label} (r : SomeReference) : Reference lab
 instance SomeReference.instTypeRep : TypeRep SomeReference where
   rep := Rep.atomic "SomeReference"
 
+lemma forget_coerce {lab : Class.Label} (r : Reference lab) : r.forget.coerce = r := by
+  unfold Reference.forget SomeReference.coerce; simp
+
 instance subObjectsBEq {lab : Class.Label} : BEq ((s : lab.SubObjectName) → Reference s.label) :=
-  FinEnum.ext (fun l => Reference l.label) (enum := lab.subObjectEnum)
+  FinEnum.extBEq (fun l => Reference l.label) (enum := lab.subObjectEnum)
 
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
