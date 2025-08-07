@@ -10,7 +10,7 @@ namespace Anoma
 abbrev ObjectId := Nat
 
 /-- Encrypted data. -/
-abbrev Ciphertext := String
+abbrev Ciphertext := ByteArray
 
 /-- Raw unencrypted data. -/
 abbrev Plaintext := String
