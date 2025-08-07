@@ -13,7 +13,7 @@ abbrev ObjectId := Nat
 abbrev Ciphertext := ByteArray
 
 /-- Raw unencrypted data. -/
-abbrev Plaintext := String
+abbrev Plaintext := ByteArray
 
 /-- A type representing data that can be cryptographically signed. -/
 abbrev Signable := String
