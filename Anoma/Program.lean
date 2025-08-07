@@ -6,8 +6,12 @@ import Anoma.Identities
 namespace Anoma
 
 abbrev StorageKey := String
-abbrev StorageValue := String
 
+inductive StorageValue where
+  | str (s : String)
+  | int (i : Int)
+  | bool (b : Bool)
+  | bytes (b : ByteArray)
 inductive Program.ResourceQuery where
   | queryByObjectId (uid : ObjectId)
 
