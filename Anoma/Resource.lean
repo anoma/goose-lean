@@ -72,5 +72,13 @@ def nullifyUniversal (res : Resource)
   constructor
 
 /-- Computes the commitment of a Resource -/
-def Resource.commitment (_r : Resource) : Commitment :=
-  Signature.ed25519Signature "dummy"
+def Resource.commitment (r : Resource) : Commitment :=
+  -- TODO: Replace with proper serialization and hashing of all relevant fields
+  Signature.ed25519Signature (
+    toString r.label ++ "|" ++
+    toString r.quantity ++ "|" ++
+    toString r.value ++ "|" ++
+    toString r.ephemeral ++ "|" ++
+    toString r.nonce ++ "|" ++
+    toString r.nullifierKeyCommitment
+  )
