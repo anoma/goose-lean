@@ -16,7 +16,7 @@ abbrev Ciphertext := ByteArray
 abbrev Plaintext := ByteArray
 
 /-- A type representing data that can be cryptographically signed. -/
-abbrev Signable := String
+abbrev Signable := ByteArray
 
 /-- A unique identifier, such as a public key, represented as a natural number. -/
 abbrev ExternalId := PublicKey

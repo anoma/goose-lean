@@ -12,6 +12,7 @@ inductive StorageValue where
   | int (i : Int)
   | bool (b : Bool)
   | bytes (b : ByteArray)
+
 inductive Program.ResourceQuery where
   | queryByObjectId (uid : ObjectId)
 
