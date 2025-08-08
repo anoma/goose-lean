@@ -1,4 +1,3 @@
-
 syntax withPosition("let" "try" term (":" term)? ":=" term) optSemicolon(term) : term
 syntax withPosition("let" "try" term (":" term)? ":=" term) optSemicolon(doSeq) : doElem
 syntax withPosition("let" "try" term (":" term)? "←" term)  optSemicolon(doSeq) : doElem
