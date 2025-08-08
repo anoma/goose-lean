@@ -33,6 +33,7 @@ open AVM
 def clab : Class.Label where
   name := "OwnedCounter"
   PrivateFields := ⟨OwnedCounter⟩
+  SubObjects := noSubObjects
   MethodId := Methods
   MethodArgs := fun
     | Methods.Incr => ⟨Nat⟩
@@ -48,6 +49,7 @@ def lab : Ecosystem.Label := Ecosystem.Label.singleton clab
 def toObject (c : OwnedCounter) : Object clab where
   quantity := 1
   privateFields := c
+  subObjects := noSubObjects
 
 def fromObject (o : Object clab) : Option OwnedCounter := do
   guard (o.quantity == 1)

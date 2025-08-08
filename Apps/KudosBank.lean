@@ -91,6 +91,7 @@ instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
 def Label : Class.Label where
   name := "Check"
   PrivateFields := ⟨Check⟩
+  SubObjects := noSubObjects
 
   MethodId := Methods
   MethodArgs := fun _ => ⟨TransferArgs⟩
@@ -105,7 +106,8 @@ instance instIsObject : IsObject Check where
   label := Label
   toObject := fun (c : Check) =>
    { quantity := 1
-     privateFields := c }
+     privateFields := c
+     subObjects := noSubObjects }
   fromObject := fun (o : Object Label) => some o.privateFields
   roundTrip := by rfl
 
@@ -130,6 +132,7 @@ instance hasTypeRep : TypeRep Auction where
 def Label : Class.Label where
   name := "Auction"
   PrivateFields := ⟨Auction⟩
+  SubObjects := noSubObjects
 
   MethodId := Empty
   MethodArgs := noMethods
@@ -144,7 +147,8 @@ instance instIsObject : IsObject Auction where
   label := Label
   toObject := fun (c : Auction) =>
    { quantity := 1
-     privateFields := c }
+     privateFields := c
+     subObjects := noSubObjects }
   fromObject := fun (o : Object Label) => some o.privateFields
   roundTrip := by rfl
 
@@ -230,6 +234,7 @@ instance BurnArgs.hasTypeRep : TypeRep BurnArgs where
 def BankLabel : Class.Label where
   name := "KudosBank"
   PrivateFields := ⟨KudosBank⟩
+  SubObjects := noSubObjects
 
   MethodId := Methods
   MethodArgs := fun
@@ -250,6 +255,7 @@ namespace KudosBank
 def toObject (c : KudosBank) : Object BankLabel where
   quantity := 1
   privateFields := c
+  subObjects := noSubObjects
 
 def fromObject (o : Object BankLabel) : Option KudosBank :=
   some o.privateFields

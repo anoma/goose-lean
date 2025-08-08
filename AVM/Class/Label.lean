@@ -25,6 +25,12 @@ structure Label : Type (u + 1) where
 
   PrivateFields : SomeType.{u}
 
+  SubObjectName : Type := Empty
+  [subObjectEnum : FinEnum SubObjectName]
+  [subObjectRepr : Repr SubObjectName]
+  [subObjectBEq : BEq SubObjectName]
+  SubObjects : SubObjectName → Label
+
   /-- The dynamic label is used to put dynamic data into the Resource label -/
   DynamicLabel : DynamicLabel.{u} PrivateFields.type := default
 
@@ -82,6 +88,9 @@ def Class.Label.MethodId.Args {lab : Class.Label} (methodId : lab.MethodId) : So
 
 def Class.Label.DestructorId.Args {lab : Class.Label} (destructorId : lab.DestructorId) : SomeType :=
   lab.DestructorArgs destructorId
+
+def Class.Label.SubObjectName.label {lab : Class.Label} (field : lab.SubObjectName) : Label :=
+  lab.SubObjects field
 
 def Class.Label.MemberId.Args {lab : Class.Label.{u}} (memberId : MemberId lab) : SomeType.{u} :=
   match memberId with

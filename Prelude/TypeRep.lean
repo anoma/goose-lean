@@ -95,6 +95,9 @@ instance : TypeRep Nat where
 instance : TypeRep String where
   rep := Rep.atomic "String"
 
+instance {α} {n : Nat} [TypeRep α]: TypeRep (Vector α n) where
+  rep := Rep.composite "Vector" [Rep.atomic (reprStr n), TypeRep.rep α]
+
 instance {α} [TypeRep α]: TypeRep (List α) where
   rep := Rep.composite "List" [TypeRep.rep α]
 

@@ -57,6 +57,8 @@ def clab : Class.Label where
   name := "UniversalCounter"
   PrivateFields := ⟨Nat⟩
 
+  SubObjects := noSubObjects
+
   MethodId := Methods
   MethodArgs := fun
     | Methods.Incr => ⟨Nat⟩
@@ -70,6 +72,7 @@ def clab : Class.Label where
 def toObject (c : Counter) : Object clab where
   quantity := 1
   privateFields := c.count
+  subObjects := noSubObjects
 
 def fromObject (o : Object clab) : Option Counter := do
   guard (o.quantity == 1)

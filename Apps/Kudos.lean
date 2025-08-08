@@ -80,6 +80,8 @@ def clab : Class.Label where
   name := "Kudos"
   PrivateFields := ⟨KudosData⟩
 
+  SubObjects := noSubObjects
+
   MethodId := Methods
   MethodArgs := fun
     | Methods.Split => ⟨SplitArgs⟩
@@ -96,6 +98,7 @@ def clab : Class.Label where
 def toObject (c : Kudos) : Object clab where
   quantity := c.quantity
   privateFields := { originator := c.originator, owner := c.owner }
+  subObjects := noSubObjects
 
 def fromObject (o : Object clab) : Option Kudos := do
   some { owner := o.privateFields.owner
