@@ -6,3 +6,4 @@ import Prelude.FinEnum
 import Prelude.FinEnum.Derive
 import Prelude.LetTry
 import Prelude.LetBang
+import Prelude.Check

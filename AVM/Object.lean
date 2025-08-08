@@ -7,8 +7,11 @@ namespace AVM
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
 structure Object (lab : Class.Label) : Type u where
+  /-- Unique object identifier. Stored in the `value` field of the resource. -/
+  uid : Anoma.ObjectId
+  /-- Object quantity, stored in the `quantity` field of the resource. -/
   quantity : Nat
-  /-- `privateFields` go into the `value` field of the resource -/
+  /-- `privateFields` go into the `value` field of the resource. -/
   privateFields : lab.PrivateFields.type
   /-- The nonce should be available for objects fetched from Anoma. -/
   nonce : Option Anoma.Nonce := none
@@ -41,6 +44,16 @@ instance : TypeRep Object.Resource.Label where
 instance : BEq Object.Resource.Label where
   beq o1 o2 := o1.classLabel == o2.classLabel && o1.dynamicLabel === o2.dynamicLabel
 
+structure Object.Resource.Value (lab : Class.Label) where
+  uid : Anoma.ObjectId
+  privateFields : lab.PrivateFields.type
+
+instance {lab : Class.Label} : TypeRep (Object.Resource.Value lab) where
+  rep := Rep.composite "Object.Resource.Value" [Rep.atomic lab.name]
+
+instance {lab : Class.Label} : BEq (Object.Resource.Value lab) where
+  beq v1 v2 := v1.uid == v2.uid && v1.privateFields === v2.privateFields
+
 /-- Converts SomeObject to a Resource. -/
 def SomeObject.toResource
   (sobj : SomeObject)
@@ -49,11 +62,11 @@ def SomeObject.toResource
   : Anoma.Resource :=
   let lab := sobj.label
   let obj : Object lab := sobj.object
-  { Val := lab.PrivateFields,
+  { Val := ⟨Object.Resource.Value lab⟩,
     Label := ⟨Object.Resource.Label⟩,
     label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.privateFields⟩,
     quantity := obj.quantity,
-    value := obj.privateFields,
+    value := ⟨obj.uid, obj.privateFields⟩,
     ephemeral := ephemeral,
     nonce,
     nullifierKeyCommitment := default }
@@ -66,10 +79,13 @@ def Object.fromResource
   {lab : Class.Label}
   (res : Anoma.Resource)
   : Option (Object lab) :=
-  let try privateFields : lab.PrivateFields.type := SomeType.cast res.value
-  some { quantity := res.quantity,
-         nonce := res.nonce,
-         privateFields := privateFields }
+  let try resLab : Object.Resource.Label := tryCast res.label
+  check (resLab.classLabel == lab)
+  let try value : Object.Resource.Value lab := tryCast res.value
+  some {  uid := value.uid,
+          quantity := res.quantity,
+          nonce := res.nonce,
+          privateFields := value.privateFields }
 
 def SomeObject.fromResource
   (res : Anoma.Resource)
