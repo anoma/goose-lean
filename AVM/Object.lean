@@ -4,17 +4,20 @@ import AVM.Class.Label
 
 namespace AVM
 
+structure Object.Data (lab : Class.Label) where
+  /-- Object quantity, stored in the `quantity` field of the resource. -/
+  quantity : Nat
+  /-- `privateFields` go into the `value` field of the resource. -/
+  privateFields : lab.PrivateFields.type
+  deriving BEq
+
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
 structure Object (lab : Class.Label) : Type u where
   /-- Unique object identifier. Stored in the `value` field of the resource. -/
   uid : Anoma.ObjectId
-  /-- Object quantity, stored in the `quantity` field of the resource. -/
-  quantity : Nat
-  /-- `privateFields` go into the `value` field of the resource. -/
-  privateFields : lab.PrivateFields.type
-  /-- The nonce should be available for objects fetched from Anoma. -/
-  nonce : Option Anoma.Nonce := none
+  nonce : Anoma.Nonce
+  data : Object.Data lab
   deriving BEq
 
 instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
@@ -64,9 +67,9 @@ def SomeObject.toResource
   let obj : Object lab := sobj.object
   { Val := ⟨Object.Resource.Value lab⟩,
     Label := ⟨Object.Resource.Label⟩,
-    label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.privateFields⟩,
-    quantity := obj.quantity,
-    value := ⟨obj.uid, obj.privateFields⟩,
+    label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.data.privateFields⟩,
+    quantity := obj.data.quantity,
+    value := ⟨obj.uid, obj.data.privateFields⟩,
     ephemeral := ephemeral,
     nonce,
     nullifierKeyCommitment := default }
@@ -83,9 +86,8 @@ def Object.fromResource
   check (resLab.classLabel == lab)
   let try value : Object.Resource.Value lab := tryCast res.value
   some {  uid := value.uid,
-          quantity := res.quantity,
-          nonce := res.nonce,
-          privateFields := value.privateFields }
+          data := ⟨res.quantity, value.privateFields⟩,
+          nonce := res.nonce }
 
 def SomeObject.fromResource
   (res : Anoma.Resource)
