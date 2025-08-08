@@ -3,6 +3,7 @@ import Prelude
 import Anoma.ConsumedCreated
 import Anoma.Nullifier
 import Anoma.Nonce
+import Anoma.Identities
 
 namespace Anoma
 
@@ -70,9 +71,7 @@ def nullifyUniversal (res : Resource)
   rw [p1]
   constructor
 
-inductive Commitment where
-  | privateMk : Commitment
-  deriving Inhabited, Repr, BEq, Hashable
-
 /-- Computes the commitment of a Resource -/
-def Resource.commitment (_r : Resource) : Commitment := Commitment.privateMk
+def Resource.commitment (_r : Resource) : Commitment :=
+  -- TODO: Replace with proper serialization and hashing of all relevant fields
+  Signature.ed25519Signature "dummy"
