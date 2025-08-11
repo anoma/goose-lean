@@ -32,7 +32,7 @@ def Function.logic
   (fargs : funId.Args.type)
   : Bool :=
   let fn : Function funId := eco.functions funId
-  let try (argsConsumedSelves, argsConstructedEph, argsDestroyed, UUnit.unit) :=
+  let try (argsConsumedSelves, argsConstructedEph, argsDestroyed, PUnit.unit) :=
       args.consumed
       |> Logic.filterOutDummy
       |>.splitsExact [funId.numObjectArgs, funData.numConstructed, funData.numDestroyed]
@@ -46,7 +46,7 @@ def Function.logic
         funId.objectArgNames.filterMap (fun arg => match funRes.argDeconstruction arg with
         | .Destroyed => argsConsumedObjects arg |>.toSomeObject |> some
         | .Disassembled => none)
-      let try (argsCreated, argsConstructed, argsDestroyedEph, argsSelvesDestroyedEph, UUnit.unit) :=
+      let try (argsCreated, argsConstructed, argsDestroyedEph, argsSelvesDestroyedEph, PUnit.unit) :=
         args.created
         |> Logic.filterOutDummy
         |>.splitsExact [createdObjects.length, funData.numConstructed, funData.numDestroyed, funData.numSelvesDestroyed]

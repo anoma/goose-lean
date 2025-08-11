@@ -77,7 +77,7 @@ def counterTransfer : @Class.Method clab Methods.Transfer := defMethod OwnedCoun
 
 /-- We only allow the counter to be destroyed if its count is at least 10 -/
 def counterDestroy : @Class.Destructor clab Destructors.Ten := defDestructor
- (invariant := fun (self : OwnedCounter) (_ : UUnit) => self.count >= 10)
+ (invariant := fun (self : OwnedCounter) (_ : PUnit) => self.count >= 10)
 
 def counterClass : @Class lab .unit where
   constructors := fun

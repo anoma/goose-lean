@@ -15,9 +15,9 @@ structure Label : Type 1 where
   -- TODO consider grouping these fields in a struct so that all default values can be provided
   FunctionId : Type := Empty
   /-- Type of function arguments excluding `self` arguments. -/
-  FunctionArgs : FunctionId → SomeType := fun _ => ⟨UUnit⟩
+  FunctionArgs : FunctionId → SomeType := fun _ => ⟨PUnit⟩
   /-- Names of `self` arguments for a given function. -/
-  FunctionObjectArgNames : FunctionId → Type := fun _ => UUnit
+  FunctionObjectArgNames : FunctionId → Type := fun _ => PUnit
   /-- Class identifiers for `self` arguments. -/
   FunctionObjectArgClass : {f : FunctionId} → FunctionObjectArgNames f → ClassId
   [objectArgNamesEnum (f : FunctionId) : FinEnum (FunctionObjectArgNames f)]
@@ -37,10 +37,10 @@ namespace AVM.Ecosystem.Label
 def singleton (l : Class.Label) : Ecosystem.Label where
   name := l.name
 
-  ClassId := UUnit
+  ClassId := PUnit
   classLabel := fun _ => l
 
-  FunctionObjectArgClass := fun _ => UUnit.unit
+  FunctionObjectArgClass := fun _ => PUnit.unit
   objectArgNamesEnum := fun f => f.elim
   objectArgNamesBEq := fun f => f.elim
 
@@ -102,7 +102,7 @@ def MemberId.Args {lab : Ecosystem.Label} (memberId : MemberId lab) : SomeType :
   match memberId with
   | functionId f => lab.FunctionArgs f
   | classMember m => Class.Label.MemberId.Args m
-  | falseLogicId => ⟨UUnit⟩
+  | falseLogicId => ⟨PUnit⟩
 
 instance {lab : Ecosystem.Label} {classId : lab.ClassId}
   : CoeHead classId.label.ConstructorId classId.MemberId where
