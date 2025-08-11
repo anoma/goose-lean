@@ -26,12 +26,38 @@ def Constructor.logic
   (args : Logic.Args lab)
   : Bool :=
   let try argsData := SomeType.cast args.data.memberArgs
-  let newObj := constr.created argsData
-  Logic.checkResourcesData [newObj.toSomeObject] args.consumed
-    && Logic.checkResourcesData [newObj.toSomeObject] args.created
+  let newObjData := constr.created argsData
+  Logic.checkResourcesData [newObjData.toSomeObjectData] args.consumed
+    && Logic.checkResourcesData [newObjData.toSomeObjectData] args.created
     && Logic.checkResourcesEphemeral args.consumed
     && Logic.checkResourcesPersistent args.created
     && constr.invariant argsData
+
+/-- Creates an action for a given constructor. This action consumes creates the
+  object specified by the constructor. -/
+def Constructor.action'
+  (g : StdGen)
+  {lab : Ecosystem.Label}
+  {classId : lab.ClassId}
+  {constrId : classId.label.ConstructorId}
+  (constr : Class.Constructor constrId)
+  (args : constrId.Args.type)
+  : Anoma.Action × Anoma.DeltaWitness × StdGen :=
+  let clab := classId.label
+  let newObjData : ObjectData clab := constr.created args
+  let (r, g') := stdNext g
+  let newObj : Object clab :=
+    { uid := r,
+      nonce := ⟨r⟩,
+      data := newObjData }
+  let consumable : ConsumableObject clab :=
+      { object := newObj
+        ephemeral := true }
+  let consumed : ConsumedObject classId.label :=
+    { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource }
+  let created : CreatedObject :=
+    CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)
+  Action.create' g' lab (.classMember (.constructorId constrId)) PUnit.unit args [consumed] [created]
 
 /-- Creates an action for a given constructor. This action consumes creates the
   object specified by the constructor. -/
@@ -41,17 +67,11 @@ def Constructor.action
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor constrId)
   (args : constrId.Args.type)
-  : Rand (Anoma.Action × Anoma.DeltaWitness) :=
-  let clab := classId.label
-  let newObj : Object clab := constr.created args
-  let consumable : ConsumableObject clab :=
-      { object := newObj
-        ephemeral := true }
-  let consumed : ConsumedObject classId.label :=
-    { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource }
-  let created : CreatedObject :=
-    CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)
-  Action.create lab (.classMember (.constructorId constrId)) PUnit.unit args [consumed] [created]
+  : Rand (Anoma.Action × Anoma.DeltaWitness) := do
+  let g ← get
+  let (action, witness, g') := Constructor.action' g.down constr args
+  set (ULift.up g')
+  return (action, witness)
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Constructor.transaction
@@ -80,9 +100,9 @@ def Method.logic
   let try selfObj : Object classId.label := Object.fromResource args.self
   let try argsData := SomeType.cast args.data.memberArgs
   method.invariant selfObj argsData
-    && Logic.checkResourcesData [selfObj.toSomeObject] args.consumed
+    && Logic.checkResourcesData [selfObj.toSomeObjectData] args.consumed
     && let createdObjects := method.created selfObj argsData
-       Logic.checkResourcesData createdObjects args.created
+       Logic.checkResourcesData (List.map SomeObject.toSomeObjectData createdObjects) args.created
     && Logic.checkResourcesPersistent args.consumed
     && Logic.checkResourcesPersistent args.created
 
@@ -131,8 +151,8 @@ def Destructor.logic
   : Bool :=
   let try argsData := SomeType.cast args.data.memberArgs
   let try selfObj : Object classId.label := Object.fromResource args.self
-  Logic.checkResourcesData [selfObj.toSomeObject] args.consumed
-    && Logic.checkResourcesData [selfObj.toSomeObject] args.created
+  Logic.checkResourcesData [selfObj.toSomeObjectData] args.consumed
+    && Logic.checkResourcesData [selfObj.toSomeObjectData] args.created
     && Logic.checkResourcesPersistent args.consumed
     && Logic.checkResourcesEphemeral args.created
     && destructor.invariant selfObj argsData
@@ -190,7 +210,7 @@ def Intent.logic
   labelData.label === ilab
   && intentRes.quantity == 1
   && intentRes.ephemeral
-  && Logic.checkResourcesData labelData.data.provided args.consumed
+  && Logic.checkResourcesData (labelData.data.provided.map SomeObject.toSomeObjectData) args.consumed
 
 -- Check:
 -- 1. member logic corresponding to the memberId in AppData

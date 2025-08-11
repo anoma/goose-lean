@@ -1,15 +1,29 @@
-
 import Anoma.Resource
 import AVM.Class.Label
 
 namespace AVM
 
-structure Object.Data (lab : Class.Label) where
+structure ObjectData (lab : Class.Label) where
   /-- Object quantity, stored in the `quantity` field of the resource. -/
   quantity : Nat
   /-- `privateFields` go into the `value` field of the resource. -/
   privateFields : lab.PrivateFields.type
   deriving BEq
+
+instance ObjectData.hasTypeRep (lab : Class.Label) : TypeRep (ObjectData lab) where
+  rep := Rep.composite "AVM.ObjectData" [Rep.atomic lab.name]
+
+structure SomeObjectData where
+  {label : Class.Label}
+  data : ObjectData label
+
+instance SomeObjectData.hasTypeRep : TypeRep SomeObjectData where
+  rep := Rep.atomic "AVM.SomeObjectData"
+
+instance SomeObjectData.hasBEq : BEq SomeObjectData where
+  beq a b := a.label === b.label && a.data === b.data
+
+def ObjectData.toSomeObjectData {lab : Class.Label} (data : ObjectData lab) : SomeObjectData := {data}
 
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
@@ -17,7 +31,7 @@ structure Object (lab : Class.Label) : Type u where
   /-- Unique object identifier. Stored in the `value` field of the resource. -/
   uid : Anoma.ObjectId
   nonce : Anoma.Nonce
-  data : Object.Data lab
+  data : ObjectData lab
   deriving BEq
 
 instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
@@ -33,7 +47,11 @@ instance SomeObject.hasTypeRep : TypeRep SomeObject where
 instance SomeObject.hasBEq : BEq SomeObject where
   beq a b := a.label === b.label && a.object === b.object
 
-def Object.toSomeObject {lab : Class.Label} (object : Object lab) : SomeObject := {object}
+def Object.toSomeObject {lab : Class.Label} (object : Object lab) : SomeObject := ⟨object⟩
+
+def Object.toSomeObjectData {lab : Class.Label} (object : Object lab) : SomeObjectData := ⟨object.data⟩
+
+def SomeObject.toSomeObjectData (object : SomeObject) : SomeObjectData := ⟨object.object.data⟩
 
 structure Object.Resource.Label where
   /-- The label of the class -/

@@ -26,7 +26,7 @@ def Intent.logic {ilab : Intent.Label} (intent : Intent ilab) (args : Anoma.Logi
     -- corresponds to the list consumed resources. See:
     -- https://github.com/anoma/goose-lean/issues/32.
     let try data := Intent.ResourceData.fromResource args.self
-    Logic.checkResourcesData data.provided args.consumed
+    Logic.checkResourcesData (data.provided.map SomeObject.toSomeObjectData) args.consumed
 
 /-- An action which consumes the provided objects and creates the intent. This
   is a helper function which handles the random number generator explicitly to

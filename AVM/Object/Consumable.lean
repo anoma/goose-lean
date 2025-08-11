@@ -1,4 +1,3 @@
-
 import Anoma.Resource
 import AVM.Class.Label
 import AVM.Object
@@ -6,7 +5,6 @@ import AVM.Object
 namespace AVM
 
 structure ConsumableObject (lab : Class.Label) where
-  /-- `object` is assumed to have `nonce` set to `some` -/
   object : Object lab
   ephemeral : Bool
   deriving BEq
@@ -22,10 +20,10 @@ def SomeObject.toConsumable (ephemeral : Bool) (sobj : SomeObject) : SomeConsuma
        ephemeral }}
 
 def ConsumableObject.toResource {lab : Class.Label} (c : ConsumableObject lab) : Anoma.Resource :=
-  c.object.toResource c.ephemeral c.object.nonce.get!
+  c.object.toResource c.ephemeral c.object.nonce
 
 structure ConsumedObject (lab : Class.Label) extends ConsumableObject lab where
-  can_nullify : Anoma.CanNullifyResource Anoma.NullifierKey.universal (object.toResource ephemeral object.nonce.get!)
+  can_nullify : Anoma.CanNullifyResource Anoma.NullifierKey.universal (object.toResource ephemeral object.nonce)
 
 def ConsumedObject.toConsumable {lab : Class.Label} (c : ConsumedObject lab) : ConsumableObject lab :=
  { object := c.object

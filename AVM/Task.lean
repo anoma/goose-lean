@@ -5,7 +5,7 @@ import AVM.Message
 
 namespace AVM
 
-structure SimpleProgram (lab : Class.Label) where
+structure Task (lab : Class.Label) where
   /-- List of objects to fetch by object uid. -/
   fetch : List Anoma.ObjectId
   message : Message lab
