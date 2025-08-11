@@ -1,10 +1,12 @@
 import Prelude.LetTry
+import Mathlib.Data.Prod.TProd
 
 universe u v w z
 
 variable {A : Type u} {B : Type v} {C : Type w} {D : Type z}
 
 namespace List
+
 def zipWithExactOption (f : A → B → C) (l1 : List A) (l2 : List B) : Option (List C) :=
   match l1, l2 with
   | [], [] => pure []
@@ -34,10 +36,7 @@ def getSome (l : List (Option A)) : Option (List A) :=
   l.mapSome id
 
 def Product (tys : List (Type u)) : Type u :=
-  match tys with
-  | []      => PUnit
-  | [t]     => t
-  | t :: ts => t × Product ts
+  List.TProd id tys
 
 def toSizedVector {n : Nat} (l : List A) : Option (Vector A n) :=
   let a : Array A := l.toArray
@@ -67,5 +66,3 @@ def splitsExact (lst : List A) (lengths : List Nat) : Option (SplitsType A lengt
   match splits lst lengths with
   | .some (l, []) => some l
   | _ => none
-
-end List
