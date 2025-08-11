@@ -6,7 +6,7 @@ namespace AVM.Class
 
 structure Constructor {lab : Class.Label} (constrId : lab.ConstructorId) where
   /-- Object created in the constructor call. -/
-  created : constrId.Args.type → Object.Data lab
+  created : constrId.Args.type → ObjectData lab
   /-- Extra constructor logic. The constructor invariant is combined with
       auto-generated constructor body constraints to create the constructor logic. -/
   invariant : constrId.Args.type → Bool

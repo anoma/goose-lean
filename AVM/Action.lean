@@ -103,7 +103,7 @@ def create
   (memberData : memberId.Data)
   (args : memberId.Args.type)
   (consumed : List SomeConsumedObject)
-  (created : List CreatedObject) -- no appdata/logic
+  (created : List CreatedObject)
   : Rand (Anoma.Action × Anoma.DeltaWitness) := do
   let g ← get
   let (action, witness, g') := Action.create' g.down lab memberId memberData args consumed created
@@ -122,5 +122,5 @@ def SomeObject.balanceConstructed (constructed : SomeObject) : SomeConsumedObjec
   consumed :=
   let obj : Object constructed.label := constructed.object
   { object := obj,
-    can_nullify := Anoma.nullifyUniversal (obj.toResource true obj.nonce.get!)
+    can_nullify := Anoma.nullifyUniversal (obj.toResource true obj.nonce)
     ephemeral := true }

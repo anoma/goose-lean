@@ -50,12 +50,20 @@ def Function.logic
         args.created
         |> Logic.filterOutDummy
         |>.splitsExact [createdObjects.length, funData.numConstructed, funData.numDestroyed, funData.numSelvesDestroyed]
-      Logic.checkResourcesData createdObjects argsCreated.toList
-        && Logic.checkResourcesData destroyedObjects argsDestroyed.toList
-        && Logic.checkResourcesData destroyedObjects argsDestroyedEph.toList
-        && Logic.checkResourcesData constructedObjects argsConstructed.toList
-        && Logic.checkResourcesData constructedObjects argsConstructedEph.toList
-        && Logic.checkResourcesData consumedDestroyedObjects argsSelvesDestroyedEph.toList
+      let createdObjectsData : List SomeObjectData :=
+        createdObjects.map SomeObject.toSomeObjectData
+      let constructedObjectsData : List SomeObjectData :=
+        constructedObjects.map SomeObject.toSomeObjectData
+      let destroyedObjectsData : List SomeObjectData :=
+        destroyedObjects.map SomeObject.toSomeObjectData
+      let consumedDestroyedObjectsData : List SomeObjectData :=
+        consumedDestroyedObjects.map SomeObject.toSomeObjectData
+      Logic.checkResourcesData createdObjectsData argsCreated.toList
+        && Logic.checkResourcesData destroyedObjectsData argsDestroyed.toList
+        && Logic.checkResourcesData destroyedObjectsData argsDestroyedEph.toList
+        && Logic.checkResourcesData constructedObjectsData argsConstructed.toList
+        && Logic.checkResourcesData constructedObjectsData argsConstructedEph.toList
+        && Logic.checkResourcesData consumedDestroyedObjectsData argsSelvesDestroyedEph.toList
         && Logic.checkResourcesPersistent argsConsumedSelves.toList
         && Logic.checkResourcesPersistent argsDestroyed.toList
         && Logic.checkResourcesPersistent argsCreated.toList
