@@ -3,6 +3,8 @@ import AVM.Class.Label
 
 namespace AVM
 
+abbrev ObjectId := Anoma.ObjectId
+
 structure ObjectData (lab : Class.Label) where
   /-- Object quantity, stored in the `quantity` field of the resource. -/
   quantity : Nat

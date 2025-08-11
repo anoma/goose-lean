@@ -1,4 +1,3 @@
-
 import Prelude
 import Anoma.ConsumedCreated
 import Anoma.Nullifier
