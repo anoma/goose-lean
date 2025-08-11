@@ -11,7 +11,7 @@ structure FunctionData : Type where
 
 def Ecosystem.Label.MemberId.Data {lab : Ecosystem.Label} : lab.MemberId → Type
   | .functionId _ => FunctionData
-  | _ => UUnit
+  | _ => PUnit
 
 /-- The app data for an object in a given class consists of:
     1. member logic indicator (indicator which member is being called)

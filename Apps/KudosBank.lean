@@ -243,7 +243,7 @@ def BankLabel : Class.Label where
 
   DestructorId := Destructors
   DestructorArgs := fun
-    | Destructors.Close => ⟨UUnit⟩
+    | Destructors.Close => ⟨PUnit⟩
 
 namespace KudosBank
 
@@ -290,7 +290,7 @@ def kudosBurn : @Class.Method BankLabel Methods.Burn := defMethod KudosBank
     && args.quantity <= self.getBalance args.denom.originator args.denom)
 
 def kudosClose : @Class.Destructor BankLabel Destructors.Close := defDestructor
-  (invariant := fun (self : KudosBank) (_args : UUnit) => self.balances.isEmpty)
+  (invariant := fun (self : KudosBank) (_args : PUnit) => self.balances.isEmpty)
 
 inductive Functions where
   | IssueCheck

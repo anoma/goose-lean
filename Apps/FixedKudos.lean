@@ -83,13 +83,13 @@ def kudosSwap : Intent swapLabel :=
   [{ providedArgs := [⟨Kudos⟩]
      receivedArgs := [⟨Kudos⟩]
      condition := fun
-       | (provided, UUnit.unit), (received, UUnit.unit) =>
+       | (provided, PUnit.unit), (received, PUnit.unit) =>
          provided.owner == received.owner
          && received.originator == args.wantOriginator }]
 
 def eco : Ecosystem.Label := Ecosystem.Label.singleton kudosLabel
 
-def kudosClass : @Class eco UUnit.unit where
+def kudosClass : @Class eco PUnit.unit where
   constructors := fun
     | Constructors.Mint => kudosMint
   methods := noMethods

@@ -1,4 +1,3 @@
-import Prelude.UUnit
 import Prelude.LetTry
 
 universe u v w z
@@ -36,7 +35,7 @@ def getSome (l : List (Option A)) : Option (List A) :=
 
 def Product (tys : List (Type u)) : Type u :=
   match tys with
-  | []      => UUnit
+  | []      => PUnit
   | [t]     => t
   | t :: ts => t × Product ts
 
@@ -53,12 +52,12 @@ def splitAtExact (n : Nat) (lst : List A) : Option (Vector A n × List A) :=
 
 def SplitsType (A : Type u) (lengths : List Nat) : Type u :=
   match lengths with
-  | [] => UUnit
+  | [] => PUnit
   | n :: ns => Vector A n × SplitsType A ns
 
 def splits (lst : List A) (lengths : List Nat) : Option (SplitsType A lengths × List A) :=
   match lengths with
-  | [] => some (UUnit.unit, lst)
+  | [] => some (PUnit.unit, lst)
   | n :: ns =>
   let try ⟨h, t⟩ := splitAtExact n lst
   let try ⟨hs, rem⟩ := splits t ns

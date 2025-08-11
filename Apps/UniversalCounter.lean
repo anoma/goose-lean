@@ -95,7 +95,7 @@ def counterIncr : @Class.Method clab Methods.Incr := defMethod
 
 def lab : Ecosystem.Label where
   name := "UniversalCounter"
-  ClassId := UUnit
+  ClassId := PUnit
   classLabel := fun _ => clab
   FunctionId := Functions
   FunctionObjectArgNames : Functions → Type := fun
@@ -105,9 +105,9 @@ def lab : Ecosystem.Label where
     cases f <;> exact inferInstance
   objectArgNamesBEq (f : Functions) : BEq _ := by
     cases f <;> exact inferInstance
-  FunctionObjectArgClass {f : Functions} (_a : _) := UUnit.unit
+  FunctionObjectArgClass {f : Functions} (_a : _) := PUnit.unit
 
-def counterClass : @Class lab UUnit.unit where
+def counterClass : @Class lab PUnit.unit where
   constructors := fun
     | Constructors.Zero => counterConstructor
   methods := fun

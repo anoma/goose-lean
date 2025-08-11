@@ -51,7 +51,7 @@ def Constructor.action
     { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource }
   let created : CreatedObject :=
     CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)
-  Action.create lab (.classMember (.constructorId constrId)) UUnit.unit args [consumed] [created]
+  Action.create lab (.classMember (.constructorId constrId)) PUnit.unit args [consumed] [created]
 
 /-- Creates an Anoma Transaction for a given object construtor. -/
 def Constructor.transaction
@@ -103,7 +103,7 @@ def Method.action
       ephemeral := false }
   let created : List CreatedObject :=
       List.map createObject (method.created self args)
-  Action.create lab (.classMember (.methodId methodId)) UUnit.unit args [consumed] created
+  Action.create lab (.classMember (.methodId methodId)) PUnit.unit args [consumed] created
 
 /-- Creates an Anoma Transaction for a given object method. -/
 def Method.transaction
@@ -152,7 +152,7 @@ def Destructor.action
   let createdObject : CreatedObject :=
     { object := self
       ephemeral := true }
-  Action.create lab (.classMember (.destructorId destructorId)) UUnit.unit args [consumed] [createdObject]
+  Action.create lab (.classMember (.destructorId destructorId)) PUnit.unit args [consumed] [createdObject]
 
 /-- Creates an Anoma Transaction for a given object destructor. -/
 def Destructor.transaction
