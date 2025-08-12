@@ -57,12 +57,12 @@ def CanNullifyResource.nullifier {key : NullifierKey} {res : Resource} (_proof :
 
 -- TODO placeholder implementation
 /-- If the key matches the resource.nullifierKeyCommitment then it returns the nullifier of the resource -/
-def nullify (key : Anoma.NullifierKey) (res : Resource) : Decidable (CanNullifyResource key res) :=
+def Resource.nullify (key : Anoma.NullifierKey) (res : Resource) : Decidable (CanNullifyResource key res) :=
   match checkNullifierKey key res.nullifierKeyCommitment with
   | isTrue p => isTrue (by constructor; exact p)
   | isFalse n => isFalse (by intro h; cases h; contradiction)
 
-def nullifyUniversal (res : Resource)
+def Resource.nullifyUniversal (res : Resource)
   (p1 : res.nullifierKeyCommitment = .universal := by rfl)
   : CanNullifyResource .universal res
   := by

@@ -1,5 +1,5 @@
 import AVM.Ecosystem.Label
-import AVM.Object.Consumable
+import AVM.Object.Consumed
 
 namespace AVM
 

@@ -6,22 +6,20 @@ import AVM.Action
 import AVM.Class.Label
 import AVM.Ecosystem
 import AVM.Object
-import AVM.Object.Consumable
+import AVM.Object.Consumed
 import AVM.Class.Member
 import AVM.Logic
+import AVM.Message
 
 namespace AVM.Class
 
 open Ecosystem
 open AVM.Action
 
-/-- Creates a logic for a given constructor. This logic is combined with other
-    method and constructor logics to create the complete resource logic for an
-    object. -/
-def Constructor.logic
-  {lab : Ecosystem.Label}
-  {classId : lab.ClassId}
-  {constrId : classId.label.ConstructorId}
+/-- Creates a message logic for a given constructor. -/
+def Constructor.Message.logic
+  {lab : Class.Label}
+  {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId)
   (args : Logic.Args lab)
   : Bool :=
@@ -33,7 +31,23 @@ def Constructor.logic
     && Logic.checkResourcesPersistent args.created
     && constr.invariant argsData
 
-/-- Creates an action for a given constructor. This action consumes creates the
+def Constructor.message
+  {lab : Ecosystem.Label}
+  {classId : lab.ClassId}
+  {constrId : classId.label.ConstructorId}
+  (constr : Class.Constructor constrId)
+  (args : constrId.Args.type)
+  : Rand (Message classId.label) := do
+  let g ← get
+  let (action, witness, g') := Constructor.action' g.down constr args
+  set (ULift.up g')
+  let msgId := .classMember (.constructorId constrId)
+  let msgArgs := PUnit.unit
+  let sender := Anoma.ObjectId.universal
+  let recipient := Anoma.ObjectId.universal
+  return { id := msgId, args := msgArgs, sender, recipient }
+
+/-- Creates an action for a given constructor. This action creates the
   object specified by the constructor. -/
 def Constructor.action'
   (g : StdGen)
@@ -53,11 +67,11 @@ def Constructor.action'
   let consumable : ConsumableObject clab :=
       { object := newObj
         ephemeral := true }
-  let consumed : ConsumedObject classId.label :=
+  let consumedObject : ConsumedObject classId.label :=
     { consumable with can_nullify := Anoma.nullifyUniversal consumable.resource }
-  let created : CreatedObject :=
+  let createdObject : CreatedObject :=
     CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)
-  Action.create' g' lab (.classMember (.constructorId constrId)) PUnit.unit args [consumed] [created]
+  Action.create' g' lab (.classMember (.constructorId constrId)) PUnit.unit args [consumedObject] [createdObject]
 
 /-- Creates an action for a given constructor. This action consumes creates the
   object specified by the constructor. -/

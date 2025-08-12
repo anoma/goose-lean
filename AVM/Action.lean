@@ -5,45 +5,34 @@ import AVM.Class
 import AVM.Class.Label
 import AVM.Ecosystem
 import AVM.Object
-import AVM.Object.Consumable
+import AVM.Object.Consumed
+import AVM.Object.Created
 import AVM.Class.Member
 import AVM.Logic
+import AVM.Message
 
-namespace AVM.Action
+namespace AVM
 
-structure CreatedObject where
-  {label : Class.Label}
-  object : Object label
-  ephemeral : Bool
-
-def CreatedObject.fromSomeObject (o : SomeObject) (ephemeral : Bool) : CreatedObject :=
-  { object := o.object
-    ephemeral }
-
-def CreatedObject.resource (c : CreatedObject) (nonce : Anoma.Nonce) : Anoma.Resource :=
-  Object.toResource c.object (ephemeral := c.ephemeral) nonce
-
-def create'
+def Action.create'
   (g : StdGen)
-  (lab : Ecosystem.Label)
-  (memberId : lab.MemberId)
-  (memberData : memberId.Data)
-  (args : memberId.Args.type)
-  (sconsumed : List SomeConsumedObject)
-  (created : List CreatedObject) -- no appdata/logic
-  : Anoma.Action × Anoma.DeltaWitness × StdGen :=
+  (consumedObjects : List SomeConsumedObject)
+  (createdObjects : List CreatedObject)
+  (consumedMessages : List SomeMessage)
+  (createdMessages : List SomeMessage)
+  : Anoma.Action.{u} × Anoma.DeltaWitness × StdGen :=
   let (createdWitnesses, g') : List Anoma.ComplianceWitness × StdGen :=
-    created.foldr mkCreatedComplianceWitness ([], g)
+    ([], g) |>
+    createdObjects.foldr mkCreatedComplianceWitness |>
+    createdMessages.foldr mkCreatedMessageComplianceWitness
   let createdUnits : List Anoma.ComplianceUnit :=
     createdWitnesses.map Anoma.ComplianceUnit.create
-  let createdResources : List Anoma.Resource :=
-    createdWitnesses.map Anoma.ComplianceWitness.createdResource
+  let (consumedWitnesses, g'') : List Anoma.ComplianceWitness × StdGen :=
+    ([], g') |>
+    consumedObjects.foldr mkConsumedComplianceWitness |>
+    consumedMessages.foldr mkConsumedMessageComplianceWitness
+  let consumedUnits : List Anoma.ComplianceUnit := List.map Anoma.ComplianceUnit.create consumedWitnesses
   let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
     Std.HashMap.emptyWithCapacity
-    |>.insertMany (List.map (Prod.map id (mkLogicVerifierInput Consumed) ∘ mkTagDataPairConsumed) sconsumed)
-    |>.insertMany (List.map (Prod.map id (mkLogicVerifierInput Created) ∘ mkTagDataPairCreated) createdResources)
-  let (consumedWitnesses, g'') := List.foldr mkConsumedComplianceWitness ([], g') sconsumed
-  let consumedUnits : List Anoma.ComplianceUnit := List.map Anoma.ComplianceUnit.create consumedWitnesses
   let action : Anoma.Action :=
     { complianceUnits := consumedUnits ++ createdUnits,
       logicVerifierInputs }
@@ -55,21 +44,46 @@ def create'
       | ⟨c⟩, (acc, g) =>
         let (r, g') := stdNext g
         let witness :=
-          { consumedResource := c.resource,
+          { consumedResource := c.toResource,
             createdResource := dummyResource c.can_nullify.nullifier.toNonce,
             nfKey := Anoma.NullifierKey.universal,
             rcv := r.repr }
         (witness :: acc, g')
-    mkCreatedComplianceWitness  (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+
+    mkCreatedComplianceWitness (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
       | (acc, g) =>
         let (r, g') := stdNext g
         let (r', g'') := stdNext g'
         let res := dummyResource ⟨r⟩
-        let can_nullify := Anoma.nullifyUniversal res
-        let nonce := can_nullify.nullifier.toNonce
+        let nonce := res.nullifyUniversal.nullifier.toNonce
         let complianceWitness :=
             { consumedResource := res
-              createdResource := obj.resource nonce
+              createdResource := obj.toResource nonce
+              nfKey := Anoma.NullifierKey.universal,
+              rcv := r'.repr }
+        (complianceWitness :: acc, g'')
+
+    mkConsumedMessageComplianceWitness (msg : SomeMessage) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+      | (acc, g) =>
+        let (r, g') := stdNext g
+        let (r', g'') := stdNext g'
+        let res := msg.toResource ⟨r⟩
+        let witness :=
+          { consumedResource := res,
+            createdResource := dummyResource res.nullifyUniversal.nullifier.toNonce,
+            nfKey := Anoma.NullifierKey.universal,
+            rcv := r'.repr }
+        (witness :: acc, g'')
+
+    mkCreatedMessageComplianceWitness (msg : SomeMessage) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+      | (acc, g) =>
+        let (r, g') := stdNext g
+        let (r', g'') := stdNext g'
+        let res := dummyResource ⟨r⟩
+        let nonce := res.nullifyUniversal.nullifier.toNonce
+        let complianceWitness :=
+            { consumedResource := res
+              createdResource := msg.toResource nonce
               nfKey := Anoma.NullifierKey.universal,
               rcv := r'.repr }
         (complianceWitness :: acc, g'')
@@ -79,42 +93,24 @@ def create'
         status,
         appData := data }
 
-    mkTagDataPairConsumed : SomeConsumedObject → Anoma.Tag × SomeAppData :=
-     fun ⟨c⟩ =>
-      (Anoma.Tag.Consumed c.can_nullify.nullifier,
-        { appData := {
-            memberId := memberId,
-            memberData,
-            memberArgs := args }})
-
-    mkTagDataPairCreated (r : Anoma.Resource)
-     : Anoma.Tag × SomeAppData :=
-      (Anoma.Tag.Created r.commitment,
-        { label := lab,
-          appData := {
-            memberId := .falseLogicId,
-            memberData := PUnit.unit,
-            memberArgs := PUnit.unit }})
-
-/-- Helper function to create an Action. -/
-def create
-  (lab : Ecosystem.Label)
-  (memberId : lab.MemberId)
-  (memberData : memberId.Data)
-  (args : memberId.Args.type)
-  (consumed : List SomeConsumedObject)
-  (created : List CreatedObject)
+/-- Helper function to create an Action. The nonces of created objects are
+  updated to the nullifiers of the consumed dummy resources from corresponding
+  compliance units. The nonces of consumed objects are preserved. -/
+def Action.create.{u, v, w}
+  (consumedObjects : List SomeConsumedObject)
+  (createdObjects : List CreatedObject)
+  (consumedMessages : List SomeMessage)
+  (createdMessages : List SomeMessage)
   : Rand (Anoma.Action × Anoma.DeltaWitness) := do
   let g ← get
-  let (action, witness, g') := Action.create' g.down lab memberId memberData args consumed created
+  let (action, witness, g') := Action.create'.{u, v, w} g.down consumedObjects createdObjects consumedMessages createdMessages
   set (ULift.up g')
   return (action, witness)
 
-end Action
-
 /-- Used to balance a consumed object that's meant to be destroyed -/
-def SomeConsumedObject.balanceDestroyed (destroyed : SomeConsumedObject) : Action.CreatedObject where
-  object := destroyed.consumed.object
+def SomeConsumedObject.balanceDestroyed (destroyed : SomeConsumedObject) : CreatedObject where
+  uid := destroyed.consumed.object.uid
+  data := destroyed.consumed.object.data
   ephemeral := true
 
 /-- Used to balance a constructed object -/
@@ -122,5 +118,5 @@ def SomeObject.balanceConstructed (constructed : SomeObject) : SomeConsumedObjec
   consumed :=
   let obj : Object constructed.label := constructed.object
   { object := obj,
-    can_nullify := Anoma.nullifyUniversal (obj.toResource true obj.nonce)
+    can_nullify := Anoma.Resource.nullifyUniversal (obj.toResource true obj.nonce)
     ephemeral := true }

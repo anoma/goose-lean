@@ -1,5 +1,5 @@
 import AVM.Object
-import AVM.Object.Consumable
+import AVM.Object.Consumed
 import AVM.Class
 import AVM.Class.Member
 import AVM.Logic
