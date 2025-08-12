@@ -1,4 +1,3 @@
-
 import Lean
 
 open Lean Elab Command Meta

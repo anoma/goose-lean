@@ -5,7 +5,7 @@ import AVM.Class.Label
 import AVM.Logic
 import AVM.Ecosystem
 import AVM.Ecosystem.AppData
-import AVM.Object.Consumable
+import AVM.Object.Consumed
 
 namespace AVM
 

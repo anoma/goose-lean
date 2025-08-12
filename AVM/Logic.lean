@@ -10,9 +10,9 @@ def filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resourc
   resources.filter (not ∘ Action.isDummyResource)
 
 /-- Checks that the number of objects and resources match, and that the
-      resources' quantity, value and labels match the objects' data and labels.
-      This check is used in the constructor and method logics. Dummy resources
-      in the `resources` list are ignored. -/
+    resources' quantity, value and labels match the objects' data and labels.
+    This check is used in the constructor and method logics. Dummy resources
+    in the `resources` list are ignored. -/
 def checkResourcesData (objectData : List SomeObjectData) (resources : List Anoma.Resource) : Bool :=
   let resources' := Logic.filterOutDummy resources
   objectData.length == resources'.length
@@ -21,7 +21,7 @@ def checkResourcesData (objectData : List SomeObjectData) (resources : List Anom
     resourceDataEq (sdata : SomeObjectData) (res : Anoma.Resource) : Bool :=
       -- NOTE: We should check the whole resource kind (label + logic) instead
       -- of checking just the label. We should also check that the intent logic
-      -- hashes of `sobj.object` and `res` match.
+      -- hashes of `sobj` and `res` match.
       sdata.label === res.label &&
       sdata.data.quantity == res.quantity &&
         let try privateFields := tryCast sdata.data.privateFields
