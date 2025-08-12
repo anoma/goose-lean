@@ -3,8 +3,6 @@ import AVM.Class.Label
 
 namespace AVM
 
-abbrev ObjectId := Anoma.ObjectId
-
 structure ObjectData (lab : Class.Label) where
   /-- Object quantity, stored in the `quantity` field of the resource. -/
   quantity : Nat
@@ -116,3 +114,6 @@ def SomeObject.fromResource
   let lab : Class.Label := resLab.classLabel
   let try obj := @Object.fromResource lab res
   some {label := lab, object := obj}
+
+def Resource.isSomeObject.{u, v, w} (res : Anoma.Resource.{u, v}) : Bool :=
+  Option.isSome (SomeObject.fromResource.{u, v, w} res)

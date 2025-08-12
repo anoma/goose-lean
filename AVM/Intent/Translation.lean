@@ -3,13 +3,9 @@ import Mathlib.Control.Random
 import AVM.Intent
 import AVM.Class.Label
 import AVM.Logic
-import AVM.Ecosystem
-import AVM.Ecosystem.AppData
 import AVM.Object.Consumed
 
 namespace AVM
-
-open Ecosystem
 
 /-- The intent logic which is checked when the intent resource is consumed. The
   intent logic checks the intent's condition. -/
@@ -32,7 +28,6 @@ def Intent.logic {ilab : Intent.Label} (intent : Intent ilab) (args : Anoma.Logi
   is a helper function which handles the random number generator explicitly to
   avoid universe level inconsistencies with monadic notation. -/
 def Intent.action'
-  (label : Ecosystem.Label)
   {ilab : Intent.Label}
   (g : StdGen)
   (intent : Intent ilab)
@@ -42,12 +37,7 @@ def Intent.action'
   let try providedConsumed :=
         provided.map (fun p => p.toConsumable false |>.consume) |>.getSome
       failwith (none, g)
-  let try appDataPairs :=
-        providedConsumed.map mkTagDataPairConsumed |>.getSome
-      failwith (none, g)
-  let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
-    Std.HashMap.emptyWithCapacity
-    |>.insertMany (appDataPairs.map (fun (tag, data) => (tag, mkLogicVerifierInput Consumed data)))
+  let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput := ∅
   let (consumedWitnesses, g1) : List Anoma.ComplianceWitness × StdGen :=
     providedConsumed.foldr mkConsumedComplianceWitness ([], g)
   let consumedUnits : List Anoma.ComplianceUnit :=
@@ -55,7 +45,7 @@ def Intent.action'
   let (r1, g2) := stdNext g1
   let (r2, g3) := stdNext g2
   let res := Action.dummyResource ⟨r1⟩
-  let can_nullify := Anoma.nullifyUniversal res
+  let can_nullify := res.nullifyUniversal
   let nonce := can_nullify.nullifier.toNonce
   let intentResource : Anoma.Resource := Intent.toResource intent args provided nonce
   let createdWitness : Anoma.ComplianceWitness :=
@@ -76,51 +66,33 @@ where
     | (acc, g) =>
       let (r, g') := stdNext g
       let complianceWitness :=
-        { consumedResource := obj.consumed.resource,
+        { consumedResource := obj.consumed.toResource,
           createdResource := Action.dummyResource obj.consumed.can_nullify.nullifier.toNonce,
           nfKey := Anoma.NullifierKey.universal
           rcv := r.repr }
       (complianceWitness :: acc, g')
 
-  mkLogicVerifierInput (status : ConsumedCreated) (data : SomeAppData) : Anoma.LogicVerifierInput :=
-    { Data := ⟨SomeAppData⟩,
-      status,
-      appData := data }
-
-  mkTagDataPairConsumed (c : SomeConsumedObject)
-    : Option (Anoma.Tag × SomeAppData) :=
-    let try classId := label.classId c.label
-    some
-      (Anoma.Tag.Consumed c.consumed.can_nullify.nullifier,
-        { label := label,
-          appData := {
-            memberId := .classMember (classId := classId) (Class.Label.MemberId.intentId ilab),
-            memberData := PUnit.unit
-            memberArgs := PUnit.unit }})
-
 /-- An action which consumes the provided objects and creates the intent. -/
 def Intent.action
-  (lab : Ecosystem.Label)
   {ilab : Intent.Label}
   (intent : Intent ilab)
   (args : ilab.Args.type)
   (provided : List SomeObject)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
   let g ← get
-  let (p, g') := Intent.action' lab g.down intent args provided
+  let (p, g') := Intent.action' g.down intent args provided
   set (ULift.up g')
   pure p
 
 /-- A (partial) transaction which consumes the provided objects and creates the
   intent. -/
 def Intent.transaction
-  (label : Ecosystem.Label)
   {ilab : Intent.Label}
   (intent : Intent ilab)
   (args : ilab.Args.type)
   (provided : List SomeObject)
   : Rand (Option Anoma.Transaction) := do
-  let try (action, witness) ← intent.action label args provided
+  let try (action, witness) ← intent.action args provided
   pure <|
     some
       { actions := [action],

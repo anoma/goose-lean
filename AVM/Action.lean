@@ -3,7 +3,6 @@ import Prelude
 import Anoma
 import AVM.Class
 import AVM.Class.Label
-import AVM.Ecosystem
 import AVM.Object
 import AVM.Object.Consumed
 import AVM.Object.Created
@@ -31,8 +30,7 @@ def Action.create'
     consumedObjects.foldr mkConsumedComplianceWitness |>
     consumedMessages.foldr mkConsumedMessageComplianceWitness
   let consumedUnits : List Anoma.ComplianceUnit := List.map Anoma.ComplianceUnit.create consumedWitnesses
-  let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput :=
-    Std.HashMap.emptyWithCapacity
+  let logicVerifierInputs : Std.HashMap Anoma.Tag Anoma.LogicVerifierInput := ∅
   let action : Anoma.Action :=
     { complianceUnits := consumedUnits ++ createdUnits,
       logicVerifierInputs }
@@ -88,22 +86,17 @@ def Action.create'
               rcv := r'.repr }
         (complianceWitness :: acc, g'')
 
-    mkLogicVerifierInput (status : ConsumedCreated) (data : SomeAppData) : Anoma.LogicVerifierInput :=
-      { Data := ⟨SomeAppData⟩,
-        status,
-        appData := data }
-
 /-- Helper function to create an Action. The nonces of created objects are
   updated to the nullifiers of the consumed dummy resources from corresponding
   compliance units. The nonces of consumed objects are preserved. -/
-def Action.create.{u, v, w}
+def Action.create
   (consumedObjects : List SomeConsumedObject)
   (createdObjects : List CreatedObject)
   (consumedMessages : List SomeMessage)
   (createdMessages : List SomeMessage)
   : Rand (Anoma.Action × Anoma.DeltaWitness) := do
   let g ← get
-  let (action, witness, g') := Action.create'.{u, v, w} g.down consumedObjects createdObjects consumedMessages createdMessages
+  let (action, witness, g') := Action.create' g.down consumedObjects createdObjects consumedMessages createdMessages
   set (ULift.up g')
   return (action, witness)
 
