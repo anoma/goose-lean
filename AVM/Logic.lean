@@ -1,6 +1,7 @@
 import Prelude
 import Anoma
 import AVM.Object
+import AVM.Message
 import AVM.Action.DummyResource
 
 namespace AVM.Logic
@@ -11,7 +12,7 @@ def filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resourc
 
 /-- Checks that the number of objects and resources match, and that the
     resources' quantity, value and labels match the objects' data and labels.
-    This check is used in the constructor and method logics. Dummy resources
+    This check is used in the constructor and method message logics. Dummy resources
     in the `resources` list are ignored. -/
 def checkResourcesData (objectData : List SomeObjectData) (resources : List Anoma.Resource) : Bool :=
   let resources' := Logic.filterOutDummy resources
@@ -32,3 +33,9 @@ def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
 
 def checkResourcesPersistent (resources : List Anoma.Resource) : Bool :=
   Logic.filterOutDummy resources |>.all Anoma.Resource.isPersistent
+
+def selectObjectResources.{u, v} (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
+  resources.filter Resource.isSomeObject.{u, v, v}
+
+def selectMessageResources.{u, v} (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
+  resources.filter Resource.isSomeMessage
