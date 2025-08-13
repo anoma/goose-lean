@@ -11,3 +11,6 @@ structure DeltaWitness : Type 1 where
 
 def DeltaWitness.fromComplianceWitnesses (witnesses : List ComplianceWitness) : DeltaWitness :=
   { signingKey := witnesses.map ComplianceWitness.rcv |>.foldl (· ++ ·) "" }
+
+def DeltaWitness.compose (witness1 witness2 : DeltaWitness) : DeltaWitness :=
+  { signingKey := witness1.signingKey ++ witness2.signingKey }
