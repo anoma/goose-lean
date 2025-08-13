@@ -69,10 +69,11 @@ def Task.composeWithAction
 def Task.compose
   (tasks : List Task)
   (msg : SomeMessage)
-  (consumedObjects : List SomeConsumedObject)
+  (consumedObject : SomeConsumedObject)
   (createdObjects : List CreatedObject)
   : Rand (Task × Anoma.DeltaWitness) := do
-  let (action, witness) ← Action.create consumedObjects createdObjects [msg] (tasks.map (·.message))
+  let msgs := tasks.map (·.message) |>.map ({· with message.sender := consumedObject.consumed.object.uid})
+  let (action, witness) ← Action.create [consumedObject] createdObjects [msg] msgs
   let task := Task.composeWithAction tasks msg action
   pure (task, witness)
 
