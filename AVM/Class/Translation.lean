@@ -116,43 +116,47 @@ def Method.Message.logic
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
 
+def Method.message
+  {lab : Class.Label}
+  {methodId : lab.MethodId}
+  (_method : Class.Method methodId)
+  (selfId : ObjectId)
+  (args : methodId.Args.type)
+  : Message lab :=
+    { id := Label.MemberId.methodId methodId,
+      args,
+      sender := Message.topSender,
+      recipient := selfId }
+
 def Method.action
   {lab : Class.Label}
   (methodId : lab.MethodId)
   (method : Class.Method methodId)
   (self : Object lab)
   (args : methodId.Args.type)
-  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) := do
+  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
   let consumable : ConsumableObject lab :=
       { object := self
         ephemeral := false }
-  let try consumedObject := consumable.consume
+  let try consumedObject : ConsumedObject lab := consumable.consume
   let createObject (o : SomeObject) : CreatedObject :=
     { uid := o.object.uid,
       data := o.object.data,
       ephemeral := false }
   let createdObjects : List CreatedObject :=
-      List.map createObject (method.created self args)
+    List.map createObject (method.created self args)
   let consumedMessage : Message lab :=
-    { id := Label.MemberId.methodId methodId,
-      args,
-      sender := Message.topSender,
-      recipient := self.uid }
+    method.message self.uid args
   Action.create [consumedObject] createdObjects [consumedMessage] []
 
-/-- Creates an Anoma Transaction for a given object method. -/
-def Method.transaction
+def Method.task
   {lab : Class.Label}
   (methodId : lab.MethodId)
   (method : Class.Method methodId)
-  (self : Object lab)
+  (selfId : ObjectId)
   (args : methodId.Args.type)
-  : Rand (Option Anoma.Transaction) := do
-  let try (action, witness) ← method.action methodId self args
-  pure <|
-    some
-      { actions := [action],
-        deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
+  : Option (Task × Anoma.DeltaWitness) :=
+  sorry
 
 /-- Creates a logic for a given destructor. This logic is combined with other
     member logics to create the complete resource logic for an object. -/
