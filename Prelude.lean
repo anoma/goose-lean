@@ -1,4 +1,5 @@
 import Prelude.List
+import Prelude.HList
 import Prelude.HashMap
 import Prelude.TypeRep
 import Prelude.SomeType
