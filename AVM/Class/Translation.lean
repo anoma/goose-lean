@@ -9,6 +9,7 @@ import AVM.Object.Consumed
 import AVM.Class.Member
 import AVM.Logic
 import AVM.Message
+import AVM.Task
 
 namespace AVM.Class
 
@@ -30,6 +31,18 @@ def Constructor.Message.logic
     && Logic.checkResourcesPersistent createdResObjs
     && constr.invariant argsData
 
+def Constructor.message
+  {lab : Class.Label}
+  {constrId : lab.ConstructorId}
+  (_constr : Class.Constructor constrId)
+  (newId : ObjectId)
+  (args : constrId.Args.type)
+  : Message lab :=
+    { id := Label.MemberId.constructorId constrId,
+      args,
+      sender := Message.topSender,
+      recipient := newId }
+
 /-- Creates an action for a given constructor. This action creates the
   object specified by the constructor. -/
 def Constructor.action'
@@ -37,13 +50,13 @@ def Constructor.action'
   {lab : Class.Label}
   {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId)
+  (newId : ObjectId)
   (args : constrId.Args.type)
   : Anoma.Action × Anoma.DeltaWitness × StdGen :=
   let newObjData : ObjectData lab := constr.created args
-  let (r, g') := stdNext g
   let newObj : Object lab :=
-    { uid := r,
-      nonce := ⟨r⟩,
+    { uid := newId,
+      nonce := ⟨newId⟩,
       data := newObjData }
   let consumable : ConsumableObject lab :=
       { object := newObj
@@ -53,36 +66,35 @@ def Constructor.action'
   let createdObject : CreatedObject :=
     CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)
   let consumedMessage : Message lab :=
-    { id := Label.MemberId.constructorId constrId,
-      args,
-      sender := Message.topSender,
-      recipient := newObj.uid }
-  Action.create' g' [consumedObject] [createdObject] [consumedMessage] []
+    constr.message newObj.uid args
+  Action.create' g [consumedObject] [createdObject] [consumedMessage] []
 
-/-- Creates an action for a given constructor. This action consumes creates the
-  object specified by the constructor. -/
-def Constructor.action
+def Constructor.task'
+  (g : StdGen)
   {lab : Class.Label}
   {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId)
   (args : constrId.Args.type)
-  : Rand (Anoma.Action × Anoma.DeltaWitness) := do
+  : Task × Anoma.DeltaWitness × StdGen :=
+  let (newId, g') := stdNext g
+  let (action, witness, g'') := constr.action' g' newId args
+  let task : Task :=
+    { params := [],
+      message := constr.message newId args,
+      actions := fun _ => [action] }
+  (task, witness, g'')
+
+/-- Creates a Task for a given object construtor. -/
+def Constructor.task
+  {lab : Class.Label}
+  {constrId : lab.ConstructorId}
+  (constr : Class.Constructor constrId)
+  (args : constrId.Args.type)
+  : Rand (Task × Anoma.DeltaWitness) := do
   let g ← get
-  let (action, witness, g') := Constructor.action' g.down constr args
+  let (task, witness, g') := constr.task' g.down args
   set (ULift.up g')
-  return (action, witness)
-
-/-- Creates an Anoma Transaction for a given object construtor. -/
-def Constructor.transaction
-  {lab : Class.Label}
-  {constrId : lab.ConstructorId}
-  (constr : Class.Constructor constrId)
-  (args : constrId.Args.type)
-  : Rand Anoma.Transaction := do
-  let (action, witness) ← constr.action args
-  pure <|
-    { actions := [action],
-      deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
+  return (task, witness)
 
 /-- Creates a logic for a given method. This logic is combined with other method
     and constructor logics to create the complete resource logic for an object. -/
