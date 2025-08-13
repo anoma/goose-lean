@@ -1,4 +1,3 @@
-
 import Lean
 
 open Lean Elab Command Meta
@@ -85,6 +84,9 @@ infix:50 " !== " => bneq_generic
 
 instance : TypeRep Unit where
   rep := Rep.atomic "Unit"
+
+instance : TypeRep PUnit where
+  rep := Rep.atomic "PUnit"
 
 instance : TypeRep Bool where
   rep := Rep.atomic "Bool"

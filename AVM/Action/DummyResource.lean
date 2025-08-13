@@ -9,11 +9,11 @@ private def dummyResourceLabel.{u} : ULift.{u} String :=
 
 /-- A dummy resource used in generated actions. -/
 def dummyResource (nonce : Anoma.Nonce) : Anoma.Resource.{u, v} :=
-  { Val := ⟨UUnit.{u}⟩,
+  { Val := ⟨PUnit.{u + 1}⟩,
     Label := ⟨ULift.{v} String⟩,
     label := dummyResourceLabel.{v},
     quantity := 0,
-    value := UUnit.unit,
+    value := PUnit.unit,
     ephemeral := true,
     nonce,
     nullifierKeyCommitment := Anoma.NullifierKeyCommitment.universal }
