@@ -96,16 +96,13 @@ def Method.Message.logic
   let try argsData := SomeType.cast msg.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  match consumedResObjs with
-  | [selfRes] =>
-    let try selfObj : Object lab := Object.fromResource selfRes
-    check method.invariant selfObj argsData
-    let createdObjects := method.created selfObj argsData
-    Logic.checkResourcesData (List.map SomeObject.toSomeObjectData createdObjects) createdResObjs
-      && Logic.checkResourcesPersistent consumedResObjs
-      && Logic.checkResourcesPersistent createdResObjs
-  | _ =>
-    false
+  let! [selfRes] := consumedResObjs
+  let try selfObj : Object lab := Object.fromResource selfRes
+  check method.invariant selfObj argsData
+  let createdObjects := method.created selfObj argsData
+  Logic.checkResourcesData (List.map SomeObject.toSomeObjectData createdObjects) createdResObjs
+    && Logic.checkResourcesPersistent consumedResObjs
+    && Logic.checkResourcesPersistent createdResObjs
 
 def Method.action
   {lab : Class.Label}
@@ -157,15 +154,12 @@ def Destructor.Message.logic
   let try argsData := SomeType.cast msg.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  match consumedResObjs with
-  | [selfRes] =>
-    let try selfObj : Object lab := Object.fromResource selfRes
-    Logic.checkResourcesData [selfObj.toSomeObjectData] createdResObjs
-      && Logic.checkResourcesPersistent consumedResObjs
-      && Logic.checkResourcesEphemeral createdResObjs
-      && destructor.invariant selfObj argsData
-  | _ =>
-    false
+  let! [selfRes] := consumedResObjs
+  let try selfObj : Object lab := Object.fromResource selfRes
+  Logic.checkResourcesData [selfObj.toSomeObjectData] createdResObjs
+    && Logic.checkResourcesPersistent consumedResObjs
+    && Logic.checkResourcesEphemeral createdResObjs
+    && destructor.invariant selfObj argsData
 
 def Destructor.action
   {lab : Class.Label}

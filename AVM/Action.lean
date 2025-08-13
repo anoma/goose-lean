@@ -87,7 +87,7 @@ def Action.create'
         (complianceWitness :: acc, g'')
 
 /-- Helper function to create an Action. The nonces of created objects are
-  updated to the nullifiers of the consumed dummy resources from corresponding
+  set to the nullifiers of the consumed dummy resources from corresponding
   compliance units. The nonces of consumed objects are preserved. -/
 def Action.create
   (consumedObjects : List SomeConsumedObject)
