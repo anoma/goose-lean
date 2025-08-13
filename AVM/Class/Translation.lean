@@ -216,14 +216,11 @@ def Intent.logic
   (args : Logic.Args)
   : Bool :=
   -- Check that exactly one resource is created that corresponds to the intent
-  match Logic.filterOutDummy args.created with
-  | [intentRes] =>
-    let try labelData := Intent.LabelData.fromResource intentRes
-    -- NOTE: We should also check that the intent logic hashes of
-    -- `intentRes` and `intent` match.
-    labelData.label === ilab
-    && intentRes.quantity == 1
-    && intentRes.ephemeral
-    && Logic.checkResourcesData (labelData.data.provided.map SomeObject.toSomeObjectData) args.consumed
-  | _ =>
-    false
+  let! [intentRes] := Logic.filterOutDummy args.created
+  let try labelData := Intent.LabelData.fromResource intentRes
+  -- NOTE: We should also check that the intent logic hashes of
+  -- `intentRes` and `intent` match.
+  labelData.label === ilab
+  && intentRes.quantity == 1
+  && intentRes.ephemeral
+  && Logic.checkResourcesData (labelData.data.provided.map SomeObject.toSomeObjectData) args.consumed
