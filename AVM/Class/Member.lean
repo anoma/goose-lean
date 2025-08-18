@@ -1,7 +1,6 @@
-import AVM.Intent
-import AVM.Class.Label
 import Prelude
-
+import AVM.Object
+import AVM.Class.Label
 namespace AVM.Class
 
 structure Constructor {lab : Class.Label} (constrId : lab.ConstructorId) where
@@ -22,11 +21,8 @@ structure Method {lab : Class.Label.{u}} (methodId : lab.MethodId) : Type (u + 1
       method body constraints to create the method logic. -/
   invariant : (self : Object lab) → methodId.Args.type → Bool
 
-/-- A class member is a constructor, a destructor, a method or an intent. A
-  single intent can be a member in multiple classes, but each constructor,
-  destructor and method is a member of a unique class. -/
+/-- A class member is a constructor, a destructor or a method. -/
 inductive Member (lab : Class.Label) where
   | constructor (constrId : lab.ConstructorId) (constr : Constructor constrId) : Member lab
   | destructor (destrId : lab.DestructorId) (destr : Destructor destrId) : Member lab
   | method (methodId : lab.MethodId) (method : Method methodId) : Member lab
-  | intent (ilab : Intent.Label) (_ : ilab ∈ lab.intentLabels) (intent : Intent ilab) : Member lab

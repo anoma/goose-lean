@@ -96,8 +96,7 @@ def Constructor.task
   set (ULift.up g')
   return task
 
-/-- Creates a logic for a given method. This logic is combined with other method
-    and constructor logics to create the complete resource logic for an object. -/
+/-- Creates a logic for a given method. -/
 def Method.Message.logic
   {lab : Class.Label}
   {methodId : lab.MethodId}
@@ -224,28 +223,3 @@ def Destructor.task
     actions := fun (self, _) => do
       let try (action, witness) ← destructor.action destructorId self args
       pure <| some { actions := [action], deltaWitness := witness } }
-
-/-- Creates a member logic for a given intent. This logic is checked when an
-  object is consumed to create the intent. Note that the intent member logic
-  (defined here) is distinct from the intent logic defined in
-  `AVM/Intent/Translation.lean`. The intent member logic is associated with
-  a resource consumed by the intent and it checks that the right intent is
-  created. The intent logic is checked on consumption of the intent resource
-  and it checks that the the intent's condition is satified. -/
-def Intent.logic
-  {ilab : Intent.Label}
-  (_intent : Intent ilab)
-  (args : Logic.Args)
-  : Bool :=
-  -- Check that exactly one resource is created that corresponds to the intent
-  match Logic.filterOutDummy args.created with
-  | [intentRes] =>
-    let try labelData := Intent.LabelData.fromResource intentRes
-    -- NOTE: We should also check that the intent logic hashes of
-    -- `intentRes` and `intent` match.
-    labelData.label === ilab
-    && intentRes.quantity == 1
-    && intentRes.ephemeral
-    && Logic.checkResourcesData (labelData.data.provided.map SomeObject.toSomeObjectData) args.consumed
-  | _ =>
-    false

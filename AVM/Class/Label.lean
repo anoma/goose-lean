@@ -1,5 +1,4 @@
 import Anoma.Resource
-import AVM.Intent.Label
 import Prelude
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Data.FinEnum
@@ -48,14 +47,10 @@ structure Label : Type (u + 1) where
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
 
-  /-- Labels of intents allowed to consume objects of the class. -/
-  intentLabels : Std.HashSet Intent.Label := ∅
-
 inductive Label.MemberId (lab : Class.Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
-  | intentId (intentId : Intent.Label) : MemberId lab
 
 instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId lab) where
   beq a b :=
@@ -67,9 +62,6 @@ instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId l
     | destructorId _, _ => false
     | _, destructorId _ => false
     | methodId m1, methodId m2 => lab.methodsBEq.beq m1 m2
-    | methodId _, _ => false
-    | _, methodId _ => false
-    | intentId i1, intentId i2 => i1 == i2
 
 instance Label.MemberId.hasTypeRep (lab : Class.Label) : TypeRep (Class.Label.MemberId lab) where
   rep := Rep.composite "AVM.Class.Label.MemberId" [Rep.atomic lab.name]
@@ -88,7 +80,6 @@ def Label.MemberId.Args {lab : Class.Label.{u}} (memberId : MemberId lab) : Some
   | constructorId c => lab.ConstructorArgs c
   | destructorId c => lab.DestructorArgs c
   | methodId c => lab.MethodArgs c
-  | intentId _ => ⟨PUnit⟩
 
 instance Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"
