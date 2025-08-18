@@ -2,6 +2,7 @@ import Prelude
 import Anoma.Resource
 import Anoma.Transaction
 import Anoma.Identities
+import Mathlib.Control.Random
 
 namespace Anoma
 
@@ -23,11 +24,14 @@ inductive Program.Error where
   | commitmentError (msg : String)
   | identityError (msg : String)
   | storageError (msg : String)
+  | typeError (msg : String)
+  | userError
 
 inductive Program where
   | skip
   | raise (err : Program.Error)
   | tryCatch (prog : Program) (onError : Program.Error → Program) (next : Program)
+  | withRandomGen (next : StdGen → Program × StdGen)
   | queryResource (query : Program.ResourceQuery) (next : Resource → Program)
   | submitTransaction (tx : Transaction) (next : Program)
   | decrypt (engine : EngineId) (data : Ciphertext) (next : Plaintext → Program)
@@ -40,3 +44,15 @@ inductive Program where
   | getValue (key : StorageKey) (next : Option StorageValue → Program)
   | setValue (key : StorageKey) (value : StorageValue) (next : Program)
   | deleteValue (key : StorageKey) (next : Program)
+
+def Program.withRand (prog : Rand Program) : Program :=
+  Program.withRandomGen fun g =>
+    let (next, g') := prog.run (ULift.up g)
+    (next, ULift.down g')
+
+def Program.withRandOption (prog : Rand (Option Program)) : Program :=
+  Program.withRandomGen fun g =>
+    let (next?, g') := prog.run (ULift.up g)
+    match next? with
+    | none => (Program.raise Program.Error.userError, ULift.down g')
+    | some next => (next, ULift.down g')

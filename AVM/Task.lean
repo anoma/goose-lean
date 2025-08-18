@@ -87,18 +87,6 @@ def Task.compose
   (consumedObject : SomeConsumedObject)
   (createdObjects : List CreatedObject)
   : Rand (Option Task) := do
-  let msgs := tasks.map (·.message) |>.map ({· with message.sender := consumedObject.consumed.object.uid})
-  let (action, witness) ← Action.create [consumedObject] createdObjects [msg] msgs
+  let createdMessages := tasks.map (·.message) |>.map ({· with message.sender := consumedObject.consumed.object.uid})
+  let (action, witness) ← Action.create [consumedObject] createdObjects [msg] createdMessages
   Task.composeWithAction tasks msg action witness
-
-/-- Creates an Anoma Transaction for a given Task. -/
-def Task.toTransaction (task : Task) (objs : Task.Parameter.Product task.params) : Rand (Option Anoma.Transaction) := do
-  let (action, witness) ← Action.create [] [] [task.message] []
-  let try actions : Task.Actions ← task.actions objs
-  let witness' : Anoma.DeltaWitness :=
-    Anoma.DeltaWitness.compose actions.deltaWitness witness
-  let acts : List Anoma.Action := action :: actions.actions
-  pure <|
-    some
-      { actions := acts,
-        deltaProof := Anoma.Transaction.generateDeltaProof witness' acts }
