@@ -17,8 +17,7 @@ instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) wh
 
 /-- A class label uniquely identifies and specifies a class. The class
   specification provided by a label consists of unique class name, private
-  field types, constructor, destructor and method ids, and labels of allowed
-  intents. -/
+  field types, constructor, destructor and method ids. -/
 structure Label : Type (u + 1) where
   /-- The name of the class uniquely identifying the class.
       Assumption: lab1.name = lab2.name -> lab1 = lab2. -/

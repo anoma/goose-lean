@@ -223,3 +223,16 @@ def Destructor.task
     actions := fun (self, _) => do
       let try (action, witness) ← destructor.action destructorId self args
       pure <| some { actions := [action], deltaWitness := witness } }
+
+/-- The class logic checks if all consumed messages in the action correspond
+  to class members. -/
+def logic {lab : Class.Label} (args : Logic.Args) : Bool :=
+  match args.status with
+  | Created => true
+  | Consumed =>
+    let consumedMessageResources : List Anoma.Resource := Logic.selectMessageResources args.consumed
+    let! [consumedObjectResource] : List Anoma.Resource := Logic.selectObjectResources args.consumed
+    consumedMessageResources.length + 1 == (Logic.filterOutDummy args.consumed).length
+      && Option.isSome (Object.fromResource (lab := lab) consumedObjectResource)
+      && consumedMessageResources.all fun res =>
+          Option.isSome (Message.fromResource (lab := lab) res)

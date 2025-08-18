@@ -22,7 +22,7 @@ def fetchObjects (params : List Task.Parameter) (cont : Task.Parameter.Product p
     fetchObjects ps (fun objs' =>
       Anoma.Program.queryResource (Anoma.Program.ResourceQuery.queryByObjectId p.uid) (fun res =>
         let try obj : Object p.classLabel := Object.fromResource res
-            failwith (Anoma.Program.raise <| Anoma.Program.Error.typeError ("expected object of class " ++ p.classLabel.name));
+            failwith Anoma.Program.raise <| Anoma.Program.Error.typeError ("expected object of class " ++ p.classLabel.name);
         cont (obj, objs')))
 
 def toProgram (task : Task) : Anoma.Program :=
