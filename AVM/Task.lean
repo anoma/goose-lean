@@ -14,13 +14,17 @@ structure Task.Parameter where
 def Task.Parameter.Product (params : List Task.Parameter) : Type :=
   List.TProd (fun p : Task.Parameter => Object p.classLabel) params
 
+structure Task.Actions where
+  actions : List Anoma.Action
+  deltaWitness : Anoma.DeltaWitness
+
 structure Task where
   /-- Task parameters - objects to fetch from the Anoma system. -/
   params : List Task.Parameter
   /-- The message to send to the recipient. -/
   message : SomeMessage
   /-- Task actions - actions to perform parameterised by fetched objects. -/
-  actions : Task.Parameter.Product params → List Anoma.Action
+  actions : Task.Parameter.Product params → Rand (Option Task.Actions)
 
 def Task.Parameter.splitProduct
   {params1 params2 : List Task.Parameter}
@@ -47,42 +51,54 @@ def Task.Parameter.splitProducts
 def Task.Parameter.makeActions
   (tasks : List Task)
   (objs : HList (List.map Task.Parameter.Product (tasks.map (·.params))))
-  : List Anoma.Action :=
+  : Rand (Option Task.Actions) :=
   match tasks, objs with
-  | [], _ => []
-  | task :: tasks', HList.cons objs' objs'' =>
-    let actions := task.actions objs'
-    actions ++ makeActions tasks' objs''
+  | [], _ => pure <| some { actions := [], deltaWitness := Anoma.DeltaWitness.empty }
+  | task :: tasks', HList.cons objs' objs'' => do
+    let try actions ← task.actions objs'
+    let try rest ← makeActions tasks' objs''
+    pure <|
+      some
+        { actions := actions.actions ++ rest.actions,
+          deltaWitness := Anoma.DeltaWitness.compose actions.deltaWitness rest.deltaWitness }
 
 def Task.composeWithAction
   (tasks : List Task)
   (msg : SomeMessage)
   (action : Anoma.Action)
-  : Task :=
+  (witness : Anoma.DeltaWitness)
+  : Rand (Option Task) :=
   let lparams : List (List Task.Parameter) := tasks.map (·.params)
-  { params := lparams.flatten,
-    message := msg,
-    actions := fun objs =>
-      let objs' := Task.Parameter.splitProducts objs
-      action :: Task.Parameter.makeActions tasks objs' }
+  pure <|
+    some
+      { params := lparams.flatten,
+        message := msg,
+        actions := fun objs => do
+          let objs' := Task.Parameter.splitProducts objs
+          let try actions ← Task.Parameter.makeActions tasks objs'
+          pure <|
+            some
+              { actions := action :: actions.actions,
+                deltaWitness := Anoma.DeltaWitness.compose witness actions.deltaWitness } }
 
 def Task.compose
   (tasks : List Task)
   (msg : SomeMessage)
   (consumedObject : SomeConsumedObject)
   (createdObjects : List CreatedObject)
-  : Rand (Task × Anoma.DeltaWitness) := do
+  : Rand (Option Task) := do
   let msgs := tasks.map (·.message) |>.map ({· with message.sender := consumedObject.consumed.object.uid})
   let (action, witness) ← Action.create [consumedObject] createdObjects [msg] msgs
-  let task := Task.composeWithAction tasks msg action
-  pure (task, witness)
+  Task.composeWithAction tasks msg action witness
 
 /-- Creates an Anoma Transaction for a given Task. -/
-def Task.toTransaction (task : Task) (witness : Anoma.DeltaWitness) (objs : Task.Parameter.Product task.params) : Rand Anoma.Transaction := do
-  let (action, witness') ← Action.create [] [] [task.message] []
-  let witness'' : Anoma.DeltaWitness :=
-    Anoma.DeltaWitness.compose witness witness'
-  let actions : List Anoma.Action := action :: task.actions objs
+def Task.toTransaction (task : Task) (objs : Task.Parameter.Product task.params) : Rand (Option Anoma.Transaction) := do
+  let (action, witness) ← Action.create [] [] [task.message] []
+  let try actions : Task.Actions ← task.actions objs
+  let witness' : Anoma.DeltaWitness :=
+    Anoma.DeltaWitness.compose actions.deltaWitness witness
+  let acts : List Anoma.Action := action :: actions.actions
   pure <|
-    { actions := actions,
-      deltaProof := Anoma.Transaction.generateDeltaProof witness'' actions }
+    some
+      { actions := acts,
+        deltaProof := Anoma.Transaction.generateDeltaProof witness' acts }

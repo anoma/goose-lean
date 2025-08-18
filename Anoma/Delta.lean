@@ -1,4 +1,3 @@
-
 import Prelude
 import Anoma.Compliance
 
@@ -14,3 +13,8 @@ def DeltaWitness.fromComplianceWitnesses (witnesses : List ComplianceWitness) : 
 
 def DeltaWitness.compose (witness1 witness2 : DeltaWitness) : DeltaWitness :=
   { signingKey := witness1.signingKey ++ witness2.signingKey }
+
+/-- Empty Delta witness. Used only in delta witness composition, for
+    convenience and clearer code. -/
+def DeltaWitness.empty : DeltaWitness :=
+  { signingKey := "" }

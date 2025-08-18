@@ -38,10 +38,10 @@ def Constructor.message
   (newId : ObjectId)
   (args : constrId.Args.type)
   : Message lab :=
-    { id := Label.MemberId.constructorId constrId,
-      args,
-      sender := Message.topSender,
-      recipient := newId }
+  { id := Label.MemberId.constructorId constrId,
+    args,
+    sender := Message.topSender,
+    recipient := newId }
 
 /-- Creates an action for a given constructor. This action creates the
   object specified by the constructor. -/
@@ -75,26 +75,26 @@ def Constructor.task'
   {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId)
   (args : constrId.Args.type)
-  : Task × Anoma.DeltaWitness × StdGen :=
+  : Task × StdGen :=
   let (newId, g') := stdNext g
   let (action, witness, g'') := constr.action' g' newId args
   let task : Task :=
     { params := [],
       message := constr.message newId args,
-      actions := fun _ => [action] }
-  (task, witness, g'')
+      actions := fun _ => pure <| some ⟨[action], witness⟩ }
+  (task, g'')
 
-/-- Creates a Task for a given object construtor. -/
+/-- Creates a Task for a given object constructor. -/
 def Constructor.task
   {lab : Class.Label}
   {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId)
   (args : constrId.Args.type)
-  : Rand (Task × Anoma.DeltaWitness) := do
+  : Rand Task := do
   let g ← get
-  let (task, witness, g') := constr.task' g.down args
+  let (task, g') := constr.task' g.down args
   set (ULift.up g')
-  return (task, witness)
+  return task
 
 /-- Creates a logic for a given method. This logic is combined with other method
     and constructor logics to create the complete resource logic for an object. -/
@@ -123,10 +123,10 @@ def Method.message
   (selfId : ObjectId)
   (args : methodId.Args.type)
   : Message lab :=
-    { id := Label.MemberId.methodId methodId,
-      args,
-      sender := Message.topSender,
-      recipient := selfId }
+  { id := Label.MemberId.methodId methodId,
+    args,
+    sender := Message.topSender,
+    recipient := selfId }
 
 def Method.action
   {lab : Class.Label}
@@ -155,8 +155,12 @@ def Method.task
   (method : Class.Method methodId)
   (selfId : ObjectId)
   (args : methodId.Args.type)
-  : Option (Task × Anoma.DeltaWitness) :=
-  sorry
+  : Task :=
+  { params := [⟨selfId, lab⟩],
+    message := method.message selfId args,
+    actions := fun (self, _) => do
+      let try (action, witness) ← method.action methodId self args
+      pure <| some { actions := [action], deltaWitness := witness } }
 
 /-- Creates a logic for a given destructor. This logic is combined with other
     member logics to create the complete resource logic for an object. -/
@@ -177,10 +181,22 @@ def Destructor.Message.logic
     && Logic.checkResourcesEphemeral createdResObjs
     && destructor.invariant selfObj argsData
 
+def Destructor.message
+  {lab : Class.Label}
+  {destructorId : lab.DestructorId}
+  (_destructor : Class.Destructor destructorId)
+  (selfId : ObjectId)
+  (args : destructorId.Args.type)
+  : Message lab :=
+  { id := Label.MemberId.destructorId destructorId,
+    args,
+    sender := Message.topSender,
+    recipient := selfId }
+
 def Destructor.action
   {lab : Class.Label}
   (destructorId : lab.DestructorId)
-  (_destructor : Class.Destructor destructorId)
+  (destructor : Class.Destructor destructorId)
   (self : Object lab)
   (args : destructorId.Args.type)
   : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
@@ -192,26 +208,22 @@ def Destructor.action
     { uid := self.uid,
       data := self.data,
       ephemeral := true }
-  let consumedMessage : Message lab :=
-    { id := Label.MemberId.destructorId destructorId,
-      args,
-      sender := Message.topSender,
-      recipient := self.uid }
+  let consumedMessage : Message lab := destructor.message self.uid args
   Action.create [consumedObject] [createdObject] [consumedMessage] []
 
 /-- Creates an Anoma Transaction for a given object destructor. -/
-def Destructor.transaction
+def Destructor.task
   {lab : Class.Label}
   (destructorId : lab.DestructorId)
   (destructor : Class.Destructor destructorId)
-  (self : Object lab)
+  (selfId : ObjectId)
   (args : destructorId.Args.type)
-  : Rand (Option Anoma.Transaction) := do
-  let try (action, witness) ← destructor.action destructorId self args
-  pure <|
-    some
-      { actions := [action],
-        deltaProof := Anoma.Transaction.generateDeltaProof witness [action] }
+  : Task :=
+  { params := [⟨selfId, lab⟩],
+    message := destructor.message selfId args,
+    actions := fun (self, _) => do
+      let try (action, witness) ← destructor.action destructorId self args
+      pure <| some { actions := [action], deltaWitness := witness } }
 
 /-- Creates a member logic for a given intent. This logic is checked when an
   object is consumed to create the intent. Note that the intent member logic
