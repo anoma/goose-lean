@@ -15,7 +15,7 @@ structure Destructor {lab : Class.Label} (destructorId : lab.DestructorId) where
   invariant : (self : Object lab) → destructorId.Args.type → Bool
 
 structure Method {lab : Class.Label.{u}} (methodId : lab.MethodId) : Type (u + 1) where
-  /-- Objects created in the method call. -/
+  /-- Objects created in the method call (the new self/selves). -/
   created : (self : Object lab) → methodId.Args.type → List SomeObject
   /-- Extra method logic. The method invariant is combined with auto-generated
       method body constraints to create the method logic. -/
