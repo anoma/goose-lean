@@ -44,14 +44,13 @@ def Constructor.message
 
 /-- Creates an action for a given constructor. This action creates the
   object specified by the constructor. -/
-def Constructor.action'
-  (g : StdGen)
+def Constructor.action
   {lab : Class.Label}
   {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId)
   (newId : ObjectId)
   (args : constrId.Args.type)
-  : Anoma.Action × Anoma.DeltaWitness × StdGen :=
+  : Rand (Anoma.Action × Anoma.DeltaWitness) :=
   let newObjData : ObjectData lab := constr.created args
   let newObj : Object lab :=
     { uid := newId,
@@ -66,34 +65,21 @@ def Constructor.action'
     CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)
   let consumedMessage : Message lab :=
     constr.message newObj.uid args
-  Action.create' g [consumedObject] [createdObject] [consumedMessage] []
-
-def Constructor.task'
-  (g : StdGen)
-  {lab : Class.Label}
-  {constrId : lab.ConstructorId}
-  (constr : Class.Constructor constrId)
-  (args : constrId.Args.type)
-  : Task × StdGen :=
-  let (newId, g') := stdNext g
-  let (action, witness, g'') := constr.action' g' newId args
-  let task : Task :=
-    { params := [],
-      message := constr.message newId args,
-      actions := fun _ => pure <| some ⟨[action], witness⟩ }
-  (task, g'')
+  Action.create [consumedObject] [createdObject] [consumedMessage] []
 
 /-- Creates a Task for a given object constructor. -/
 def Constructor.task
   {lab : Class.Label}
   {constrId : lab.ConstructorId}
   (constr : Class.Constructor constrId)
+  (newId : ObjectId)
   (args : constrId.Args.type)
-  : Rand Task := do
-  let g ← get
-  let (task, g') := constr.task' g.down args
-  set (ULift.up g')
-  return task
+  : Task :=
+  { params := [],
+    message := constr.message newId args,
+    actions := fun _ => do
+      let (action, witness) ← constr.action newId args
+      pure <| some ⟨[action], witness⟩ }
 
 /-- Creates a logic for a given method. -/
 def Method.Message.logic
