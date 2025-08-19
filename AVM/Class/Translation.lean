@@ -222,14 +222,15 @@ def Destructor.task
       pure <| some { actions := [action], deltaWitness := witness } }
 
 /-- The class logic checks if all consumed messages in the action correspond
-  to class members. -/
+  to class members and the single consumed object is the receiver. -/
 def logic {lab : Class.Label} (args : Logic.Args) : Bool :=
   match args.status with
   | Created => true
   | Consumed =>
     let consumedMessageResources : List Anoma.Resource := Logic.selectMessageResources args.consumed
     let! [consumedObjectResource] : List Anoma.Resource := Logic.selectObjectResources args.consumed
+    let try consumedObject : Object lab := Object.fromResource consumedObjectResource
     consumedMessageResources.length + 1 == (Logic.filterOutDummy args.consumed).length
-      && Option.isSome (Object.fromResource (lab := lab) consumedObjectResource)
       && consumedMessageResources.all fun res =>
-          Option.isSome (Message.fromResource (lab := lab) res)
+        let try msg : Message lab := Message.fromResource res
+        consumedObject.uid == msg.recipient
