@@ -87,6 +87,6 @@ def Task.compose
   (consumedObject : SomeConsumedObject)
   (createdObjects : List CreatedObject)
   : Rand (Option Task) := do
-  let createdMessages := tasks.map (·.message) |>.map ({· with message.sender := consumedObject.consumed.object.uid})
+  let createdMessages := tasks.map (·.message)
   let (action, witness) ← Action.create [consumedObject] createdObjects [msg] createdMessages
   Task.composeWithAction tasks msg action witness

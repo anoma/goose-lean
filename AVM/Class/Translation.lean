@@ -40,7 +40,6 @@ def Constructor.message
   : Message lab :=
   { id := Label.MemberId.constructorId constrId,
     args,
-    sender := Message.topSender,
     recipient := newId }
 
 /-- Creates an action for a given constructor. This action creates the
@@ -124,7 +123,6 @@ def Method.message
   : Message lab :=
   { id := Label.MemberId.methodId methodId,
     args,
-    sender := Message.topSender,
     recipient := selfId }
 
 def Method.action
@@ -189,7 +187,6 @@ def Destructor.message
   : Message lab :=
   { id := Label.MemberId.destructorId destructorId,
     args,
-    sender := Message.topSender,
     recipient := selfId }
 
 def Destructor.action

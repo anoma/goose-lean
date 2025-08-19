@@ -32,3 +32,15 @@ def toProgram (task : Task) : Anoma.Program :=
       let try tx : Anoma.Transaction ← task.toTransaction objs
       pure <| Anoma.Program.submitTransaction tx Anoma.Program.skip
   fetchObjects task.params cont
+
+def toProgramRand (task : Rand Task) : Anoma.Program :=
+  Anoma.Program.withRandomGen fun g =>
+    let (task', g') := task.run (ULift.up g)
+    (task'.toProgram, ULift.down g')
+
+def toProgramRandOption (task : Rand (Option Task)) : Anoma.Program :=
+  Anoma.Program.withRandomGen fun g =>
+    let (task?, g') := task.run (ULift.up g)
+    match task? with
+    | none => (Anoma.Program.raise Anoma.Program.Error.userError, ULift.down g')
+    | some task' => (task'.toProgram, ULift.down g')

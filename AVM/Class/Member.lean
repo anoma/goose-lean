@@ -1,6 +1,7 @@
 import Prelude
 import AVM.Object
 import AVM.Class.Label
+
 namespace AVM.Class
 
 structure Constructor {lab : Class.Label} (constrId : lab.ConstructorId) where

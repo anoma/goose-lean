@@ -2,16 +2,12 @@ import AVM.Class.Label
 
 namespace AVM
 
-def Message.topSender : ObjectId := 0
-
 /-- A message is a communication sent from one object to another in the AVM. -/
 structure Message.{u} (lab : Class.Label.{u}) : Type (u + 1) where
   /-- The message ID. -/
   id : Class.Label.MemberId lab
   /-- The arguments of the message. -/
   args : (Class.Label.MemberId.Args.{u} id).type
-  /-- The sender of the message. -/
-  sender : ObjectId
   /-- The recipient of the message. -/
   recipient : ObjectId
 
@@ -22,7 +18,6 @@ instance Message.hasBEq {lab : Class.Label} : BEq (Message lab) where
   beq a b :=
     a.id == b.id
     && a.args === b.args
-    && a.sender == b.sender
     && a.recipient == b.recipient
 
 structure SomeMessage where
