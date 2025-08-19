@@ -3,6 +3,10 @@ import AVM.Class.Label
 
 namespace AVM
 
+structure TypedObjectId where
+  classLabel : Class.Label
+  uid : ObjectId
+
 structure ObjectData (lab : Class.Label) where
   /-- Object quantity, stored in the `quantity` field of the resource. -/
   quantity : Nat

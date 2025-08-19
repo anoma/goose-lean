@@ -7,29 +7,25 @@ import AVM.Action
 
 namespace AVM
 
-structure Task.Parameter where
-  uid : ObjectId
-  classLabel : Class.Label
-
-def Task.Parameter.Product (params : List Task.Parameter) : Type :=
-  List.TProd (fun p : Task.Parameter => Object p.classLabel) params
-
 structure Task.Actions where
   actions : List Anoma.Action
   deltaWitness : Anoma.DeltaWitness
 
+def Task.Parameter.Product (ids : List TypedObjectId) : Type :=
+  List.TProd (fun id : TypedObjectId => Object id.classLabel) ids
+
 structure Task where
   /-- Task parameters - objects to fetch from the Anoma system. -/
-  params : List Task.Parameter
+  params : List TypedObjectId
   /-- The message to send to the recipient. -/
   message : SomeMessage
   /-- Task actions - actions to perform parameterised by fetched objects. -/
   actions : Task.Parameter.Product params → Rand (Option Task.Actions)
 
 def Task.Parameter.splitProduct
-  {params1 params2 : List Task.Parameter}
-  (objs : Task.Parameter.Product (params1 ++ params2))
-  : Task.Parameter.Product params1 × Task.Parameter.Product params2 :=
+  {params1 params2 : List TypedObjectId}
+  (objs : Product (params1 ++ params2))
+  : Product params1 × Product params2 :=
   match params1 with
   | [] => (PUnit.unit, objs)
   | p1 :: ps1 =>
@@ -38,19 +34,19 @@ def Task.Parameter.splitProduct
     ((obj, objs1), objs2)
 
 def Task.Parameter.splitProducts
-  {params : List (List Task.Parameter)}
-  (objs : Task.Parameter.Product params.flatten)
-  : HList (params.map Task.Parameter.Product) :=
+  {params : List (List TypedObjectId)}
+  (objs : Product params.flatten)
+  : HList (params.map Product) :=
   match params with
   | [] => HList.nil
   | p :: ps =>
     let (objs1, objs') : Product p × Product ps.flatten := splitProduct objs
-    let rest : HList (ps.map Task.Parameter.Product) := splitProducts objs'
+    let rest : HList (ps.map Product) := splitProducts objs'
     HList.cons objs1 rest
 
 def Task.Parameter.makeActions
   (tasks : List Task)
-  (objs : HList (List.map Task.Parameter.Product (tasks.map (·.params))))
+  (objs : HList (List.map Product (tasks.map (·.params))))
   : Rand (Option Task.Actions) :=
   match tasks, objs with
   | [], _ => pure <| some { actions := [], deltaWitness := Anoma.DeltaWitness.empty }
@@ -68,7 +64,7 @@ def Task.composeWithAction
   (action : Anoma.Action)
   (witness : Anoma.DeltaWitness)
   : Rand (Option Task) :=
-  let lparams : List (List Task.Parameter) := tasks.map (·.params)
+  let lparams : List (List TypedObjectId) := tasks.map (·.params)
   pure <|
     some
       { params := lparams.flatten,

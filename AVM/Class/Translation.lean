@@ -153,7 +153,7 @@ def Method.task
   (selfId : ObjectId)
   (args : methodId.Args.type)
   : Task :=
-  { params := [⟨selfId, lab⟩],
+  { params := [⟨lab, selfId⟩],
     message := method.message selfId args,
     actions := fun (self, _) => do
       let try (action, witness) ← method.action methodId self args
@@ -215,7 +215,7 @@ def Destructor.task
   (selfId : ObjectId)
   (args : destructorId.Args.type)
   : Task :=
-  { params := [⟨selfId, lab⟩],
+  { params := [⟨lab, selfId⟩],
     message := destructor.message selfId args,
     actions := fun (self, _) => do
       let try (action, witness) ← destructor.action destructorId self args
