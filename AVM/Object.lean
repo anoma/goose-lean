@@ -31,7 +31,7 @@ def ObjectData.toSomeObjectData {lab : Class.Label} (data : ObjectData lab) : So
 
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
-structure Object (lab : Class.Label) : Type u where
+structure Object.{u} (lab : Class.Label.{u}) : Type u where
   /-- Unique object identifier. Stored in the `value` field of the resource. -/
   uid : Anoma.ObjectId
   nonce : Anoma.Nonce

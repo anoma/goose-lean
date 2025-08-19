@@ -15,7 +15,7 @@ def toTransaction (task : Task) (objs : Task.Parameter.Product task.params) : Ra
       { actions := acts,
         deltaProof := Anoma.Transaction.generateDeltaProof witness' acts }
 
-private def fetchObjects (params : List Task.Parameter) (cont : Task.Parameter.Product params → Anoma.Program) : Anoma.Program :=
+private def fetchObjects (params : List TypedObjectId) (cont : Task.Parameter.Product params → Anoma.Program) : Anoma.Program :=
   match params with
   | [] => cont PUnit.unit
   | p :: ps =>
