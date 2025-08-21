@@ -157,8 +157,8 @@ partial def Constructor.task
       nonce := ⟨newId⟩,
       data := newObjData }
   let consumable : ConsumableObject classId.label :=
-      { object := newObj
-        ephemeral := true }
+    { object := newObj
+      ephemeral := true }
   let consumedObject : ConsumedObject classId.label :=
     { consumable with can_nullify := consumable.toResource.nullifyUniversal }
   let createdObject : CreatedObject :=
@@ -182,7 +182,7 @@ partial def Destructor.task
        ephemeral := true }]
   let tasks (self : Object classId.label) : List Task :=
     (destructor.body self args).calls.map (·.task eco)
-  Task.composeWithParam (destructor.message selfId args) consumedObjectId tasks createdObjects
+  Task.composeWithFetch (destructor.message selfId args) consumedObjectId tasks createdObjects
 
 partial def Method.task
   {lab : Ecosystem.Label}
@@ -201,6 +201,6 @@ partial def Method.task
        ephemeral := false }]
   let tasks (self : Object classId.label) : List Task :=
     (method.body self args).calls.map (·.task eco)
-  Task.composeWithParam (method.message selfId args) consumedObjectId tasks createdObjects
+  Task.composeWithFetch (method.message selfId args) consumedObjectId tasks createdObjects
 
 end -- mutual

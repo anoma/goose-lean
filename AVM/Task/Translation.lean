@@ -15,22 +15,25 @@ def toTransaction (task : Task) (objs : task.params.Product) : Rand (Option Anom
       { actions := acts,
         deltaProof := Anoma.Transaction.generateDeltaProof witness' acts }
 
-private def fetchObjects (params : Task.Parameters) (cont : params.Product → Anoma.Program) : Anoma.Program :=
+private def resolveParameters (params : Task.Parameters) (cont : params.Product → Anoma.Program) : Anoma.Program :=
   match params with
-  | .nil => cont PUnit.unit
-  | .cons p ps =>
+  | .empty => cont PUnit.unit
+  | .fetch p ps =>
     Anoma.Program.queryResource (Anoma.Program.ResourceQuery.queryByObjectId p.uid) (fun res =>
       let try obj : Object p.classLabel := Object.fromResource res
           failwith Anoma.Program.raise <| Anoma.Program.Error.typeError ("expected object of class " ++ p.classLabel.name);
-      fetchObjects (ps obj) (fun objs' => cont ⟨obj, objs'⟩))
+      resolveParameters (ps obj) (fun vals => cont ⟨obj, vals⟩))
+  | .genId ps =>
+    Anoma.Program.genObjectId (fun objId =>
+      resolveParameters (ps objId) (fun vals => cont ⟨objId, vals⟩))
 
 /-- Creates an Anoma Program for a given Task. -/
 def toProgram (task : Task) : Anoma.Program :=
-  let cont (objs : task.params.Product) : Anoma.Program :=
+  let cont (vals : task.params.Product) : Anoma.Program :=
     Anoma.Program.withRandOption do
-      let try tx : Anoma.Transaction ← task.toTransaction objs
+      let try tx : Anoma.Transaction ← task.toTransaction vals
       pure <| Anoma.Program.submitTransaction tx Anoma.Program.skip
-  fetchObjects task.params cont
+  resolveParameters task.params cont
 
 def toProgramRand (task : Rand Task) : Anoma.Program :=
   Anoma.Program.withRandomGen fun g =>

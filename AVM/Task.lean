@@ -12,28 +12,32 @@ structure Task.Actions where
   deltaWitness : Anoma.DeltaWitness
 
 inductive Task.Parameters where
-  | nil
-  | cons (param : TypedObjectId) (rest : Object param.classLabel → Task.Parameters)
+  | empty
+  | fetch (param : TypedObjectId) (rest : Object param.classLabel → Task.Parameters)
+  | genId (rest : ObjectId → Task.Parameters)
 deriving Inhabited
 
 def Task.Parameters.Product (params : Task.Parameters) : Type :=
   match params with
-  | Task.Parameters.nil => PUnit
-  | Task.Parameters.cons param rest =>
+  | .empty => PUnit
+  | .fetch param rest =>
     Σ (obj : Object param.classLabel), Task.Parameters.Product (rest obj)
+  | .genId rest =>
+    Σ (objId : ObjectId), Task.Parameters.Product (rest objId)
 
 def Task.Parameters.append (params1 : Task.Parameters) (params2 : params1.Product → Task.Parameters) : Task.Parameters :=
   match params1 with
-  | Task.Parameters.nil =>
+  | .empty =>
     params2 PUnit.unit
-  | Task.Parameters.cons p1 ps1 =>
-    Task.Parameters.cons
-      p1
-      (fun obj => (ps1 obj).append (fun objs => params2 ⟨obj, objs⟩))
+  | .fetch p1 ps1 =>
+    .fetch p1
+      (fun obj => (ps1 obj).append (fun vals => params2 ⟨obj, vals⟩))
+  | .genId ps1 =>
+    .genId (fun objId => (ps1 objId).append (fun vals => params2 ⟨objId, vals⟩))
 
 def Task.Parameters.concat (params : List Task.Parameters) : Task.Parameters :=
   match params with
-  | [] => Task.Parameters.nil
+  | [] => .empty
   | ps :: rest =>
     ps.append (fun _ => Task.Parameters.concat rest)
 
@@ -49,35 +53,39 @@ deriving Inhabited
 def Task.Parameters.splitProduct
   {params1 : Task.Parameters}
   {params2 : params1.Product → Task.Parameters}
-  (objs : params1.append params2 |>.Product)
-  : Σ (objs : params1.Product), (params2 objs).Product :=
+  (vals : params1.append params2 |>.Product)
+  : Σ (vals : params1.Product), (params2 vals).Product :=
   match params1 with
-  | nil => ⟨PUnit.unit, objs⟩
-  | cons _ _ =>
-    let ⟨obj, objs'⟩ := objs
-    let ⟨objs1, objs2⟩ := splitProduct objs'
-    ⟨⟨obj, objs1⟩, objs2⟩
+  | .empty => ⟨PUnit.unit, vals⟩
+  | .fetch _ _ =>
+    let ⟨obj, vals'⟩ := vals
+    let ⟨vals1, vals2⟩ := splitProduct vals'
+    ⟨⟨obj, vals1⟩, vals2⟩
+  | .genId _ =>
+    let ⟨objId, vals'⟩ := vals
+    let ⟨vals1, vals2⟩ := splitProduct vals'
+    ⟨⟨objId, vals1⟩, vals2⟩
 
 def Task.Parameters.splitProducts
   {params : List Task.Parameters}
-  (objs : Task.Parameters.concat params |>.Product)
+  (vals : Task.Parameters.concat params |>.Product)
   : HList (params.map Product) :=
   match params with
   | [] => HList.nil
   | _ :: ps =>
-    let ⟨objs1, objs'⟩ := splitProduct objs
-    let rest : HList (ps.map Product) := splitProducts objs'
-    HList.cons objs1 rest
+    let ⟨vals1, vals'⟩ := splitProduct vals
+    let rest : HList (ps.map Product) := splitProducts vals'
+    HList.cons vals1 rest
 
 def Task.Parameter.makeActions
   (tasks : List Task)
-  (objs : HList (List.map Task.Parameters.Product (tasks.map (·.params))))
+  (vals : HList (List.map Task.Parameters.Product (tasks.map (·.params))))
   : Rand (Option Task.Actions) :=
-  match tasks, objs with
+  match tasks, vals with
   | [], _ => pure <| some { actions := [], deltaWitness := Anoma.DeltaWitness.empty }
-  | task :: tasks', HList.cons objs' objs'' => do
-    let try actions ← task.actions objs'
-    let try rest ← makeActions tasks' objs''
+  | task :: tasks', HList.cons vals' vals'' => do
+    let try actions ← task.actions vals'
+    let try rest ← makeActions tasks' vals''
     pure <| some <|
       { actions := actions.actions ++ rest.actions,
         deltaWitness := Anoma.DeltaWitness.compose actions.deltaWitness rest.deltaWitness }
@@ -90,9 +98,9 @@ def Task.composeWithAction
   let lparams : List Task.Parameters := tasks.map (·.params)
   { params := .concat lparams,
     message := msg,
-    actions := fun objs => do
-      let objs' := Task.Parameters.splitProducts objs
-      let try actions ← Task.Parameter.makeActions tasks objs'
+    actions := fun vals => do
+      let vals' := Task.Parameters.splitProducts vals
+      let try actions ← Task.Parameter.makeActions tasks vals'
       let try (action, witness) ← mkAction
       pure <| some <|
         { actions := action :: actions.actions,
@@ -108,23 +116,23 @@ def Task.compose
   Action.create [consumedObject] createdObjects [msg] createdMessages |>
     Task.composeWithAction tasks msg
 
-def Task.composeWithParamAction
+def Task.composeWithFetchAction
   (msg : SomeMessage)
-  (param : TypedObjectId)
-  (tasks : Object param.classLabel → List Task)
-  (mkAction : Object param.classLabel → Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
+  (objId : TypedObjectId)
+  (tasks : Object objId.classLabel → List Task)
+  (mkAction : Object objId.classLabel → Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
   : Task :=
-  { params := Task.Parameters.cons param fun obj => tasks obj |>.map (·.params) |> .concat,
+  { params := .fetch objId fun obj => tasks obj |>.map (·.params) |> .concat,
     message := msg,
-    actions := fun ⟨obj, objs⟩ => do
-      let objs' := Task.Parameters.splitProducts objs
-      let try actions ← Task.Parameter.makeActions (tasks obj) objs'
+    actions := fun ⟨obj, vals⟩ => do
+      let vals' := Task.Parameters.splitProducts vals
+      let try actions ← Task.Parameter.makeActions (tasks obj) vals'
       let try (action, witness) ← mkAction obj
       pure <| some <|
         { actions := action :: actions.actions,
           deltaWitness := Anoma.DeltaWitness.compose witness actions.deltaWitness } }
 
-def Task.composeWithParam
+def Task.composeWithFetch
   (msg : SomeMessage)
   (consumedObjectId : TypedObjectId)
   (tasks : Object consumedObjectId.classLabel → List Task)
@@ -138,4 +146,4 @@ def Task.composeWithParam
     let try consumedObject : ConsumedObject consumedObjectId.classLabel := consumable.consume
     let createdMessages := (tasks consumedObj).map (·.message)
     Action.create [consumedObject] (createdObjects consumedObj) [msg] createdMessages
-  Task.composeWithParamAction msg consumedObjectId tasks mkAction
+  Task.composeWithFetchAction msg consumedObjectId tasks mkAction
