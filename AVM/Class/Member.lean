@@ -7,9 +7,9 @@ import AVM.Ecosystem.Label
 namespace AVM.Class
 
 inductive Member.Call (lab : Ecosystem.Label) where
-  | constructor (cid : lab.ClassId) (constrId : cid.label.ConstructorId) (newId : ObjectId)
-  | destructor (cid : lab.ClassId) (destrId : cid.label.DestructorId) (selfId : ObjectId)
-  | method (cid : lab.ClassId) (methodId : cid.label.MethodId) (selfId : ObjectId)
+  | constructor (cid : lab.ClassId) (constrId : cid.label.ConstructorId) (newId : ObjectId) (args : constrId.Args.type)
+  | destructor (cid : lab.ClassId) (destrId : cid.label.DestructorId) (selfId : ObjectId) (args : destrId.Args.type)
+  | method (cid : lab.ClassId) (methodId : cid.label.MethodId) (selfId : ObjectId) (args : methodId.Args.type)
 
 structure Result.{u} (lab : Ecosystem.Label) (ReturnType : Type u) where
   calls : List (Member.Call lab)

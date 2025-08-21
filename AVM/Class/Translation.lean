@@ -127,26 +127,30 @@ def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (
         -- the message logic
         consumedObject.uid == msg.recipient
 
-def Member.Call.task {lab : Ecosystem.Label} (call : Member.Call lab) : Task :=
-  match call with
-  | .constructor lab constrId newId =>
-    sorry
-  | .destructor lab destrId selfId =>
-    sorry
-  | .method lab methodId selfId =>
-    sorry
+mutual
 
-/-- Creates an action for a given constructor. This action creates the
-  object specified by the constructor. -/
-def Constructor.action
+partial def Member.Call.task {lab : Ecosystem.Label} (eco : Ecosystem lab) (call : Member.Call lab) : Task :=
+  match call with
+  | .constructor classId constrId newId args =>
+    eco.classes classId |>.constructors constrId |>.task eco newId args
+  | .destructor classId destrId selfId args =>
+    eco.classes classId |>.destructors destrId |>.task eco selfId args
+  | .method classId methodId selfId args =>
+    eco.classes classId |>.methods methodId |>.task eco selfId args
+
+/-- Creates a Task for a given object constructor. -/
+partial def Constructor.task
   {lab : Ecosystem.Label}
+  (eco : Ecosystem lab)
   {classId : lab.ClassId}
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor classId constrId)
   (newId : ObjectId)
   (args : constrId.Args.type)
-  : Rand (Anoma.Action × Anoma.DeltaWitness) :=
+  : Task :=
   let result := constr.body args
+  let calls : List (Member.Call lab) := result.calls
+  let tasks := calls.map (·.task eco)
   let newObjData : ObjectData classId.label := result.returnValue
   let newObj : Object classId.label :=
     { uid := newId,
@@ -159,91 +163,44 @@ def Constructor.action
     { consumable with can_nullify := consumable.toResource.nullifyUniversal }
   let createdObject : CreatedObject :=
     CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)
-  let consumedMessage : Message classId.label :=
-    constr.message newObj.uid args
-  Action.create [consumedObject] [createdObject] [consumedMessage] []
-
-/-- Creates a Task for a given object constructor. -/
-def Constructor.task
-  {lab : Ecosystem.Label}
-  {classId : lab.ClassId}
-  {constrId : classId.label.ConstructorId}
-  (constr : Class.Constructor classId constrId)
-  (newId : ObjectId)
-  (args : constrId.Args.type)
-  : Task :=
-  { params := [],
-    message := constr.message newId args,
-    actions := fun _ => do
-      let (action, witness) ← constr.action newId args
-      pure <| some ⟨[action], witness⟩ }
-
-def Method.action
-  {lab : Ecosystem.Label}
-  {classId : lab.ClassId}
-  (methodId : classId.label.MethodId)
-  (method : Class.Method classId methodId)
-  (self : Object classId.label)
-  (args : methodId.Args.type)
-  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
-  let result := method.body self args
-  let consumable : ConsumableObject classId.label :=
-      { object := self
-        ephemeral := false }
-  let try consumedObject : ConsumedObject classId.label := consumable.consume
-  let createObject (o : SomeObject) : CreatedObject :=
-    { uid := o.object.uid,
-      data := o.object.data,
-      ephemeral := false }
-  let createdObject : CreatedObject := createObject result.returnValue.toSomeObject
-  let consumedMessage : Message classId.label :=
-    method.message self.uid args
-  Action.create [consumedObject] [createdObject] [consumedMessage] []
-
-def Method.task
-  {lab : Ecosystem.Label}
-  {classId : lab.ClassId}
-  (methodId : classId.label.MethodId)
-  (method : Class.Method classId methodId)
-  (selfId : ObjectId)
-  (args : methodId.Args.type)
-  : Task :=
-  { params := [⟨classId.label, selfId⟩],
-    message := method.message selfId args,
-    actions := fun (self, _) => do
-      let try (action, witness) ← method.action methodId self args
-      pure <| some { actions := [action], deltaWitness := witness } }
-
-def Destructor.action
-  {lab : Ecosystem.Label}
-  {classId : lab.ClassId}
-  (destructorId : classId.label.DestructorId)
-  (destructor : Class.Destructor classId destructorId)
-  (self : Object classId.label)
-  (args : destructorId.Args.type)
-  : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
-  let consumable : ConsumableObject classId.label :=
-       { object := self
-         ephemeral := false }
-  let try consumedObject := consumable.consume
-  let createdObject : CreatedObject :=
-    { uid := self.uid,
-      data := self.data,
-      ephemeral := true }
-  let consumedMessage : Message classId.label := destructor.message self.uid args
-  Action.create [consumedObject] [createdObject] [consumedMessage] []
+  Task.compose tasks (constr.message newObj.uid args) consumedObject [createdObject]
 
 /-- Creates an Anoma Transaction for a given object destructor. -/
-def Destructor.task
+partial def Destructor.task
   {lab : Ecosystem.Label}
+  (eco : Ecosystem lab)
   {classId : lab.ClassId}
-  (destructorId : classId.label.DestructorId)
+  {destructorId : classId.label.DestructorId}
   (destructor : Class.Destructor classId destructorId)
   (selfId : ObjectId)
   (args : destructorId.Args.type)
   : Task :=
-  { params := [⟨classId.label, selfId⟩],
-    message := destructor.message selfId args,
-    actions := fun (self, _) => do
-      let try (action, witness) ← destructor.action destructorId self args
-      pure <| some { actions := [action], deltaWitness := witness } }
+  let consumedObjectId : TypedObjectId := ⟨classId.label, selfId⟩
+  let createdObjects (self : Object classId.label) : List CreatedObject :=
+    [{ uid := self.uid,
+       data := self.data,
+       ephemeral := true }]
+  let tasks (self : Object classId.label) : List Task :=
+    (destructor.body self args).calls.map (·.task eco)
+  Task.composeWithParam (destructor.message selfId args) consumedObjectId tasks createdObjects
+
+partial def Method.task
+  {lab : Ecosystem.Label}
+  (eco : Ecosystem lab)
+  {classId : lab.ClassId}
+  {methodId : classId.label.MethodId}
+  (method : Class.Method classId methodId)
+  (selfId : ObjectId)
+  (args : methodId.Args.type)
+  : Task :=
+  let consumedObjectId : TypedObjectId := ⟨classId.label, selfId⟩
+  let createdObjects (self : Object classId.label) : List CreatedObject :=
+    let obj := (method.body self args).returnValue.toSomeObject
+    [{ uid := obj.object.uid,
+       data := obj.object.data,
+       ephemeral := false }]
+  let tasks (self : Object classId.label) : List Task :=
+    (method.body self args).calls.map (·.task eco)
+  Task.composeWithParam (method.message selfId args) consumedObjectId tasks createdObjects
+
+end -- mutual

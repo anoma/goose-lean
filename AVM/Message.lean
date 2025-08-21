@@ -30,6 +30,9 @@ instance SomeMessage.hasTypeRep : TypeRep SomeMessage where
 instance SomeMessage.hasBEq : BEq SomeMessage where
   beq a b := a.label == b.label && a.message === b.message
 
+instance : Inhabited SomeMessage where
+  default := { label := Class.Label.dummy, message := { id := .constructorId PUnit.unit, args := PUnit.unit, recipient := 0 } }
+
 def Message.toSomeMessage {lab : Class.Label} (msg : Message lab) : SomeMessage :=
   { label := lab, message := msg }
 

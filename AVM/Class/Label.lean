@@ -46,6 +46,26 @@ structure Label : Type (u + 1) where
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
 
+def Label.dummy : Label where
+  name := "Dummy"
+  PrivateFields := ⟨PUnit⟩
+  DynamicLabel := default
+  ConstructorId := PUnit
+  ConstructorArgs := fun _ => ⟨PUnit⟩
+  constructorsFinite := inferInstanceAs (Fintype PUnit)
+  constructorsRepr := inferInstanceAs (Repr PUnit)
+  constructorsBEq := inferInstanceAs (BEq PUnit)
+  DestructorId := Empty
+  DestructorArgs := fun _ => ⟨PUnit⟩
+  destructorsFinite := inferInstanceAs (Fintype Empty)
+  destructorsRepr := inferInstanceAs (Repr Empty)
+  destructorsBEq := inferInstanceAs (BEq Empty)
+  MethodId := PUnit
+  MethodArgs := fun _ => ⟨PUnit⟩
+  methodsFinite := inferInstanceAs (Fintype PUnit)
+  methodsRepr := inferInstanceAs (Repr PUnit)
+  methodsBEq := inferInstanceAs (BEq PUnit)
+
 inductive Label.MemberId (lab : Class.Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
