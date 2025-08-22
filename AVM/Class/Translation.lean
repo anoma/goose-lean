@@ -131,8 +131,8 @@ mutual
 
 partial def Member.Call.task {lab : Ecosystem.Label} (eco : Ecosystem lab) (call : Member.Call lab) : Task :=
   match call with
-  | .constructor classId constrId newId args =>
-    eco.classes classId |>.constructors constrId |>.task eco newId args
+  | .constructor classId constrId _ args =>
+    eco.classes classId |>.constructors constrId |>.task eco args
   | .destructor classId destrId selfId args =>
     eco.classes classId |>.destructors destrId |>.task eco selfId args
   | .method classId methodId selfId args =>
@@ -145,25 +145,21 @@ partial def Constructor.task
   {classId : lab.ClassId}
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor classId constrId)
-  (newId : ObjectId)
   (args : constrId.Args.type)
   : Task :=
   let result := constr.body args
   let calls : List (Member.Call lab) := result.calls
   let tasks := calls.map (·.task eco)
   let newObjData : ObjectData classId.label := result.returnValue
-  let newObj : Object classId.label :=
-    { uid := newId,
-      nonce := ⟨newId⟩,
-      data := newObjData }
-  let consumable : ConsumableObject classId.label :=
-    { object := newObj
-      ephemeral := true }
-  let consumedObject : ConsumedObject classId.label :=
-    { consumable with can_nullify := consumable.toResource.nullifyUniversal }
-  let createdObject : CreatedObject :=
-    CreatedObject.fromSomeObject newObj.toSomeObject (ephemeral := false)
-  Task.compose tasks (constr.message newObj.uid args) consumedObject [createdObject]
+  let mkNewObj (newId : ObjectId) : SomeObject :=
+    let obj : Object classId.label :=
+      { uid := newId,
+        nonce := ⟨newId⟩,
+        data := newObjData }
+    obj.toSomeObject
+  let createdObjects (newId : ObjectId) : List CreatedObject :=
+    [CreatedObject.fromSomeObject (mkNewObj newId) (ephemeral := false)]
+  Task.composeWithGenId (fun objId => constr.message objId args) (fun _ => tasks) mkNewObj createdObjects
 
 /-- Creates an Anoma Transaction for a given object destructor. -/
 partial def Destructor.task

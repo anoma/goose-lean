@@ -45,7 +45,7 @@ structure Task where
   /-- Task parameters - objects to fetch from the Anoma system. -/
   params : Task.Parameters
   /-- The message to send to the recipient. -/
-  message : SomeMessage
+  message : params.Product → SomeMessage
   /-- Task actions - actions to perform parameterised by fetched objects. -/
   actions : params.Product → Rand (Option Task.Actions)
 deriving Inhabited
@@ -77,9 +77,12 @@ def Task.Parameters.splitProducts
     let rest : HList (ps.map Product) := splitProducts vals'
     HList.cons vals1 rest
 
-def Task.Parameter.makeActions
+def Task.Parameters.Products (tasks : List Task) : List Type :=
+  tasks.map (·.params) |> .map (·.Product)
+
+def Task.Parameters.makeActions
   (tasks : List Task)
-  (vals : HList (List.map Task.Parameters.Product (tasks.map (·.params))))
+  (vals : HList (Parameters.Products tasks))
   : Rand (Option Task.Actions) :=
   match tasks, vals with
   | [], _ => pure <| some { actions := [], deltaWitness := Anoma.DeltaWitness.empty }
@@ -90,47 +93,36 @@ def Task.Parameter.makeActions
       { actions := actions.actions ++ rest.actions,
         deltaWitness := Anoma.DeltaWitness.compose actions.deltaWitness rest.deltaWitness }
 
-def Task.composeWithAction
-  (tasks : List Task)
-  (msg : SomeMessage)
-  (mkAction : Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
-  : Task :=
-  let lparams : List Task.Parameters := tasks.map (·.params)
-  { params := .concat lparams,
-    message := msg,
-    actions := fun vals => do
-      let vals' := Task.Parameters.splitProducts vals
-      let try actions ← Task.Parameter.makeActions tasks vals'
-      let try (action, witness) ← mkAction
-      pure <| some <|
-        { actions := action :: actions.actions,
-          deltaWitness := Anoma.DeltaWitness.compose witness actions.deltaWitness } }
+def Task.composeMessages (tasks : List Task) (vals : HList (Parameters.Products tasks)) : List SomeMessage :=
+  match tasks, vals with
+  | [], _ => []
+  | task :: tasks', HList.cons vals' vals'' =>
+    task.message vals' :: composeMessages tasks' vals''
 
-def Task.compose
-  (tasks : List Task)
-  (msg : SomeMessage)
-  (consumedObject : SomeConsumedObject)
-  (createdObjects : List CreatedObject)
-  : Task :=
-  let createdMessages := tasks.map (·.message)
-  Action.create [consumedObject] createdObjects [msg] createdMessages |>
-    Task.composeWithAction tasks msg
+def Task.composeParams (tasks : List Task) : Task.Parameters :=
+  tasks |>.map (·.params) |> .concat
+
+def Task.composeActions {α}
+  (tasks : α → List Task)
+  (mkAction : (a : α) → HList (Parameters.Products (tasks a)) → Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
+  : (Σ a : α, Task.composeParams (tasks a ) |>.Product) → Rand (Option Task.Actions) :=
+  fun ⟨obj, vals⟩ => do
+    let vals' := Task.Parameters.splitProducts vals
+    let try actions ← Task.Parameters.makeActions (tasks obj) vals'
+    let try (action, witness) ← mkAction obj vals'
+    pure <| some <|
+      { actions := action :: actions.actions,
+        deltaWitness := Anoma.DeltaWitness.compose witness actions.deltaWitness }
 
 def Task.composeWithFetchAction
   (msg : SomeMessage)
   (objId : TypedObjectId)
   (tasks : Object objId.classLabel → List Task)
-  (mkAction : Object objId.classLabel → Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
+  (mkAction : (obj : Object objId.classLabel) → HList (Parameters.Products (tasks obj)) → Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
   : Task :=
-  { params := .fetch objId fun obj => tasks obj |>.map (·.params) |> .concat,
-    message := msg,
-    actions := fun ⟨obj, vals⟩ => do
-      let vals' := Task.Parameters.splitProducts vals
-      let try actions ← Task.Parameter.makeActions (tasks obj) vals'
-      let try (action, witness) ← mkAction obj
-      pure <| some <|
-        { actions := action :: actions.actions,
-          deltaWitness := Anoma.DeltaWitness.compose witness actions.deltaWitness } }
+  { params := .fetch objId (composeParams ∘ tasks),
+    message := fun _ => msg,
+    actions := composeActions tasks mkAction }
 
 def Task.composeWithFetch
   (msg : SomeMessage)
@@ -138,12 +130,31 @@ def Task.composeWithFetch
   (tasks : Object consumedObjectId.classLabel → List Task)
   (createdObjects : Object consumedObjectId.classLabel → List CreatedObject)
   : Task :=
-  let mkAction (consumedObj : Object consumedObjectId.classLabel)
+  let mkAction (obj : Object consumedObjectId.classLabel) (vals : HList (Parameters.Products (tasks obj)))
     : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
-    let consumable : ConsumableObject consumedObjectId.classLabel :=
-        { object := consumedObj
-          ephemeral := false }
-    let try consumedObject : ConsumedObject consumedObjectId.classLabel := consumable.consume
-    let createdMessages := (tasks consumedObj).map (·.message)
-    Action.create [consumedObject] (createdObjects consumedObj) [msg] createdMessages
+    let try consumedObject := obj.toConsumedObject false
+    let createdMessages := composeMessages (tasks obj) vals
+    Action.create [consumedObject] (createdObjects obj) [msg] createdMessages
   Task.composeWithFetchAction msg consumedObjectId tasks mkAction
+
+def Task.composeWithGenIdAction
+  (message : ObjectId → SomeMessage)
+  (tasks : ObjectId → List Task)
+  (mkAction : (objId : ObjectId) → HList (Parameters.Products (tasks objId)) → Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
+  : Task :=
+  { params := .genId (composeParams ∘ tasks),
+    message := fun ⟨objId, _⟩ => message objId,
+    actions := composeActions tasks mkAction }
+
+def Task.composeWithGenId
+  (message : ObjectId → SomeMessage)
+  (tasks : ObjectId → List Task)
+  (mkConsumedObject : ObjectId → SomeObject)
+  (createdObjects : ObjectId → List CreatedObject)
+  : Task :=
+  let mkAction (objId : ObjectId) (vals : HList (Parameters.Products (tasks objId)))
+    : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
+    let try consumedObject := mkConsumedObject objId |>.toConsumedObject true
+    let createdMessages := composeMessages (tasks objId) vals
+    Action.create [consumedObject] (createdObjects objId) [message objId] createdMessages
+  Task.composeWithGenIdAction message tasks mkAction

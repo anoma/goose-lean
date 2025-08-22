@@ -72,3 +72,9 @@ def SomeConsumableObject.consume (c : SomeConsumableObject) : Option SomeConsume
 
 def SomeConsumedObject.toSomeObject (sconsumed : SomeConsumedObject) : SomeObject :=
   ⟨sconsumed.consumed.object⟩
+
+def SomeObject.toConsumedObject (ephemeral : Bool) (sobj : SomeObject) : Option SomeConsumedObject :=
+  sobj.toConsumable ephemeral |>.consume
+
+def Object.toConsumedObject {lab : Class.Label} (ephemeral : Bool) (obj : Object lab) : Option SomeConsumedObject :=
+  SomeObject.toConsumedObject ephemeral obj.toSomeObject
