@@ -129,7 +129,7 @@ def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (
 
 mutual
 
-partial def Member.Body.tasks {α} {params : Task.Parameters} {lab : Ecosystem.Label} (eco : Ecosystem lab) (body : Member.Body lab α params) : List Task :=
+partial def Member.Body.tasks {α} {params : Task.Parameters} {lab : Ecosystem.Label} (eco : Ecosystem lab) (body : Member.Body lab α params) : Tasks params :=
   match body with
   | .constructor classId constrId args next =>
     sorry
@@ -164,7 +164,7 @@ partial def Constructor.task
     obj.toSomeObject
   let createdObjects (newId : ObjectId) : List CreatedObject :=
     [CreatedObject.fromSomeObject (mkNewObj newId) (ephemeral := false)]
-  Task.composeWithGenId (fun objId => constr.message objId args) (fun _ => tasks) mkNewObj createdObjects
+  Tasks.composeWithGenId (fun objId => constr.message objId args) (fun _ => tasks) mkNewObj createdObjects
 
 /-- Creates an Anoma Transaction for a given object destructor. -/
 partial def Destructor.task

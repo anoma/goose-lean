@@ -4,9 +4,9 @@ import AVM.Task
 namespace AVM.Task
 
 /-- Creates an Anoma Transaction for a given Task. -/
-def toTransaction (task : Task) (objs : task.params.Product) : Rand (Option Anoma.Transaction) := do
-  let (action, witness) ← Action.create [] [] [] [task.message objs]
-  let try actions : Task.Actions ← task.actions objs
+def toTransaction (task : Task) (vals : task.params.Product) : Rand (Option Anoma.Transaction) := do
+  let (action, witness) ← Action.create [] [] [] [task.message vals]
+  let try actions : Task.Actions ← task.actions vals
   let witness' : Anoma.DeltaWitness :=
     Anoma.DeltaWitness.compose actions.deltaWitness witness
   let acts : List Anoma.Action := action :: actions.actions
