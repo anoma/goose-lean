@@ -129,23 +129,28 @@ def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (
 
 mutual
 
-partial def Member.Call.task {lab : Ecosystem.Label} (eco : Ecosystem lab) (call : Member.Call lab) : Task :=
-  match call with
-  | .constructor classId constrId _ args =>
-    eco.classes classId |>.constructors constrId |>.task eco args
-  | .destructor classId destrId selfId args =>
-    eco.classes classId |>.destructors destrId |>.task eco selfId args
-  | .method classId methodId selfId args =>
-    eco.classes classId |>.methods methodId |>.task eco selfId args
+partial def Member.Body.tasks {α} {params : Task.Parameters} {lab : Ecosystem.Label} (eco : Ecosystem lab) (body : Member.Body lab α params) : List Task :=
+  match body with
+  | .constructor classId constrId args next =>
+    sorry
+  | .destructor classId destrId selfId args next =>
+    sorry
+  | .method classId methodId selfId args next =>
+    sorry
+  | .fetch objId next =>
+    sorry
+  | .return val =>
+    sorry
 
 /-- Creates a Task for a given object constructor. -/
 partial def Constructor.task
+  {params : Task.Parameters}
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   {classId : lab.ClassId}
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor classId constrId)
-  (args : constrId.Args.type)
+  (args : params.Product → constrId.Args.type)
   : Task :=
   let result := constr.body args
   let calls : List (Member.Call lab) := result.calls

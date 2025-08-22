@@ -8,7 +8,7 @@ inductive Task.Parameters where
   | genId (rest : ObjectId → Task.Parameters)
 deriving Inhabited
 
-def Task.Parameters.Product (params : Task.Parameters) : Type :=
+def Task.Parameters.Product (params : Task.Parameters) : Type u :=
   match params with
   | .empty => PUnit
   | .fetch param rest =>
@@ -25,6 +25,12 @@ def Task.Parameters.append (params1 : Task.Parameters) (params2 : params1.Produc
       (fun obj => (ps1 obj).append (fun vals => params2 ⟨obj, vals⟩))
   | .genId ps1 =>
     .genId (fun objId => (ps1 objId).append (fun vals => params2 ⟨objId, vals⟩))
+
+def Task.Parameters.snocFetch (params : Task.Parameters) (objId : params.Product → TypedObjectId) : Task.Parameters :=
+  params.append (fun vals => .fetch (objId vals) (fun _ => .empty))
+
+def Task.Parameters.snocGenId (params : Task.Parameters) : Task.Parameters :=
+  params.append (fun _ => .genId (fun _ => .empty))
 
 def Task.Parameters.concat (params : List Task.Parameters) : Task.Parameters :=
   match params with

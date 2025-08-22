@@ -11,13 +11,19 @@ structure Task.Actions where
   deltaWitness : Anoma.DeltaWitness
 
 structure Task where
-  /-- Task parameters - objects to fetch from the Anoma system. -/
+  /-- Task parameters - objects to fetch from the Anoma system and new object
+    ids to generate. -/
   params : Task.Parameters
   /-- The message to send to the recipient. -/
   message : params.Product → SomeMessage
   /-- Task actions - actions to perform parameterised by fetched objects. -/
   actions : params.Product → Rand (Option Task.Actions)
 deriving Inhabited
+
+inductive Tasks.{u} : Task.Parameters.{u} → Type (u + 1) where
+  | empty {params} : Tasks params
+  | fetch {params} (objId : params.Product → TypedObjectId) (task : params.Product → Task) (rest : Tasks (params.snocFetch objId)) : Tasks params
+  | genId {params} (task : params.Product → Task) (rest : Tasks params.snocGenId) : Tasks params
 
 def Task.Products (tasks : List Task) : List Type :=
   tasks.map (·.params) |> .map (·.Product)
@@ -47,11 +53,11 @@ def Task.composeParams (tasks : List Task) : Task.Parameters :=
 def Task.composeActions {α}
   (tasks : α → List Task)
   (mkAction : (a : α) → HList (Products (tasks a)) → Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
-  : (Σ a : α, Task.composeParams (tasks a ) |>.Product) → Rand (Option Task.Actions) :=
-  fun ⟨obj, vals⟩ => do
+  : (Σ a : α, Task.composeParams (tasks a) |>.Product) → Rand (Option Task.Actions) :=
+  fun ⟨a, vals⟩ => do
     let vals' := Task.Parameters.splitProducts vals
-    let try actions ← Task.makeActions (tasks obj) vals'
-    let try (action, witness) ← mkAction obj vals'
+    let try actions ← Task.makeActions (tasks a) vals'
+    let try (action, witness) ← mkAction a vals'
     pure <| some <|
       { actions := action :: actions.actions,
         deltaWitness := Anoma.DeltaWitness.compose witness actions.deltaWitness }
