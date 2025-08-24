@@ -19,10 +19,13 @@ def Constructor.message
   {classId : lab.ClassId}
   {constrId : classId.label.ConstructorId}
   (_constr : Class.Constructor classId constrId)
+  (Vals : SomeType)
+  (vals : Vals.type)
   (newId : ObjectId)
   (args : constrId.Args.type)
   : Message classId.label :=
   { id := Label.MemberId.constructorId constrId,
+    vals,
     args,
     recipient := newId }
 
@@ -31,10 +34,13 @@ def Destructor.message
   {classId : lab.ClassId}
   {destructorId : classId.label.DestructorId}
   (_destructor : Class.Destructor classId destructorId)
+  (Vals : SomeType)
+  (vals : Vals.type)
   (selfId : ObjectId)
   (args : destructorId.Args.type)
   : Message classId.label :=
   { id := Label.MemberId.destructorId destructorId,
+    vals,
     args,
     recipient := selfId }
 
@@ -43,10 +49,13 @@ def Method.message
   {classId : lab.ClassId}
   {methodId : classId.label.MethodId}
   (_method : Class.Method classId methodId)
+  (Vals : SomeType)
+  (vals : Vals.type)
   (selfId : ObjectId)
   (args : methodId.Args.type)
   : Message classId.label :=
   { id := Label.MemberId.methodId methodId,
+    vals,
     args,
     recipient := selfId }
 
@@ -60,7 +69,8 @@ def Constructor.Message.logic
   : Bool :=
   let try msg : Message classId.label := Message.fromResource args.self
   let try argsData := SomeType.cast msg.args
-  let newObjData := constr.body argsData |>.returnValue
+  let try vals : (constr.body argsData).params.Product := tryCast msg.vals
+  let newObjData := constr.body argsData |>.returnValue vals
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
   Logic.checkResourcesData [newObjData.toSomeObjectData] consumedResObjs
@@ -104,7 +114,8 @@ def Method.Message.logic
   let! [selfRes] := consumedResObjs
   let try selfObj : Object classId.label := Object.fromResource selfRes
   check method.invariant selfObj argsData
-  let createdObject : Object classId.label := method.body selfObj argsData |>.returnValue
+  let try vals : (method.body selfObj argsData).params.Product := tryCast msg.vals
+  let createdObject : Object classId.label := method.body selfObj argsData |>.returnValue vals
   Logic.checkResourcesData [createdObject.toSomeObjectData] createdResObjs
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
@@ -129,42 +140,51 @@ def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (
 
 mutual
 
-partial def Member.Body.tasks {α} {params : Task.Parameters} {lab : Ecosystem.Label} (eco : Ecosystem lab) (body : Member.Body lab α params) : Tasks params :=
+partial def Member.Body.tasks {α} {params : Task.Parameters} {lab : Ecosystem.Label} (eco : Ecosystem lab) (body : Member.Body lab α params) (vals : body.params.Product) : List Task :=
+  let vals1 := Member.Body.prefixProduct body vals
   match body with
   | .constructor classId constrId args next =>
-    sorry
+    let constr := eco.classes classId |>.constructors constrId
+    let task := constr.task eco (args vals1)
+    task :: next.tasks eco vals
   | .destructor classId destrId selfId args next =>
-    sorry
+    let destr := eco.classes classId |>.destructors destrId
+    let task := destr.task eco (selfId vals1) (args vals1)
+    task :: next.tasks eco vals
   | .method classId methodId selfId args next =>
-    sorry
-  | .fetch objId next =>
-    sorry
-  | .return val =>
-    sorry
+    let destr := eco.classes classId |>.methods methodId
+    let task := destr.task eco (selfId vals1) (args vals1)
+    task :: next.tasks eco vals
+  | .fetch _ next =>
+    next.tasks eco vals
+  | .return _ =>
+    []
 
 /-- Creates a Task for a given object constructor. -/
 partial def Constructor.task
-  {params : Task.Parameters}
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   {classId : lab.ClassId}
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor classId constrId)
-  (args : params.Product → constrId.Args.type)
+  (args : constrId.Args.type)
   : Task :=
-  let result := constr.body args
-  let calls : List (Member.Call lab) := result.calls
-  let tasks := calls.map (·.task eco)
-  let newObjData : ObjectData classId.label := result.returnValue
-  let mkNewObj (newId : ObjectId) : SomeObject :=
-    let obj : Object classId.label :=
-      { uid := newId,
-        nonce := ⟨newId⟩,
-        data := newObjData }
-    obj.toSomeObject
-  let createdObjects (newId : ObjectId) : List CreatedObject :=
-    [CreatedObject.fromSomeObject (mkNewObj newId) (ephemeral := false)]
-  Tasks.composeWithGenId (fun objId => constr.message objId args) (fun _ => tasks) mkNewObj createdObjects
+  let bodyParams := (constr.body args).params
+  let params := Task.Parameters.genId (fun _ => bodyParams)
+  Task.absorbParams params fun ⟨newId, vals⟩ =>
+    let body := constr.body args
+    let tasks := body.tasks eco vals
+    let newObjData : ObjectData classId.label := body.returnValue vals
+    let newObj : SomeObject :=
+      let obj : Object classId.label :=
+        { uid := newId,
+          nonce := ⟨newId⟩,
+          data := newObjData }
+      obj.toSomeObject
+    let consumedObj := newObj.toConsumable (ephemeral := true)
+    let createdObjects : List CreatedObject :=
+      [CreatedObject.fromSomeObject newObj (ephemeral := false)]
+    Task.compose (constr.message ⟨bodyParams.Product⟩ vals newId args) tasks consumedObj createdObjects
 
 /-- Creates an Anoma Transaction for a given object destructor. -/
 partial def Destructor.task
@@ -177,13 +197,16 @@ partial def Destructor.task
   (args : destructorId.Args.type)
   : Task :=
   let consumedObjectId : TypedObjectId := ⟨classId.label, selfId⟩
-  let createdObjects (self : Object classId.label) : List CreatedObject :=
-    [{ uid := self.uid,
-       data := self.data,
-       ephemeral := true }]
-  let tasks (self : Object classId.label) : List Task :=
-    (destructor.body self args).calls.map (·.task eco)
-  Task.composeWithFetch (destructor.message selfId args) consumedObjectId tasks createdObjects
+  let bodyParams (self : Object classId.label) := (destructor.body self args).params
+  let params := Task.Parameters.fetch consumedObjectId bodyParams
+  Task.absorbParams params fun ⟨self, vals⟩ =>
+    let tasks : List Task := (destructor.body self args).tasks eco vals
+    let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
+    let createdObjects : List CreatedObject :=
+      [{ uid := self.uid,
+         data := self.data,
+         ephemeral := true }]
+    Task.compose (destructor.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks consumedObj createdObjects
 
 partial def Method.task
   {lab : Ecosystem.Label}
@@ -195,13 +218,17 @@ partial def Method.task
   (args : methodId.Args.type)
   : Task :=
   let consumedObjectId : TypedObjectId := ⟨classId.label, selfId⟩
-  let createdObjects (self : Object classId.label) : List CreatedObject :=
-    let obj := (method.body self args).returnValue.toSomeObject
-    [{ uid := obj.object.uid,
-       data := obj.object.data,
-       ephemeral := false }]
-  let tasks (self : Object classId.label) : List Task :=
-    (method.body self args).calls.map (·.task eco)
-  Task.composeWithFetch (method.message selfId args) consumedObjectId tasks createdObjects
+  let bodyParams (self : Object classId.label) := (method.body self args).params
+  let params := Task.Parameters.fetch consumedObjectId bodyParams
+  Task.absorbParams params fun ⟨self, vals⟩ =>
+    let body := method.body self args
+    let tasks : List Task := body.tasks eco vals
+    let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
+    let obj := (body.returnValue vals).toSomeObject
+    let createdObjects : List CreatedObject :=
+      [{ uid := obj.object.uid,
+         data := obj.object.data,
+         ephemeral := false }]
+    Task.compose (method.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks consumedObj createdObjects
 
 end -- mutual

@@ -16,6 +16,28 @@ def Task.Parameters.Product (params : Task.Parameters) : Type u :=
   | .genId rest =>
     Σ (objId : ObjectId), Task.Parameters.Product (rest objId)
 
+instance {params : Task.Parameters} : TypeRep params.Product where
+  rep := Rep.atomic "Task.Parameters.Product" -- TODO: this should depend on params
+
+def Task.Parameters.Product.beq {params : Task.Parameters} (a b : params.Product) :=
+    match params with
+    | .empty => true
+    | .fetch _ _ =>
+      let ⟨objA, valsA⟩ := a
+      let ⟨objB, valsB⟩ := b
+      check objA == objB
+      let try valsB' := tryCast valsB
+      beq valsA valsB'
+    | .genId _ =>
+      let ⟨objIdA, valsA⟩ := a
+      let ⟨objIdB, valsB⟩ := b
+      check objIdA == objIdB
+      let try valsB' := tryCast valsB
+      beq valsA valsB'
+
+instance {params : Task.Parameters} : BEq params.Product where
+  beq := Task.Parameters.Product.beq
+
 def Task.Parameters.append (params1 : Task.Parameters) (params2 : params1.Product → Task.Parameters) : Task.Parameters :=
   match params1 with
   | .empty =>
@@ -94,3 +116,23 @@ def Task.Parameters.Values.snocGenId {ps : Task.Parameters} (vals : ps.Product) 
   | .genId _ =>
     let ⟨objId', vals'⟩ := vals
     ⟨objId', snocGenId vals' objId⟩
+
+def Task.Parameters.Values.dropLastGenId {ps : Task.Parameters} (vals : ps.snocGenId.Product) : ps.Product :=
+  match ps with
+  | .empty => vals.2
+  | .fetch _ _ =>
+    let ⟨obj, vals'⟩ := vals
+    ⟨obj, dropLastGenId vals'⟩
+  | .genId _ =>
+    let ⟨objId, vals'⟩ := vals
+    ⟨objId, dropLastGenId vals'⟩
+
+def Task.Parameters.Values.dropLastFetch {ps : Task.Parameters} {objId : ps.Product → TypedObjectId} (vals : (ps.snocFetch objId).Product) : ps.Product :=
+  match ps with
+  | .empty => vals.2
+  | .fetch _ _ =>
+    let ⟨obj, vals'⟩ := vals
+    ⟨obj, dropLastFetch vals'⟩
+  | .genId _ =>
+    let ⟨objId, vals'⟩ := vals
+    ⟨objId, dropLastFetch vals'⟩
