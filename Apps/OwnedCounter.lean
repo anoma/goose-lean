@@ -28,6 +28,10 @@ inductive Destructors where
   | Ten : Destructors
   deriving DecidableEq, Fintype, Repr
 
+inductive Classes where
+  | OwnedCounter : Classes
+  deriving DecidableEq, FinEnum, Repr
+
 open AVM
 
 def clab : Class.Label where
@@ -42,6 +46,12 @@ def clab : Class.Label where
     | Constructors.Zero => ⟨Unit⟩
   DestructorId := Destructors
 
+def label : Ecosystem.Label where
+  name := "OwnedCounterEcosystem"
+  ClassId := Classes
+  classLabel := fun
+    | Classes.OwnedCounter => clab
+
 def toObject (c : OwnedCounter) : ObjectData clab where
   quantity := 1
   privateFields := c
@@ -50,7 +60,8 @@ def fromObject (o : ObjectData clab) : OwnedCounter :=
   o.privateFields
 
 instance instIsObject : IsObject OwnedCounter where
-  label := clab
+  label := label
+  classId := Classes.OwnedCounter
   toObject := OwnedCounter.toObject
   fromObject := OwnedCounter.fromObject
 
@@ -61,20 +72,22 @@ def newCounter (owner : PublicKey) : OwnedCounter where
 def incrementBy (step : Nat) (c : OwnedCounter) : OwnedCounter :=
   {c with count := c.count + step}
 
-def counterConstructor : @Class.Constructor clab Constructors.Zero := defConstructor
-  (body := fun (_noArgs : Unit) => newCounter default)
+def counterConstructor : @Class.Constructor label Classes.OwnedCounter Constructors.Zero := defConstructor
+  (body := fun (_noArgs : Unit) => Program.return fun _ => newCounter default)
 
-def counterIncr : @Class.Method clab Methods.Incr := defMethod OwnedCounter
-  (body := fun (self : OwnedCounter) (step : Nat) => self.incrementBy step)
+def counterIncr : @Class.Method label Classes.OwnedCounter Methods.Incr := defMethod OwnedCounter
+  (body := fun (self : OwnedCounter) (step : Nat) => Program.return fun _ => self.incrementBy step)
 
-def counterTransfer : @Class.Method clab Methods.Transfer := defMethod OwnedCounter
-  (body := fun (self : OwnedCounter) (newOwner : PublicKey) => {self with owner := newOwner : OwnedCounter})
+def counterTransfer : @Class.Method label Classes.OwnedCounter Methods.Transfer := defMethod OwnedCounter
+  (body := fun (self : OwnedCounter) (newOwner : PublicKey) =>
+    Program.return fun _ => {self with owner := newOwner : OwnedCounter})
 
 /-- We only allow the counter to be destroyed if its count is at least 10 -/
-def counterDestroy : @Class.Destructor clab Destructors.Ten := defDestructor
- (invariant := fun (self : OwnedCounter) (_ : PUnit) => self.count >= 10)
+def counterDestroy : @Class.Destructor label Classes.OwnedCounter Destructors.Ten := defDestructor
+  (body := fun (_ : OwnedCounter) (_ : PUnit) => Program.return fun _ => ())
+  (invariant := fun (self : OwnedCounter) (_ : PUnit) => self.count >= 10)
 
-def counterClass : Class clab where
+def counterClass : @Class label Classes.OwnedCounter where
   constructors := fun
     | Constructors.Zero => counterConstructor
   methods := fun

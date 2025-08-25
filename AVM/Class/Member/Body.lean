@@ -41,3 +41,16 @@ def Member.Body.prefixProduct {lab ReturnType params} (body : Member.Body lab Re
   | .fetch _ next =>
     prefixProduct next vals |> Task.Parameters.Values.dropLastFetch
   | .return _ => vals
+
+def Member.Body.map {lab : Ecosystem.Label} {A B : Type u} {params : Task.Parameters} (f : A → B) (body : Member.Body lab A params) : Member.Body lab B params :=
+  match body with
+  | .constructor cid constrId args next =>
+    .constructor cid constrId args (map f next)
+  | .destructor cid destrId selfId args next =>
+    .destructor cid destrId selfId args (map f next)
+  | .method cid methodId selfId args next =>
+    .method cid methodId selfId args (map f next)
+  | .fetch objId next =>
+    .fetch objId (map f next)
+  | .return val =>
+    .return (fun p => f (val p))
