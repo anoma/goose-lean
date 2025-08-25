@@ -87,16 +87,6 @@ def Task.Parameters.splitProducts
     let rest : HList (ps.map Product) := splitProducts vals'
     HList.cons vals1 rest
 
-def Task.Parameters.Values.join {ps1 ps2 : Task.Parameters} (vals1 : ps1.Product) (vals2 : ps2.Product) : (ps1.append (fun _ => ps2)).Product :=
-  match ps1 with
-  | .empty => vals2
-  | .fetch _ _ =>
-    let ⟨obj, vals1'⟩ := vals1
-    ⟨obj, join vals1' vals2⟩
-  | .genId _ =>
-    let ⟨objId, vals1'⟩ := vals1
-    ⟨objId, join vals1' vals2⟩
-
 def Task.Parameters.Values.snocFetch {ps : Task.Parameters} (objId : ps.Product → TypedObjectId) (vals : ps.Product) (obj : Object (objId vals).classLabel) : (ps.snocFetch objId).Product :=
   match ps with
   | .empty => ⟨obj, PUnit.unit⟩
