@@ -11,7 +11,7 @@ structure DynamicLabel (PrivateFields : Type u) : Type (u + 1) where
   mkDynamicLabel : PrivateFields → Label.type
 
 instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) where
-  default := {Label := ⟨UUnit⟩
+  default := {Label := ⟨PUnit⟩
               mkDynamicLabel := fun _ => default}
 
 /-- A class label uniquely identifies and specifies a class. The class
@@ -35,7 +35,7 @@ structure Label : Type (u + 1) where
   [constructorsBEq : BEq ConstructorId]
 
   DestructorId : Type := Empty
-  DestructorArgs : DestructorId -> SomeType.{u} := fun _ => ⟨UUnit⟩
+  DestructorArgs : DestructorId -> SomeType.{u} := fun _ => ⟨PUnit⟩
   [destructorsFinite : Fintype DestructorId]
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
@@ -88,7 +88,7 @@ def Class.Label.MemberId.Args {lab : Class.Label.{u}} (memberId : MemberId lab) 
   | constructorId c => lab.ConstructorArgs c
   | destructorId c => lab.DestructorArgs c
   | methodId c => lab.MethodArgs c
-  | intentId _ => ⟨UUnit⟩
+  | intentId _ => ⟨PUnit⟩
 
 instance Class.Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"

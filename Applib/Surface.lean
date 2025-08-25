@@ -117,12 +117,12 @@ def defFunction
 
 def ObjectsOf (l : List AnObjectType) : Type 1 :=
   match l with
-  | [] => UUnit
+  | [] => PUnit
   | t :: ts => t.ty × ObjectsOf ts
 
 def ObjectsOf.tryMk (types : List AnObjectType) (objects : List SomeObject) : Option (ObjectsOf types) :=
   match types, objects with
-  | [], [] => some UUnit.unit
+  | [], [] => some PUnit.unit
   | t :: ts, o :: os =>
     let try r := tryMk ts os
     let try o' := tryCast o.object

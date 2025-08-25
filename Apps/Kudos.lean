@@ -91,7 +91,7 @@ def clab : Class.Label where
 
   DestructorId := Destructors
   DestructorArgs := fun
-    | Destructors.Burn => ⟨UUnit⟩
+    | Destructors.Burn => ⟨PUnit⟩
 
 def toObject (c : Kudos) : Object clab where
   quantity := c.quantity
@@ -124,7 +124,7 @@ def kudosTransfer : @Class.Method clab Methods.Transfer := defMethod Kudos
     [{self with owner := args.newOwner : Kudos}])
 
 def kudosBurn : @Class.Destructor clab Destructors.Burn := @defDestructor Kudos
-  (invariant := fun (self : Kudos) (_args : UUnit) => self.originator == self.owner)
+  (invariant := fun (self : Kudos) (_args : PUnit) => self.originator == self.owner)
 
 inductive Functions where
   | Merge
@@ -145,15 +145,15 @@ end Merge
 
 def lab : Ecosystem.Label where
   name := "Kudos"
-  ClassId := UUnit
+  ClassId := PUnit
   classLabel := fun _ => clab
   FunctionId := Functions
   FunctionObjectArgClass {f : Functions} (_a : _) := match f with
-   | Merge => UUnit.unit
+   | Merge => PUnit.unit
   FunctionObjectArgNames : Functions → Type := fun
    | Merge => Merge.ArgNames
 
-def kudosClass : @Class lab UUnit.unit  where
+def kudosClass : @Class lab PUnit.unit  where
   constructors := fun
     | Constructors.Mint => kudosMint
   methods := fun
