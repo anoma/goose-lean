@@ -5,6 +5,8 @@ import AVM.Task.Parameters
 
 namespace AVM.Class
 
+/-- The parameters `params` represent objects fetched and new object ids
+  generated in the body before the current statement. -/
 inductive Member.Body.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Task.Parameters.{u} → Type (u + 1) where
   | constructor {params : Task.Parameters} (cid : lab.ClassId) (constrId : cid.label.ConstructorId) (args : params.Product → constrId.Args.type) (next : Member.Body lab ReturnType params.snocGenId) : Member.Body lab ReturnType params
   | destructor {params : Task.Parameters} (cid : lab.ClassId) (destrId : cid.label.DestructorId) (selfId : params.Product → ObjectId) (args : params.Product → destrId.Args.type) (next : Member.Body lab ReturnType params) : Member.Body lab ReturnType params

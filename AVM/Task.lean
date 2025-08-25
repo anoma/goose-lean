@@ -10,6 +10,11 @@ structure Task.Actions where
   actions : List Anoma.Action
   deltaWitness : Anoma.DeltaWitness
 
+/-- Tasks are intermediate data structures used in the translation. Translating
+  AVM message sends to Transactions first generates Tasks as an intermediate
+  step. Tasks enable modularity of the translation – they are at the right
+  level of abstraction to compose translations of different message sends,
+  enabling nested method calls and subobjects. -/
 structure Task where
   /-- Task parameters - objects to fetch from the Anoma system and new object
     ids to generate. -/
