@@ -79,8 +79,7 @@ def Constructor.Message.logic
     && Logic.checkResourcesPersistent createdResObjs
     && constr.invariant argsData
 
-/-- Creates a logic for a given destructor. This logic is combined with other
-    member logics to create the complete resource logic for an object. -/
+/-- Creates a logic for a given destructor. -/
 def Destructor.Message.logic
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
@@ -152,8 +151,8 @@ partial def Member.Body.tasks {α} {params : Task.Parameters} {lab : Ecosystem.L
     let task := destr.task eco (selfId vals1) (args vals1)
     task :: next.tasks eco vals
   | .method classId methodId selfId args next =>
-    let destr := eco.classes classId |>.methods methodId
-    let task := destr.task eco (selfId vals1) (args vals1)
+    let method := eco.classes classId |>.methods methodId
+    let task := method.task eco (selfId vals1) (args vals1)
     task :: next.tasks eco vals
   | .fetch _ next =>
     next.tasks eco vals
