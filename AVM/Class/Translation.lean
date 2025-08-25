@@ -145,8 +145,6 @@ def Method.task
       let try (action, witness) ← method.action methodId self args
       pure <| some { actions := [action], deltaWitness := witness } }
 
-/-- Creates a logic for a given destructor. This logic is combined with other
-    member logics to create the complete resource logic for an object. -/
 def Destructor.Message.logic
   {lab : Class.Label}
   {destructorId : lab.DestructorId}
