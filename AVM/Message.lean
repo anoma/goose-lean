@@ -4,6 +4,13 @@ namespace AVM
 
 /-- A message is a communication sent from one object to another in the AVM. -/
 structure Message.{u} (lab : Class.Label.{u}) : Type (u + 1) where
+  {Vals : SomeType}
+  /-- Message parameter values. The message parameters are object resources and
+    generated object ids that are used in the body of the call associated with
+    the message. These need to be provided in the message, because the
+    associated Resource Logic cannot fetch object resources from the Anoma
+    system or generate new object identifiers. -/
+  vals : Vals.type
   /-- The message ID. -/
   id : Class.Label.MemberId lab
   /-- The arguments of the message. -/
@@ -17,6 +24,7 @@ instance Message.hasTypeRep (lab : Class.Label) : TypeRep (Message lab) where
 instance Message.hasBEq {lab : Class.Label} : BEq (Message lab) where
   beq a b :=
     a.id == b.id
+    && a.vals === b.vals
     && a.args === b.args
     && a.recipient == b.recipient
 
@@ -29,6 +37,9 @@ instance SomeMessage.hasTypeRep : TypeRep SomeMessage where
 
 instance SomeMessage.hasBEq : BEq SomeMessage where
   beq a b := a.label == b.label && a.message === b.message
+
+instance : Inhabited SomeMessage where
+  default := { label := Class.Label.dummy, message := { Vals := ⟨PUnit⟩, vals := PUnit.unit, id := .constructorId PUnit.unit, args := PUnit.unit, recipient := 0 } }
 
 def Message.toSomeMessage {lab : Class.Label} (msg : Message lab) : SomeMessage :=
   { label := lab, message := msg }

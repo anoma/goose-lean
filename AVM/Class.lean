@@ -6,13 +6,12 @@ abbrev Logic.Args := Anoma.Logic.Args Unit
 
 /-- Syntax-level object description (fields + constructors + methods) should
     desugar to the `Class` structure. -/
-structure Class (label : Class.Label) : Type (u + 1) where
+structure Class {lab : Ecosystem.Label} (classId : lab.ClassId) : Type (u + 1) where
   /-- The constructors of the class. -/
-  constructors : (c : label.ConstructorId) → Class.Constructor c
+  constructors : (c : classId.label.ConstructorId) → Class.Constructor classId c
   /-- The destructors of the class. -/
-  destructors : (d : label.DestructorId) → Class.Destructor d
+  destructors : (d : classId.label.DestructorId) → Class.Destructor classId d
   /-- The methods of the class. -/
-  methods : (m : label.MethodId) → Class.Method m
-  /-- Extra class-specific logic. The whole resource logic function for an
-    object consists of the class invariant and the member logics. -/
-  invariant : (self : Object label) → Logic.Args → Bool := fun _ _ => true
+  methods : (m : classId.label.MethodId) → Class.Method classId m
+  /-- Extra class-specific logic for the resource logic of the object resource. -/
+  invariant : (self : Object classId.label) → Logic.Args → Bool := fun _ _ => true

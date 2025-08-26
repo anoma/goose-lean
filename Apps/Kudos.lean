@@ -38,6 +38,10 @@ inductive Destructors where
   | Burn : Destructors
   deriving DecidableEq, Fintype, Repr
 
+inductive Classes where
+  | Kudos : Classes
+  deriving DecidableEq, FinEnum, Repr
+
 open AVM
 
 instance KudosData.hasTypeRep : TypeRep KudosData where
@@ -78,6 +82,12 @@ def clab : Class.Label where
   DestructorArgs := fun
     | Destructors.Burn => ⟨PUnit⟩
 
+def label : Ecosystem.Label where
+  name := "KudosEcosystem"
+  ClassId := Classes
+  classLabel := fun
+    | Classes.Kudos => clab
+
 def toObject (c : Kudos) : ObjectData clab where
   quantity := c.quantity
   privateFields := { originator := c.originator, owner := c.owner }
@@ -88,24 +98,28 @@ def fromObject (o : ObjectData clab) : Kudos :=
     originator := o.privateFields.originator }
 
 instance hasIsObject : IsObject Kudos where
-  label := clab
+  label := label
+  classId := Classes.Kudos
   toObject := Kudos.toObject
   fromObject := Kudos.fromObject
 
-def kudosMint : @Class.Constructor clab Constructors.Mint := defConstructor
-  (body := fun (args : MintArgs) => { quantity := args.quantity
-                                      owner := args.originator
-                                      originator := args.originator : Kudos})
+def kudosMint : @Class.Constructor label Classes.Kudos Constructors.Mint := defConstructor
+  (body := fun (args : MintArgs) =>
+    Program.return fun _ =>
+      { quantity := args.quantity
+        owner := args.originator
+        originator := args.originator : Kudos})
   (invariant := fun (args : MintArgs) => checkKey args.originator args.key)
 
-def kudosTransfer : @Class.Method clab Methods.Transfer := defMethod Kudos
+def kudosTransfer : @Class.Method label Classes.Kudos Methods.Transfer := defMethod Kudos
   (body := fun (self : Kudos) (args : TransferArgs) =>
-    {self with owner := args.newOwner : Kudos})
+    Program.return fun _ => {self with owner := args.newOwner : Kudos})
 
-def kudosBurn : @Class.Destructor clab Destructors.Burn := @defDestructor Kudos
+def kudosBurn : @Class.Destructor label Classes.Kudos Destructors.Burn := defDestructor
+  (body := fun (_ : Kudos) (_ : PUnit) => Program.return fun _ => ())
   (invariant := fun (self : Kudos) (_args : PUnit) => self.originator == self.owner)
 
-def kudosClass : Class clab  where
+def kudosClass : @Class label Classes.Kudos where
   constructors := fun
     | Constructors.Mint => kudosMint
   methods := fun

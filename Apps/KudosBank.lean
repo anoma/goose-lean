@@ -101,13 +101,6 @@ def Label : Class.Label where
   DestructorId := Empty
   DestructorArgs := noDestructors
 
-instance instIsObject : IsObject Check where
-  label := Label
-  toObject := fun (c : Check) =>
-   { quantity := 1
-     privateFields := c }
-  fromObject := fun (o : ObjectData Label) => o.privateFields
-
 end Check
 
 structure Auction where
@@ -138,13 +131,6 @@ def Label : Class.Label where
 
   DestructorId := Empty
   DestructorArgs := noDestructors
-
-instance instIsObject : IsObject Auction where
-  label := Label
-  toObject := fun (c : Auction) =>
-   { quantity := 1
-     privateFields := c }
-  fromObject := fun (o : ObjectData Label) => o.privateFields
 
 end Auction
 
@@ -243,6 +229,36 @@ def BankLabel : Class.Label where
   DestructorArgs := fun
     | Destructors.Close => ⟨PUnit⟩
 
+inductive Classes where
+  | Bank
+  | Check
+  | Auction
+  deriving Repr, DecidableEq, FinEnum
+
+def label : AVM.Ecosystem.Label where
+  name := "KudosEcosystem"
+  ClassId := Classes
+  classLabel := fun
+    | Classes.Bank => BankLabel
+    | Classes.Check => Check.Label
+    | Classes.Auction => Auction.Label
+
+instance Auction.instIsObject : IsObject Auction where
+  label := label
+  classId := Classes.Auction
+  toObject := fun (c : Auction) =>
+   { quantity := 1
+     privateFields := c }
+  fromObject := fun (o : ObjectData Auction.Label) => o.privateFields
+
+instance Check.instIsObject : IsObject Check where
+  label := label
+  classId := Classes.Check
+  toObject := fun (c : Check) =>
+   { quantity := 1
+     privateFields := c }
+  fromObject := fun (o : ObjectData Check.Label) => o.privateFields
+
 namespace KudosBank
 
 def toObject (c : KudosBank) : ObjectData BankLabel where
@@ -253,48 +269,48 @@ def fromObject (o : ObjectData BankLabel) : KudosBank :=
   o.privateFields
 
 instance instIsObject : IsObject KudosBank where
-  label := BankLabel
+  label := label
+  classId := Classes.Bank
   toObject := KudosBank.toObject
   fromObject := KudosBank.fromObject
 
 end KudosBank
 
-def kudosNew : @Class.Constructor BankLabel Constructors.Open := defConstructor
-  (body := fun (owner : PublicKey) => KudosBank.new owner)
+def kudosNew : @Class.Constructor label Classes.Bank Constructors.Open := defConstructor
+  (body := fun (owner : PublicKey) => Program.return fun _ => KudosBank.new owner)
 
-def kudosMint : @Class.Method BankLabel Methods.Mint := defMethod KudosBank
+def kudosMint : @Class.Method label Classes.Bank Methods.Mint := defMethod KudosBank
   (body := fun (self : KudosBank) (args : MintArgs) =>
-    self.overBalances (fun b => b.addTokens args.denom.originator args.denom args.quantity))
+    Program.return fun _ =>
+      self.overBalances (fun b => b.addTokens args.denom.originator args.denom args.quantity))
   (invariant := fun (_self : KudosBank) (args : MintArgs) => checkKey args.denom.originator args.key)
 
-def kudosTransfer : @Class.Method BankLabel Methods.Transfer := defMethod KudosBank
+def kudosTransfer : @Class.Method label Classes.Bank Methods.Transfer := defMethod KudosBank
   (body := fun (self : KudosBank) (args : TransferArgs) =>
-    self.overBalances (fun b => b
-      |> Balances.addTokens args.newOwner args.denom args.quantity
-      |> Balances.subTokens args.oldOwner args.denom args.quantity))
+    Program.return fun _ =>
+      self.overBalances (fun b => b
+        |> Balances.addTokens args.newOwner args.denom args.quantity
+        |> Balances.subTokens args.oldOwner args.denom args.quantity))
   (invariant := fun (self : KudosBank) (args : TransferArgs) =>
     checkKey args.oldOwner args.key
     && 0 < args.quantity
     && args.quantity <= self.getBalance args.oldOwner args.denom)
 
-def kudosBurn : @Class.Method BankLabel Methods.Burn := defMethod KudosBank
+def kudosBurn : @Class.Method label Classes.Bank Methods.Burn := defMethod KudosBank
   (body := fun (self : KudosBank) (args : BurnArgs) =>
-    self.overBalances (fun b => b
-      |> Balances.subTokens args.denom.originator args.denom args.quantity))
+    Program.return fun _ =>
+      self.overBalances (fun b => b
+        |> Balances.subTokens args.denom.originator args.denom args.quantity))
   (invariant := fun (self : KudosBank) (args : BurnArgs) =>
     checkKey args.denom.originator args.key
     && 0 < args.quantity
     && args.quantity <= self.getBalance args.denom.originator args.denom)
 
-def kudosClose : @Class.Destructor BankLabel Destructors.Close := defDestructor
+def kudosClose : @Class.Destructor label Classes.Bank Destructors.Close := defDestructor
+  (body := fun (_ : KudosBank) (_ : PUnit) => Program.return fun _ => ())
   (invariant := fun (self : KudosBank) (_args : PUnit) => self.balances.isEmpty)
 
-inductive Classes where
-  | Bank
-  | Check
-  deriving Repr, DecidableEq, FinEnum
-
-def kudosClass : Class BankLabel where
+def kudosClass : @Class label Classes.Bank where
   constructors := fun
     | Constructors.Open => kudosNew
   methods := fun
@@ -304,14 +320,20 @@ def kudosClass : Class BankLabel where
   destructors := fun
     | .Close => kudosClose
 
-def checkTransfer : @Class.Method Check.Label .Transfer := defMethod Check
+def checkTransfer : @Class.Method label Classes.Check .Transfer := defMethod Check
   (body := fun (self : Check) (args : Check.TransferArgs) =>
-    {self with owner := args.newOwner : Check})
+    Program.return fun _ =>
+      {self with owner := args.newOwner : Check})
   (invariant := fun (self : Check) (args : Check.TransferArgs) =>
     checkKey self.owner args.key)
 
-def checkClass : @Class Check.Label where
+def checkClass : @Class label Classes.Check where
   constructors := noConstructors
   methods := fun
     | .Transfer => checkTransfer
+  destructors := noDestructors
+
+def auctionClass : @Class label Classes.Auction where
+  constructors := noConstructors
+  methods := noMethods
   destructors := noDestructors

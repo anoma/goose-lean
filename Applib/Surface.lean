@@ -1,4 +1,5 @@
 import AVM
+import Applib.Program
 
 namespace Applib
 
@@ -9,9 +10,10 @@ macro "noDestructors" : term => `(fun x => Empty.elim x)
 macro "noMethods" : term => `(fun x => Empty.elim x)
 
 class IsObject (s : Type) where
-  label : Class.Label
-  toObject : s → ObjectData label
-  fromObject : ObjectData label → s
+  label : Ecosystem.Label
+  classId : label.ClassId
+  toObject : s → ObjectData classId.label
+  fromObject : ObjectData classId.label → s
   round_trip : fromObject ∘ toObject = id := by rfl
 
 structure AnObjectType : Type 1 where
@@ -32,27 +34,31 @@ def AnObject.toSomeObject (g : AnObject) : SomeObjectData :=
 instance {ty : Type} [IsObject ty] : CoeHead ty AnObject where
   coe (obj : ty) := {obj}
 
-def defMethod (cl : Type) [i : IsObject cl] {methodId : i.label.MethodId}
- (body : (self : cl) → methodId.Args.type → cl)
+def defMethod (cl : Type) [i : IsObject cl] {methodId : i.classId.label.MethodId}
+ (body : (self : cl) → methodId.Args.type → Program i.label cl)
  (invariant : (self : cl) → methodId.Args.type → Bool := fun _ _ => true)
- : Class.Method methodId where
-    invariant (self : Object i.label) (args : methodId.Args.type) :=
+ : Class.Method i.classId methodId where
+    invariant (self : Object i.classId.label) (args : methodId.Args.type) :=
       let self' : cl := i.fromObject self.data
       invariant self' args
-    created (self : Object i.label) (args : methodId.Args.type) :=
+    body (self : Object i.classId.label) (args : methodId.Args.type) :=
       let self' := i.fromObject self.data
-      [{self with data := i.toObject (body self' args)}.toSomeObject]
+      let prog := body self' args
+      prog.map fun obj => {self with data := i.toObject obj}
 
-def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.label.ConstructorId}
- (body : constrId.Args.type → cl)
+def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.classId.label.ConstructorId}
+ (body : constrId.Args.type → Program i.label cl)
  (invariant : constrId.Args.type → Bool := fun _ => true)
- : Class.Constructor constrId where
+ : Class.Constructor i.classId constrId where
     invariant (args : constrId.Args.type) := invariant args
-    created (args : constrId.Args.type) := i.toObject (body args)
+    body (args : constrId.Args.type) := body args |>.map i.toObject
 
-def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.label.DestructorId}
+def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.classId.label.DestructorId}
+ (body : (self : cl) → destructorId.Args.type → Program i.label PUnit)
  (invariant : (self : cl) -> destructorId.Args.type → Bool := fun _ _ => true)
- : Class.Destructor destructorId where
-    invariant (self : Object i.label) (args : destructorId.Args.type) :=
+ : Class.Destructor i.classId destructorId where
+    invariant (self : Object i.classId.label) (args : destructorId.Args.type) :=
       let self' := i.fromObject self.data
       invariant self' args
+    body (self : Object i.classId.label) (args : destructorId.Args.type) :=
+      body (i.fromObject self.data) args

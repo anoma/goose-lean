@@ -45,6 +45,11 @@ inductive Program where
   | setValue (key : StorageKey) (value : StorageValue) (next : Program)
   | deleteValue (key : StorageKey) (next : Program)
 
+def Program.genObjectId (next : ObjectId → Program) : Program :=
+  Program.withRandomGen fun g =>
+    let (objId, g') := stdNext g
+    (next objId, g')
+
 def Program.withRand (prog : Rand Program) : Program :=
   Program.withRandomGen fun g =>
     let (next, g') := prog.run (ULift.up g)

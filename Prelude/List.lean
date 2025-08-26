@@ -32,7 +32,7 @@ def mapSome (f : A → Option B) (l : List A) : Option (List B) :=
     let b ← f a
     some (b :: bs)
 
-def getSome (l : List (Option A)) : Option (List A) :=
+def getSome (l : List.{u} (Option.{u} A)) : Option.{u} (List.{u} A) :=
   l.mapSome id
 
 def Product (tys : List (Type u)) : Type u :=

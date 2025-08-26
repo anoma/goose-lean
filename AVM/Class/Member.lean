@@ -1,29 +1,29 @@
-import Prelude
-import AVM.Object
-import AVM.Class.Label
+import AVM.Class.Member.Body
 
 namespace AVM.Class
 
-structure Constructor {lab : Class.Label} (constrId : lab.ConstructorId) where
-  /-- Object created in the constructor call. -/
-  created : constrId.Args.type → ObjectData lab
+structure Constructor {lab : Ecosystem.Label} (cid : lab.ClassId) (constrId : cid.label.ConstructorId) where
+  /-- Constructor call body. -/
+  body : constrId.Args.type → Member.Body lab (ObjectData cid.label) .empty
   /-- Extra constructor logic. The constructor invariant is combined with
       auto-generated constructor body constraints to create the constructor logic. -/
   invariant : constrId.Args.type → Bool
 
-structure Destructor {lab : Class.Label} (destructorId : lab.DestructorId) where
+structure Destructor.{u} {lab : Ecosystem.Label} (cid : lab.ClassId) (destructorId : cid.label.DestructorId) : Type (u + 1) where
+  /-- Destructor call body. -/
+  body : (self : Object cid.label) → destructorId.Args.type → Member.Body lab PUnit .empty
   /-- Extra destructor logic. -/
-  invariant : (self : Object lab) → destructorId.Args.type → Bool
+  invariant : (self : Object cid.label) → destructorId.Args.type → Bool
 
-structure Method {lab : Class.Label.{u}} (methodId : lab.MethodId) : Type (u + 1) where
-  /-- Objects created in the method call (the new self/selves). -/
-  created : (self : Object lab) → methodId.Args.type → List SomeObject
+structure Method {lab : Ecosystem.Label} (cid : lab.ClassId) (methodId : cid.label.MethodId) : Type (u + 1) where
+  /-- Method call body. -/
+  body : (self : Object cid.label) → methodId.Args.type → Member.Body lab (Object cid.label) .empty
   /-- Extra method logic. The method invariant is combined with auto-generated
       method body constraints to create the method logic. -/
-  invariant : (self : Object lab) → methodId.Args.type → Bool
+  invariant : (self : Object cid.label) → methodId.Args.type → Bool
 
 /-- A class member is a constructor, a destructor or a method. -/
-inductive Member (lab : Class.Label) where
-  | constructor (constrId : lab.ConstructorId) (constr : Constructor constrId) : Member lab
-  | destructor (destrId : lab.DestructorId) (destr : Destructor destrId) : Member lab
-  | method (methodId : lab.MethodId) (method : Method methodId) : Member lab
+inductive Member {lab : Ecosystem.Label} (cid : lab.ClassId) where
+  | constructor (constrId : cid.label.ConstructorId) (constr : Constructor cid constrId)
+  | destructor (destrId : cid.label.DestructorId) (destr : Destructor cid destrId)
+  | method (methodId : cid.label.MethodId) (method : Method cid methodId)
