@@ -22,7 +22,7 @@ structure ComplianceInstance where
 
 abbrev ComplianceProof := String
 
-structure ComplianceUnit where
+structure ComplianceUnit : Type 1 where
   proof : ComplianceProof
   inst : ComplianceInstance
 

@@ -1,6 +1,7 @@
 import Prelude
 import Anoma
 import AVM.Object
+import AVM.Message
 import AVM.Action.DummyResource
 
 namespace AVM.Logic
@@ -10,21 +11,21 @@ def filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resourc
   resources.filter (not ∘ Action.isDummyResource)
 
 /-- Checks that the number of objects and resources match, and that the
-    resources' private data and labels match the objects' private data and
-    labels. This check is used in the constructor and method logics. Dummy
-    resources in the `resources` list are ignored. -/
-def checkResourcesData (objects : List SomeObject) (resources : List Anoma.Resource) : Bool :=
+    resources' quantity, value and labels match the objects' data and labels.
+    This check is used in the constructor and method message logics. Dummy resources
+    in the `resources` list are ignored. -/
+def checkResourcesData (objectData : List SomeObjectData) (resources : List Anoma.Resource) : Bool :=
   let resources' := Logic.filterOutDummy resources
-  objects.length == resources'.length
-    && List.and (List.zipWith resourceDataEq objects resources')
+  objectData.length == resources'.length
+    && List.and (List.zipWith resourceDataEq objectData resources')
   where
-    resourceDataEq (sobj : SomeObject) (res : Anoma.Resource) : Bool :=
+    resourceDataEq (sdata : SomeObjectData) (res : Anoma.Resource) : Bool :=
       -- NOTE: We should check the whole resource kind (label + logic) instead
       -- of checking just the label. We should also check that the intent logic
-      -- hashes of `sobj.object` and `res` match.
-      sobj.label === res.label &&
-      sobj.object.quantity == res.quantity &&
-        let try privateFields := tryCast sobj.object.privateFields
+      -- hashes of `sobj` and `res` match.
+      sdata.label === res.label &&
+      sdata.data.quantity == res.quantity &&
+        let try privateFields := tryCast sdata.data.privateFields
         res.value == privateFields
 
 def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
@@ -32,3 +33,9 @@ def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
 
 def checkResourcesPersistent (resources : List Anoma.Resource) : Bool :=
   Logic.filterOutDummy resources |>.all Anoma.Resource.isPersistent
+
+def selectObjectResources.{u, v} (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
+  resources.filter Resource.isSomeObject.{u, v, v}
+
+def selectMessageResources.{u, v} (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
+  resources.filter Resource.isSomeMessage

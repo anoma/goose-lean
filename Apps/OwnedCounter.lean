@@ -41,23 +41,18 @@ def clab : Class.Label where
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
   DestructorId := Destructors
-  intentLabels := ∅
 
-def lab : Ecosystem.Label := Ecosystem.Label.singleton clab
-
-def toObject (c : OwnedCounter) : Object clab where
+def toObject (c : OwnedCounter) : ObjectData clab where
   quantity := 1
   privateFields := c
 
-def fromObject (o : Object clab) : Option OwnedCounter := do
-  guard (o.quantity == 1)
-  some (o.privateFields)
+def fromObject (o : ObjectData clab) : OwnedCounter :=
+  o.privateFields
 
 instance instIsObject : IsObject OwnedCounter where
   label := clab
   toObject := OwnedCounter.toObject
   fromObject := OwnedCounter.fromObject
-  roundTrip : OwnedCounter.fromObject ∘ OwnedCounter.toObject = some := by rfl
 
 def newCounter (owner : PublicKey) : OwnedCounter where
   count := 0
@@ -70,16 +65,16 @@ def counterConstructor : @Class.Constructor clab Constructors.Zero := defConstru
   (body := fun (_noArgs : Unit) => newCounter default)
 
 def counterIncr : @Class.Method clab Methods.Incr := defMethod OwnedCounter
-  (body := fun (self : OwnedCounter) (step : Nat) => [self.incrementBy step])
+  (body := fun (self : OwnedCounter) (step : Nat) => self.incrementBy step)
 
 def counterTransfer : @Class.Method clab Methods.Transfer := defMethod OwnedCounter
-  (body := fun (self : OwnedCounter) (newOwner : PublicKey) => [{self with owner := newOwner : OwnedCounter}])
+  (body := fun (self : OwnedCounter) (newOwner : PublicKey) => {self with owner := newOwner : OwnedCounter})
 
 /-- We only allow the counter to be destroyed if its count is at least 10 -/
 def counterDestroy : @Class.Destructor clab Destructors.Ten := defDestructor
  (invariant := fun (self : OwnedCounter) (_ : PUnit) => self.count >= 10)
 
-def counterClass : @Class lab .unit where
+def counterClass : Class clab where
   constructors := fun
     | Constructors.Zero => counterConstructor
   methods := fun
@@ -87,8 +82,3 @@ def counterClass : @Class lab .unit where
     | Methods.Transfer => counterTransfer
   destructors := fun
     | Destructors.Ten => counterDestroy
-  intents := noIntents lab clab
-
-def counterEcosystem : Ecosystem lab where
-  classes := fun _ => counterClass
-  functions := noFunctions
