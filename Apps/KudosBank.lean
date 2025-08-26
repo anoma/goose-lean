@@ -257,7 +257,7 @@ instance Check.instIsObject : IsObject Check where
   toObject := fun (c : Check) =>
    { quantity := 1
      privateFields := c }
-  fromObject := fun (o : ObjectData Label) => o.privateFields
+  fromObject := fun (o : ObjectData Check.Label) => o.privateFields
 
 namespace KudosBank
 

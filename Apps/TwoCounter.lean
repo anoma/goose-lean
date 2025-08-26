@@ -142,7 +142,7 @@ def constructor : @Class.Constructor Eco.lab Eco.Classes.TwoCounter Constructors
         c2 := args.2
         : TwoCounter })
 
-def incrementBoth : @Class.Method Eco.lab Eco.Classes.TwoCounter Methods.IncrementBoth := defMethod TwoCounter
+def incrementBoth : @Class.Method Eco.lab Eco.Classes.TwoCounter Methods.IncrementBoth := defMethod
   (body := fun (self : TwoCounter) (n : Nat) =>
     Program.fetch (fun _ => ⟨Counter.lab, self.c1⟩) <|
     Program.fetch (fun _ => ⟨Counter.lab, self.c2⟩) <|
