@@ -1,6 +1,5 @@
 /-
-Universe‑polymorphic HList indexed by a list of types.
-Works with core + mathlib4. Partly generated with GPT-5.
+Universe‑polymorphic heterogeneous list HList indexed by a list of types.
 -/
 
 /-- Heterogeneous list whose element types are tracked by `ts : List (Type u)`. -/
@@ -28,15 +27,15 @@ def append : {ts us : List (Type u)} → HList ts → HList us → HList (ts ++ 
   | _ :: _, _, .cons x xs, ys => .cons x (append xs ys)
 
 /--
-Indexing by `Fin ts.length`. The result type is the *type at that index*,
-i.e. `ts.get i : Type u`. We return a value in that type.
+Indexing by `Fin ts.length`. The result type is the type at that index,
+i.e. `ts.get i : Type u`.
 -/
 def get :
     {ts : List (Type u)} →
     (xs : HList ts) →
     (i : Fin ts.length) →
     ts.get i
-  | [], .nil, i => nomatch i  -- impossible
+  | [], .nil, i => nomatch i
   | _ :: _, .cons x _xs, ⟨0, _⟩ => x
   | _ :: ts, .cons _ xs, ⟨i+1, h⟩ =>
       have : i < ts.length := Nat.lt_of_succ_lt_succ h
