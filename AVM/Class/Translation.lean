@@ -79,7 +79,7 @@ def Constructor.Message.logic
     && Logic.checkResourcesPersistent createdResObjs
     && constr.invariant argsData
 
-/-- Creates a logic for a given destructor. -/
+/-- Creates a message logic for a given destructor. -/
 def Destructor.Message.logic
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
@@ -98,7 +98,7 @@ def Destructor.Message.logic
     && Logic.checkResourcesEphemeral createdResObjs
     && destructor.invariant selfObj argsData
 
-/-- Creates a logic for a given method. -/
+/-- Creates a message logic for a given method. -/
 def Method.Message.logic
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
@@ -185,7 +185,7 @@ partial def Constructor.task
       [CreatedObject.fromSomeObject newObj (ephemeral := false)]
     Task.compose (constr.message ⟨bodyParams.Product⟩ vals newId args) tasks consumedObj createdObjects
 
-/-- Creates an Anoma Transaction for a given object destructor. -/
+/-- Creates a Task for a given object destructor. -/
 partial def Destructor.task
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)

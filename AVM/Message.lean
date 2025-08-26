@@ -6,7 +6,7 @@ namespace AVM
 structure Message.{u} (lab : Class.Label.{u}) : Type (u + 1) where
   {Vals : SomeType}
   /-- Message parameter values. The message parameters are object resources and
-    generated object ids that are used in the body of the call which generates
+    generated object ids that are used in the body of the call associated with
     the message. These need to be provided in the message, because the
     associated Resource Logic cannot fetch object resources from the Anoma
     system or generate new object identifiers. -/
