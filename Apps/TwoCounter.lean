@@ -148,10 +148,10 @@ def incrementBoth : @Class.Method Eco.lab Eco.Classes.TwoCounter Methods.Increme
   (body := fun (self : TwoCounter) (n : Nat) =>
     Program.fetch (fun _ => self.c1) <|
     Program.fetch (fun _ => self.c2) <|
-    Program.call Counter Counter.Methods.Incr (fun _ => self.c1)
+    Program.call (fun _ => self.c1) Counter.Methods.Incr
       (fun ⟨c1, ⟨c2, ()⟩⟩ =>
         c2.count * n + c1.count) <|
-    Program.call Counter Counter.Methods.Incr (fun _ => self.c2)
+    Program.call (fun _ => self.c2) Counter.Methods.Incr
       (fun ⟨c1, ⟨c2, ()⟩⟩ =>
         c1.count * n + c2.count) <|
     Program.return fun _ => self)

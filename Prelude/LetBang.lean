@@ -2,9 +2,9 @@ syntax withPosition("let!" term (":" term)? ":=" term) optSemicolon(term) : term
 syntax withPosition("let!" term ":=" term) optSemicolon(doSeq) : doElem
 syntax withPosition("let!" term ":" term ":=" term) optSemicolon(doSeq) : doElem
 syntax withPosition("let!" term (":" term)? "←" term)  optSemicolon(doSeq) : doElem
-syntax withPosition("let!" term (":" term)? ":=" term) "failwith" term optSemicolon(term) : term
-syntax withPosition("let!" term (":" term)? ":=" term) "failwith" doSeq optSemicolon(doSeq) : doElem
-syntax withPosition("let!" term (":" term)? "←" term) "failwith" doSeq optSemicolon(doSeq) : doElem
+syntax withPosition("let!" term (":" term)? ":=" term) withPosition("failwith" term) optSemicolon(term) : term
+syntax withPosition("let!" term (":" term)? ":=" term) withPosition("failwith" doSeq) optSemicolon(doSeq) : doElem
+syntax withPosition("let!" term (":" term)? "←" term) withPosition("failwith" doSeq) optSemicolon(doSeq) : doElem
 
 /-- The `let! pat := v; b` syntax desugars to `match v with | pat => b | _ => default`.
   The value returned on failure (instead of `default`, when `v` does not match `pat`)
