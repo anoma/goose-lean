@@ -7,13 +7,13 @@ open AVM
 
 inductive Program.Parameters where
   | empty
-  | fetch (C : Type) (i : IsObject C) (param : ObjectId) (rest : ObjectData i.classId.label → Program.Parameters)
+  | fetch (C : Type) (i : IsObject C) (param : ObjectId) (rest : C → Program.Parameters)
   | genId (rest : ObjectId → Program.Parameters)
 deriving Inhabited
 
 def Program.Parameters.Product : Program.Parameters → Type
   | .empty => PUnit
-  | .fetch C i _ rest => Σ (obj : C), (rest (i.toObject obj)).Product
+  | .fetch C _ _ rest => Σ (c : C), (rest c).Product
   | .genId rest => Σ (id : ObjectId), (rest id).Product
 
 def Program.Parameters.append (params1 : Program.Parameters) (params2 : params1.Product → Program.Parameters) : Program.Parameters :=
@@ -25,7 +25,7 @@ def Program.Parameters.append (params1 : Program.Parameters) (params2 : params1.
       (fun obj =>
         (ps1 obj).append
           (fun vals =>
-            params2 ⟨i.fromObject obj, cast (by rw [i.right_inverse']) vals⟩))
+            params2 ⟨obj, vals⟩))
   | .genId ps1 =>
     .genId (fun objId => (ps1 objId).append (fun vals => params2 ⟨objId, vals⟩))
 
@@ -37,15 +37,15 @@ def Program.Parameters.snocGenId (params : Program.Parameters) : Program.Paramet
 
 def Program.Parameters.toTaskParameters : Program.Parameters → Task.Parameters
   | .empty => .empty
-  | .fetch _ i p rest => .fetch ⟨i.classId.label, p⟩ (fun obj => toTaskParameters (rest obj.data))
+  | .fetch _ i p rest => .fetch ⟨i.classId.label, p⟩ (fun obj => toTaskParameters (rest (i.fromObject obj.data)))
   | .genId rest => .genId (fun id => toTaskParameters (rest id))
 
 def Task.Parameters.Values.toProgramParameterValues {params : Program.Parameters} (vals : params.toTaskParameters.Product) : params.Product :=
   match params with
   | .empty => PUnit.unit
-  | .fetch C i _ rest =>
+  | .fetch _ i _ _ =>
     let ⟨obj, vals'⟩ := vals
-    ⟨i.fromObject obj.data, toProgramParameterValues (cast (by rw [i.right_inverse']) vals')⟩
+    ⟨i.fromObject obj.data, toProgramParameterValues vals'⟩
   | .genId _ =>
     let ⟨objId, vals'⟩ := vals
     ⟨objId, toProgramParameterValues vals'⟩
@@ -66,39 +66,56 @@ lemma Program.Parameters.toTaskParameters_genId {params : Program.Parameters} :
   case empty =>
     rfl
 
-private axiom Task.Parameters.Values.cast_eq {params params' : Program.Parameters} {p : params.Product = params'.Product} {p' : params.toTaskParameters.Product = params'.toTaskParameters.Product} (vals : params.toTaskParameters.Product) : cast p (Task.Parameters.Values.toProgramParameterValues vals) = Task.Parameters.Values.toProgramParameterValues (cast p' vals)
-
 lemma Program.Parameters.toTaskParameters_snocFetch (C : Type) [i : IsObject C] {params : Program.Parameters} (objId : params.Product → ObjectId) :
   (params.snocFetch C objId).toTaskParameters =
     params.toTaskParameters.snocFetch (fun vals => ⟨i.classId.label, objId (Task.Parameters.Values.toProgramParameterValues vals)⟩) := by
   induction params <;> simp [Program.Parameters.snocFetch, Program.Parameters.toTaskParameters, Program.Parameters.append]
   case fetch C' i' p1 ps1 ih =>
     congr
-    funext obj
-    simp [Task.Parameters.Values.toProgramParameterValues]
-    simp [Program.Parameters.snocFetch, Program.Parameters.toTaskParameters] at ih
-    let ih' := ih obj.data (objId := fun vals => objId ⟨i'.fromObject obj.data, cast (by rw [i'.right_inverse']) vals⟩)
-    have p : (ps1 obj.data).Product = (ps1 (IsObject.toObject (IsObject.fromObject obj.data))).Product := by
-      rw [i'.right_inverse']
-    have p' : (ps1 obj.data).toTaskParameters.Product = (ps1 (IsObject.toObject (IsObject.fromObject obj.data))).toTaskParameters.Product := by
-      rw [i'.right_inverse']
-    simp_rw [Task.Parameters.Values.cast_eq (p := p) (p' := p')] at ih'
-    apply ih'
+    funext
+    apply ih
   case genId ps1 ih =>
     congr
     funext
-    simp [Task.Parameters.Values.toProgramParameterValues]
-    simp [Program.Parameters.snocFetch, Program.Parameters.toTaskParameters] at ih
     apply ih
   case empty =>
     rfl
 
 inductive Program' (lab : Ecosystem.Label) (ReturnType : Type) : Program.Parameters → Type 2 where
-  | create {params : Program.Parameters} (cid : lab.ClassId) (constrId : cid.label.ConstructorId) (args : params.Product → constrId.Args.type) (next : Program' lab ReturnType params.snocGenId) : Program' lab ReturnType params
-  | destroy {params : Program.Parameters} (cid : lab.ClassId) (destrId : cid.label.DestructorId) (selfId : params.Product → ObjectId) (args : params.Product → destrId.Args.type) (next : Program' lab ReturnType params) : Program' lab ReturnType params
-  | call {params : Program.Parameters} (cid : lab.ClassId) (methodId : cid.label.MethodId) (selfId : params.Product → ObjectId) (args : params.Product → methodId.Args.type) (next : Program' lab ReturnType params) : Program' lab ReturnType params
-  | fetch {params : Program.Parameters} (C : Type) [i : IsObject C] (objId : params.Product → ObjectId) (next : Program' lab ReturnType (params.snocFetch C objId)) : Program' lab ReturnType params
-  | return {params : Program.Parameters} (val : params.Product → ReturnType) : Program' lab ReturnType params
+  | create
+      {params : Program.Parameters}
+      (cid : lab.ClassId)
+      (constrId : cid.label.ConstructorId)
+      (args : params.Product → constrId.Args.type)
+      (next : Program' lab ReturnType params.snocGenId)
+      : Program' lab ReturnType params
+  | destroy
+      {params : Program.Parameters}
+      (cid : lab.ClassId)
+      (destrId : cid.label.DestructorId)
+      (selfId : params.Product → ObjectId)
+      (args : params.Product → destrId.Args.type)
+      (next : Program' lab ReturnType params)
+      : Program' lab ReturnType params
+  | call
+      {params : Program.Parameters}
+      (cid : lab.ClassId)
+      (methodId : cid.label.MethodId)
+      (selfId : params.Product → ObjectId)
+      (args : params.Product → methodId.Args.type)
+      (next : Program' lab ReturnType params)
+      : Program' lab ReturnType params
+  | fetch
+      {params : Program.Parameters}
+      (C : Type)
+      [i : IsObject C]
+      (objId : params.Product → ObjectId)
+      (next : Program' lab ReturnType (params.snocFetch C objId))
+      : Program' lab ReturnType params
+  | return
+      {params : Program.Parameters}
+      (val : params.Product → ReturnType)
+      : Program' lab ReturnType params
 
 def Program'.toBody {lab ReturnType params} (prog : Program' lab ReturnType params) : Class.Member.Body lab ReturnType params.toTaskParameters :=
   match prog with
@@ -118,14 +135,27 @@ def Program'.toBody {lab ReturnType params} (prog : Program' lab ReturnType para
     convertFun {A} {params : Program.Parameters} (f : params.Product → A) (vals : params.toTaskParameters.Product) : A :=
       f (Task.Parameters.Values.toProgramParameterValues vals)
 
-def Program (lab : Ecosystem.Label) (Result : Type) := Class.Member.Body lab Result .empty
+def Program'.map {lab : Ecosystem.Label} {A B : Type} {params : Program.Parameters} (f : A → B) (prog : Program' lab A params) : Program' lab B params :=
+  match prog with
+  | .create cid constrId args next =>
+    .create cid constrId args (map f next)
+  | .destroy cid destrId selfId args next =>
+    .destroy cid destrId selfId args (map f next)
+  | .call cid methodId selfId args next =>
+    .call cid methodId selfId args (map f next)
+  | @fetch _ _ _ C _ objId next =>
+    .fetch C objId (map f next)
+  | .return val =>
+    .return (f ∘ val)
 
-def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Program lab A) : Program lab B := Class.Member.Body.map f prog
+def Program (lab : Ecosystem.Label) (Result : Type) := Program' lab Result .empty
 
-alias Program.create := Class.Member.Body.constructor
-alias Program.destroy := Class.Member.Body.destructor
-alias Program.call := Class.Member.Body.method
-alias Program.fetch := Class.Member.Body.fetch
-alias Program.return := Class.Member.Body.return
+def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Program lab A) : Program lab B := Program'.map f prog
+
+alias Program.create := Program'.create
+alias Program.destroy := Program'.destroy
+alias Program.call := Program'.call
+alias Program.fetch := Program'.fetch
+alias Program.return := Program'.return
 
 end Applib
