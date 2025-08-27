@@ -53,33 +53,17 @@ def Task.Parameters.Values.toProgramParameterValues {params : Program.Parameters
 lemma Program.Parameters.toTaskParameters_genId {params : Program.Parameters} :
   params.snocGenId.toTaskParameters = params.toTaskParameters.snocGenId := by
   induction params <;> simp [Program.Parameters.snocGenId, Program.Parameters.toTaskParameters, Program.Parameters.append]
-  case fetch C i p1 ps1 ih =>
-    congr
-    funext
-    simp
-    apply ih
-  case genId ps1 ih =>
-    congr
-    funext
-    simp
-    apply ih
-  case empty =>
-    rfl
+  case fetch C i p1 ps1 ih => congr; funext; apply ih
+  case genId ps1 ih => congr; funext; apply ih
+  case empty => rfl
 
 lemma Program.Parameters.toTaskParameters_snocFetch (C : Type) [i : IsObject C] {params : Program.Parameters} (objId : params.Product → ObjectId) :
   (params.snocFetch C objId).toTaskParameters =
     params.toTaskParameters.snocFetch (fun vals => ⟨i.classId.label, objId (Task.Parameters.Values.toProgramParameterValues vals)⟩) := by
   induction params <;> simp [Program.Parameters.snocFetch, Program.Parameters.toTaskParameters, Program.Parameters.append]
-  case fetch C' i' p1 ps1 ih =>
-    congr
-    funext
-    apply ih
-  case genId ps1 ih =>
-    congr
-    funext
-    apply ih
-  case empty =>
-    rfl
+  case fetch C' i' p1 ps1 ih => congr; funext; apply ih
+  case genId ps1 ih => congr; funext; apply ih
+  case empty => rfl
 
 inductive Program' (lab : Ecosystem.Label) (ReturnType : Type) : Program.Parameters → Type 2 where
   | create
