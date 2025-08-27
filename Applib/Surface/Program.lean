@@ -12,14 +12,14 @@ inductive Program.Parameters where
 deriving Inhabited
 
 def Program.Parameters.Product : Program.Parameters → Type
-  | .empty => PUnit
+  | .empty => Unit
   | .fetch C _ _ rest => Σ (c : C), (rest c).Product
   | .genId rest => Σ (id : ObjectId), (rest id).Product
 
 def Program.Parameters.append (params1 : Program.Parameters) (params2 : params1.Product → Program.Parameters) : Program.Parameters :=
   match params1 with
   | .empty =>
-    params2 PUnit.unit
+    params2 ()
   | .fetch C i p1 ps1 =>
     .fetch C i p1
       (fun obj =>
@@ -42,7 +42,7 @@ def Program.Parameters.toTaskParameters : Program.Parameters → Task.Parameters
 
 def Task.Parameters.Values.toProgramParameterValues {params : Program.Parameters} (vals : params.toTaskParameters.Product) : params.Product :=
   match params with
-  | .empty => PUnit.unit
+  | .empty => ()
   | .fetch _ i _ _ =>
     let ⟨obj, vals'⟩ := vals
     ⟨i.fromObject obj.data, toProgramParameterValues vals'⟩
