@@ -144,16 +144,14 @@ def constructor : @Class.Constructor Eco.lab Eco.Classes.TwoCounter Constructors
 
 def incrementBoth : @Class.Method Eco.lab Eco.Classes.TwoCounter Methods.IncrementBoth := defMethod
   (body := fun (self : TwoCounter) (n : Nat) =>
-    Program.fetch (fun _ => ⟨Counter.lab, self.c1⟩) <|
-    Program.fetch (fun _ => ⟨Counter.lab, self.c2⟩) <|
-    Program.call (lab := Eco.lab) Eco.Classes.Counter Counter.Methods.Incr (fun _ => self.c1)
-      (fun ⟨c1Val, ⟨c2Val, ()⟩⟩ =>
-        (Counter.fromObject c2Val.data).count * n +
-        (Counter.fromObject c1Val.data).count) <|
-    Program.call (lab := Eco.lab) Eco.Classes.Counter Counter.Methods.Incr (fun _ => self.c2)
-      (fun ⟨c1Val, ⟨c2Val, ()⟩⟩ =>
-        (Counter.fromObject c1Val.data).count * n +
-        (Counter.fromObject c2Val.data).count) <|
+    Program.fetch Counter (fun _ => self.c1) <|
+    Program.fetch Counter (fun _ => self.c2) <|
+    Program.call Eco.Classes.Counter Counter.Methods.Incr (fun _ => self.c1)
+      (fun ⟨c1, ⟨c2, ()⟩⟩ =>
+        c2.count * n + c1.count) <|
+    Program.call Eco.Classes.Counter Counter.Methods.Incr (fun _ => self.c2)
+      (fun ⟨c1, ⟨c2, ()⟩⟩ =>
+        c1.count * n + c2.count) <|
     Program.return fun _ => self)
 
 end TwoCounter
