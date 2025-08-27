@@ -1,5 +1,6 @@
 import AVM
 import Applib.Surface.Object
+import Applib.Surface.Reference
 
 namespace Applib
 
@@ -137,9 +138,18 @@ def Program (lab : Ecosystem.Label) (Result : Type) := Program' lab Result .empt
 def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Program lab A) : Program lab B := Program'.map f prog
 
 alias Program.create := Program'.create
-alias Program.destroy := Program'.destroy
-alias Program.call := Program'.call
-alias Program.fetch := Program'.fetch
+alias Program.destroyById := Program'.destroy
+alias Program.callById := Program'.call
+alias Program.fetchById := Program'.fetch
 alias Program.return := Program'.return
+
+def Program.destroy {params ReturnType} (C : Type) [i : IsObject C] (destrId : i.classId.label.DestructorId) (r : params.Product → Reference C) (args : params.Product → destrId.Args.type) (next : Program' i.label ReturnType params) : Program' i.label ReturnType params :=
+  Program.destroyById i.classId destrId (fun vals => (r vals).objId) args next
+
+def Program.call {params ReturnType} (C : Type) [i : IsObject C] (methodId : i.classId.label.MethodId) (r : params.Product → Reference C) (args : params.Product → methodId.Args.type) (next : Program' i.label ReturnType params) : Program' i.label ReturnType params :=
+  Program.callById i.classId methodId (fun vals => (r vals).objId) args next
+
+def Program.fetch {params ReturnType} {lab : Ecosystem.Label} {C : Type} [i : IsObject C] (r : params.Product → Reference C) (next : Program' lab ReturnType (Program.Parameters.snocFetch C params (fun vals => (r vals).objId))) : Program' lab ReturnType params :=
+  Program.fetchById C (fun vals => (r vals).objId) next
 
 end Applib
