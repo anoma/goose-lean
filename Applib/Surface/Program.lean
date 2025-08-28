@@ -143,11 +143,11 @@ alias Program.callById := Program'.call
 alias Program.fetchById := Program'.fetch
 alias Program.return := Program'.return
 
-def Program.destroy {params ReturnType} (C : Type) (r : params.Product → Reference C) [i : IsObject C] (destrId : i.classId.label.DestructorId) (args : params.Product → destrId.Args.type) (next : Program' i.label ReturnType params) : Program' i.label ReturnType params :=
+def Program.destroy {params ReturnType} (C : Type) [i : IsObject C] (destrId : i.classId.label.DestructorId) (r : params.Product → Reference C) (args : params.Product → destrId.Args.type) (next : Program' i.label ReturnType params) : Program' i.label ReturnType params :=
   Program.destroyById i.classId destrId (fun vals => (r vals).objId) args next
 
-def Program.call {params ReturnType} {C : Type} (r : params.Product → Reference C) [i : IsObject C] (methodId : i.classId.label.MethodId) (args : params.Product → methodId.Args.type) (next : Program' i.label ReturnType params) : Program' i.label ReturnType params :=
+def Program.call {params ReturnType} (C : Type) [i : IsObject C] (methodId : i.classId.label.MethodId) (r : params.Product → Reference C) (args : params.Product → methodId.Args.type) (next : Program' i.label ReturnType params) : Program' i.label ReturnType params :=
   Program.callById i.classId methodId (fun vals => (r vals).objId) args next
 
-def Program.fetch {params ReturnType} {lab : Ecosystem.Label} {C : Type} (r : params.Product → Reference C) [i : IsObject C] (next : Program' lab ReturnType (Program.Parameters.snocFetch C params (fun vals => (r vals).objId))) : Program' lab ReturnType params :=
+def Program.fetch {params ReturnType} {lab : Ecosystem.Label} {C : Type} (r : params.Product → Reference C) [i : IsObject C] (next : Program' lab ReturnType (params.snocFetch C (fun vals => (r vals).objId))) : Program' lab ReturnType params :=
   Program.fetchById C (fun vals => (r vals).objId) next
