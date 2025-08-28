@@ -6,6 +6,7 @@ open Lean
 
 declare_syntax_cat program
 
+syntax withPosition("create " ident ident term) optSemicolon(program) : program
 syntax withPosition(ident " := " " create " ident ident term) optSemicolon(program) : program
 syntax withPosition("destroy " ident ident term) optSemicolon(program) : program
 syntax withPosition("call " ident ident term) optSemicolon(program) : program
@@ -20,6 +21,9 @@ def mkProducts {m} [Monad m] [MonadQuotation m] (ss : TSyntaxArray `ident) : m (
 
 macro_rules
   | `(⟪$p:program⟫) => `(Ξ . $p)
+  | `(Ξ $ss:ident* . create $c:ident $m:ident $e:term ; $p:program) => do
+    let ps ← mkProducts ss
+    `(Program.create $c $m (fun $ps => $e) (Ξ $ss* __ . $p))
   | `(Ξ $ss:ident* . $x:ident := create $c:ident $m:ident $e:term ; $p:program) => do
     let ps ← mkProducts ss
     `(Program.create $c $m (fun $ps => $e) (Ξ $ss* $x . $p))

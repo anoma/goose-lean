@@ -54,4 +54,12 @@ def prog1 (r : Reference OwnedCounter) (newOwner : PublicKey) : Program label (R
   return r'
 ⟫
 
+def prog2 (n : Nat) : Program label (Reference OwnedCounter) := ⟪
+  r := create OwnedCounter OwnedCounter.Constructors.Zero ()
+  call OwnedCounter OwnedCounter.Methods.Incr r n
+  create OwnedCounter OwnedCounter.Constructors.Zero ()
+  create OwnedCounter OwnedCounter.Constructors.Zero ()
+  return r
+⟫
+
 end OwnedCounter
