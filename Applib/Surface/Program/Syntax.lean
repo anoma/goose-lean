@@ -19,32 +19,19 @@ def mkProducts {m} [Monad m] [MonadQuotation m] (ss : TSyntaxArray `ident) : m (
   ss.foldrM (fun s acc => `(⟨$s, $acc⟩)) unit
 
 macro_rules
-  | `(⟪$p:program⟫) => do
-    let stx ← `(Ξ . $p)
-    dbg_trace Syntax.prettyPrint stx
-    return stx
+  | `(⟪$p:program⟫) => `(Ξ . $p)
   | `(Ξ $ss:ident* . $x:ident := create $c:ident $m:ident $e:term ; $p:program) => do
     let ps ← mkProducts ss
-    let stx ← `(Program.create $c $m (fun $ps => $e) (Ξ $ss* $x . $p))
-    dbg_trace Syntax.prettyPrint stx
-    return stx
+    `(Program.create $c $m (fun $ps => $e) (Ξ $ss* $x . $p))
   | `(Ξ $ss:ident* . destroy $c:ident $m:ident $e:term $args:term ; $p:program) => do
     let ps ← mkProducts ss
-    let stx ← `(Program.destroy $c $m (fun $ps => $e) (fun $ps => $args) (Ξ $ss* . $p))
-    dbg_trace Syntax.prettyPrint stx
-    return stx
+    `(Program.destroy $c $m (fun $ps => $e) (fun $ps => $args) (Ξ $ss* . $p))
   | `(Ξ $ss:ident* . call $c:ident $m:ident $e:term $args:term ; $p:program) => do
     let ps ← mkProducts ss
-    let stx ← `(Program.call $c $m (fun $ps => $e) (fun $ps => $args) (Ξ $ss* . $p))
-    dbg_trace Syntax.prettyPrint stx
-    return stx
+    `(Program.call $c $m (fun $ps => $e) (fun $ps => $args) (Ξ $ss* . $p))
   | `(Ξ $ss:ident* . $x:ident := fetch $e:term ; $p:program) => do
     let ps ← mkProducts ss
-    let stx ← `(Program.fetch (fun $ps => $e) (Ξ $ss* $x . $p))
-    dbg_trace Syntax.prettyPrint stx
-    return stx
+    `(Program.fetch (fun $ps => $e) (Ξ $ss* $x . $p))
   | `(Ξ $ss:ident* . return $e:term) => do
     let ps ← mkProducts ss
-    let stx ← `(Program.return (fun $ps => $e))
-    dbg_trace Syntax.prettyPrint stx
-    return stx
+    `(Program.return (fun $ps => $e))
