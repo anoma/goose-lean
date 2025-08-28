@@ -73,18 +73,17 @@ def incrementBy (step : Nat) (c : OwnedCounter) : OwnedCounter :=
   {c with count := c.count + step}
 
 def counterConstructor : @Class.Constructor label Classes.OwnedCounter Constructors.Zero := defConstructor
-  (body := fun (_noArgs : Unit) => Program.return fun _ => newCounter default)
+  (body := fun (_noArgs : Unit) => ⟪return newCounter default⟫)
 
 def counterIncr : @Class.Method label Classes.OwnedCounter Methods.Incr := defMethod OwnedCounter
-  (body := fun (self : OwnedCounter) (step : Nat) => Program.return fun _ => self.incrementBy step)
+  (body := fun (self : OwnedCounter) (step : Nat) => ⟪return self.incrementBy step⟫)
 
 def counterTransfer : @Class.Method label Classes.OwnedCounter Methods.Transfer := defMethod OwnedCounter
   (body := fun (self : OwnedCounter) (newOwner : PublicKey) =>
-    Program.return fun _ => {self with owner := newOwner : OwnedCounter})
+    ⟪return {self with owner := newOwner : OwnedCounter}⟫)
 
 /-- We only allow the counter to be destroyed if its count is at least 10 -/
 def counterDestroy : @Class.Destructor label Classes.OwnedCounter Destructors.Ten := defDestructor
-  (body := fun (_ : OwnedCounter) () => Program.return fun _ => ())
   (invariant := fun (self : OwnedCounter) () => self.count >= 10)
 
 def counterClass : @Class label Classes.OwnedCounter where
