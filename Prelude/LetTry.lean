@@ -1,9 +1,9 @@
 syntax withPosition("let" "try" term (":" term)? ":=" term) optSemicolon(term) : term
 syntax withPosition("let" "try" term (":" term)? ":=" term) optSemicolon(doSeq) : doElem
 syntax withPosition("let" "try" term (":" term)? "←" term)  optSemicolon(doSeq) : doElem
-syntax withPosition("let" "try" term (":" term)? ":=" term) "failwith" term optSemicolon(term) : term
-syntax withPosition("let" "try" term (":" term)? ":=" term) "failwith" doSeq optSemicolon(doSeq) : doElem
-syntax withPosition("let" "try" term (":" term)? "←" term) "failwith" doSeq optSemicolon(doSeq) : doElem
+syntax withPosition("let" "try" term (":" term)? ":=" term) withPosition("failwith" term) optSemicolon(term) : term
+syntax withPosition("let" "try" term (":" term)? ":=" term) withPosition("failwith" doSeq) optSemicolon(doSeq) : doElem
+syntax withPosition("let" "try" term (":" term)? "←" term) withPosition("failwith" doSeq) optSemicolon(doSeq) : doElem
 
 /-- The `let try x := ov; b` macro unwraps an `Option`, for `ov = some v` binds
   the value `v` to `x` in `b`, for `ov = none` returns `default`. The value

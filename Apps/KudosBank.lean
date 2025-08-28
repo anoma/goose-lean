@@ -277,37 +277,39 @@ instance instIsObject : IsObject KudosBank where
 end KudosBank
 
 def kudosNew : @Class.Constructor label Classes.Bank Constructors.Open := defConstructor
-  (body := fun (owner : PublicKey) => Program.return fun _ => KudosBank.new owner)
+  (body := fun (owner : PublicKey) => ⟪return KudosBank.new owner⟫)
 
 def kudosMint : @Class.Method label Classes.Bank Methods.Mint := defMethod KudosBank
-  (body := fun (self : KudosBank) (args : MintArgs) =>
-    Program.return fun _ =>
-      self.overBalances (fun b => b.addTokens args.denom.originator args.denom args.quantity))
+  (body := fun (self : KudosBank) (args : MintArgs) => ⟪
+    return
+      self.overBalances (fun b => b.addTokens args.denom.originator args.denom args.quantity)
+  ⟫)
   (invariant := fun (_self : KudosBank) (args : MintArgs) => checkKey args.denom.originator args.key)
 
 def kudosTransfer : @Class.Method label Classes.Bank Methods.Transfer := defMethod KudosBank
-  (body := fun (self : KudosBank) (args : TransferArgs) =>
-    Program.return fun _ =>
+  (body := fun (self : KudosBank) (args : TransferArgs) => ⟪
+    return
       self.overBalances (fun b => b
         |> Balances.addTokens args.newOwner args.denom args.quantity
-        |> Balances.subTokens args.oldOwner args.denom args.quantity))
+        |> Balances.subTokens args.oldOwner args.denom args.quantity)
+  ⟫)
   (invariant := fun (self : KudosBank) (args : TransferArgs) =>
     checkKey args.oldOwner args.key
     && 0 < args.quantity
     && args.quantity <= self.getBalance args.oldOwner args.denom)
 
 def kudosBurn : @Class.Method label Classes.Bank Methods.Burn := defMethod KudosBank
-  (body := fun (self : KudosBank) (args : BurnArgs) =>
-    Program.return fun _ =>
+  (body := fun (self : KudosBank) (args : BurnArgs) => ⟪
+    return
       self.overBalances (fun b => b
-        |> Balances.subTokens args.denom.originator args.denom args.quantity))
+        |> Balances.subTokens args.denom.originator args.denom args.quantity)
+  ⟫)
   (invariant := fun (self : KudosBank) (args : BurnArgs) =>
     checkKey args.denom.originator args.key
     && 0 < args.quantity
     && args.quantity <= self.getBalance args.denom.originator args.denom)
 
 def kudosClose : @Class.Destructor label Classes.Bank Destructors.Close := defDestructor
-  (body := fun (_ : KudosBank) (_ : PUnit) => Program.return fun _ => ())
   (invariant := fun (self : KudosBank) (_args : PUnit) => self.balances.isEmpty)
 
 def kudosClass : @Class label Classes.Bank where
@@ -321,9 +323,10 @@ def kudosClass : @Class label Classes.Bank where
     | .Close => kudosClose
 
 def checkTransfer : @Class.Method label Classes.Check .Transfer := defMethod Check
-  (body := fun (self : Check) (args : Check.TransferArgs) =>
-    Program.return fun _ =>
-      {self with owner := args.newOwner : Check})
+  (body := fun (self : Check) (args : Check.TransferArgs) => ⟪
+    return
+      {self with owner := args.newOwner : Check}
+  ⟫)
   (invariant := fun (self : Check) (args : Check.TransferArgs) =>
     checkKey self.owner args.key)
 

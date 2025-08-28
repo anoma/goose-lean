@@ -104,19 +104,19 @@ instance hasIsObject : IsObject Kudos where
   fromObject := Kudos.fromObject
 
 def kudosMint : @Class.Constructor label Classes.Kudos Constructors.Mint := defConstructor
-  (body := fun (args : MintArgs) =>
-    Program.return fun _ =>
+  (body := fun (args : MintArgs) => ⟪
+    return
       { quantity := args.quantity
         owner := args.originator
-        originator := args.originator : Kudos})
+        originator := args.originator : Kudos}
+  ⟫)
   (invariant := fun (args : MintArgs) => checkKey args.originator args.key)
 
 def kudosTransfer : @Class.Method label Classes.Kudos Methods.Transfer := defMethod Kudos
   (body := fun (self : Kudos) (args : TransferArgs) =>
-    Program.return fun _ => {self with owner := args.newOwner : Kudos})
+    ⟪return {self with owner := args.newOwner : Kudos}⟫)
 
 def kudosBurn : @Class.Destructor label Classes.Kudos Destructors.Burn := defDestructor
-  (body := fun (_ : Kudos) (_ : PUnit) => Program.return fun _ => ())
   (invariant := fun (self : Kudos) (_args : PUnit) => self.originator == self.owner)
 
 def kudosClass : @Class label Classes.Kudos where

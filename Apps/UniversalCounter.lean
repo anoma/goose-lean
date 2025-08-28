@@ -63,10 +63,10 @@ def incrementBy (step : Nat) (c : Counter) : Counter :=
   {c with count := c.count + step}
 
 def counterConstructor : @Class.Constructor label Classes.Counter Constructors.Zero := defConstructor
-  (body := fun (_noArgs : Unit) => Program.return fun _ => newCounter)
+  (body := fun (_noArgs : Unit) => ⟪return newCounter⟫)
 
 def counterIncr : @Class.Method label Classes.Counter Methods.Incr := defMethod
-  (body := fun (self : Counter) (step : Nat) => Program.return fun _ => self.incrementBy step)
+  (body := fun (self : Counter) (step : Nat) => ⟪return self.incrementBy step⟫)
 
 def counterClass : @Class label Classes.Counter where
   constructors := fun
