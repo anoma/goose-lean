@@ -1,6 +1,6 @@
 name = "goose"
 version = "0.1.0"
-defaultTargets = ["Prelude", "Anoma", "AVM", "Applib", "Apps"]
+defaultTargets = ["Prelude", "Anoma", "AVM", "Applib", "Apps", "Tests"]
 
 [[require]]
 name = "mathlib"
@@ -24,3 +24,6 @@ name = "Applib"
 
 [[lean_lib]]
 name = "Apps"
+
+[[lean_lib]]
+name = "Tests"
