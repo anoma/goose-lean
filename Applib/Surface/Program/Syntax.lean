@@ -6,7 +6,7 @@ open Lean
 
 declare_syntax_cat program
 
-syntax withPosition(ident " := " " create " ident term) optSemicolon(program) : program
+syntax withPosition(ident " := " " create " ident ident term) optSemicolon(program) : program
 syntax withPosition("destroy " ident ident term) optSemicolon(program) : program
 syntax withPosition("call " ident ident term) optSemicolon(program) : program
 syntax withPosition(ident " := " " fetch " term) optSemicolon(program) : program
@@ -23,9 +23,9 @@ macro_rules
     let stx ← `(Ξ . $p)
     dbg_trace Syntax.prettyPrint stx
     return stx
-  | `(Ξ $ss:ident* . $x:ident := create $c:ident $e:term ; $p:program) => do
+  | `(Ξ $ss:ident* . $x:ident := create $c:ident $m:ident $e:term ; $p:program) => do
     let ps ← mkProducts ss
-    let stx ← `(Program.create $c (fun $ps => $e) (Ξ $ss* $x . $p))
+    let stx ← `(Program.create $c $m (fun $ps => $e) (Ξ $ss* $x . $p))
     dbg_trace Syntax.prettyPrint stx
     return stx
   | `(Ξ $ss:ident* . destroy $c:ident $m:ident $e:term $args:term ; $p:program) => do

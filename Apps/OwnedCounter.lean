@@ -84,8 +84,8 @@ def counterTransfer : @Class.Method label Classes.OwnedCounter Methods.Transfer 
 
 /-- We only allow the counter to be destroyed if its count is at least 10 -/
 def counterDestroy : @Class.Destructor label Classes.OwnedCounter Destructors.Ten := defDestructor
-  (body := fun (_ : OwnedCounter) (_ : PUnit) => Program.return fun _ => ())
-  (invariant := fun (self : OwnedCounter) (_ : PUnit) => self.count >= 10)
+  (body := fun (_ : OwnedCounter) () => Program.return fun _ => ())
+  (invariant := fun (self : OwnedCounter) () => self.count >= 10)
 
 def counterClass : @Class label Classes.OwnedCounter where
   constructors := fun
