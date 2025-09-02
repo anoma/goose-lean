@@ -6,7 +6,7 @@ namespace TwoCounterApp
 
 open Applib
 
-def example_1 (rx ry : Reference Counter) : Program Eco.lab Counter := ⟪
+example (rx ry : Reference Counter) : Program Eco.lab Counter := ⟪
   x := fetch rx
   y := fetch ry
   call Counter Counter.Methods.Incr rx (x.count * 2 + y.count)
@@ -14,7 +14,7 @@ def example_1 (rx ry : Reference Counter) : Program Eco.lab Counter := ⟪
   return {x with count := x.count + y.count}
 ⟫
 
-def example_2 (rx ry : Reference Counter) : Program Eco.lab Unit := ⟪
+example (rx ry : Reference Counter) : Program Eco.lab Unit := ⟪
   x := fetch rx
   y := fetch ry
   call Counter Counter.Methods.Incr rx (x.count * 2 + y.count)
@@ -22,7 +22,7 @@ def example_2 (rx ry : Reference Counter) : Program Eco.lab Unit := ⟪
   return ()
 ⟫
 
-def example_3 : Program Eco.lab (Reference TwoCounter) := ⟪
+example : Program Eco.lab (Reference TwoCounter) := ⟪
   rx := create Counter Counter.Constructors.Zero ()
   ry := create Counter Counter.Constructors.Zero ()
   call Counter Counter.Methods.Incr rx (2 : Nat)
@@ -31,7 +31,7 @@ def example_3 : Program Eco.lab (Reference TwoCounter) := ⟪
   return tc
 ⟫
 
-def example_4 (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
   c1 := fetch self.c1
   c2 := fetch self.c2
   call Counter Counter.Methods.Incr self.c1 (c2.count * n + c1.count)
@@ -45,7 +45,7 @@ namespace OwnedCounter
 
 open Applib
 
-def example_1 (r : Reference OwnedCounter) (newOwner : PublicKey) : Program label (Reference OwnedCounter) := ⟪
+example (r : Reference OwnedCounter) (newOwner : PublicKey) : Program label (Reference OwnedCounter) := ⟪
   c := fetch r
   call OwnedCounter OwnedCounter.Methods.Transfer r newOwner
   r' := create OwnedCounter OwnedCounter.Constructors.Zero ()
@@ -54,7 +54,7 @@ def example_1 (r : Reference OwnedCounter) (newOwner : PublicKey) : Program labe
   return r'
 ⟫
 
-def example_2 (n : Nat) : Program label (Reference OwnedCounter) := ⟪
+example (n : Nat) : Program label (Reference OwnedCounter) := ⟪
   r := create OwnedCounter OwnedCounter.Constructors.Zero ()
   call OwnedCounter OwnedCounter.Methods.Incr r n
   create OwnedCounter OwnedCounter.Constructors.Zero ()
