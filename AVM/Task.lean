@@ -15,7 +15,7 @@ structure Task.Actions where
   step. Tasks enable modularity of the translation – they are at the right
   level of abstraction to compose translations of different message sends,
   enabling nested method calls and subobjects. -/
-structure Task where
+structure Task.{u} : Type (u + 1) where
   /-- Task parameters - objects to fetch from the Anoma system and new object
     ids to generate. -/
   params : Task.Parameters
@@ -26,7 +26,7 @@ structure Task where
   actions : params.Product → Rand (Option Task.Actions)
 deriving Inhabited
 
-def Task.absorbParams (params : Task.Parameters) (task : params.Product → Task) : Task :=
+def Task.absorbParams.{u} (params : Task.Parameters) (task : params.Product → Task.{u}) : Task.{u} :=
   { params := params.append (fun vals => (task vals).params),
     message := fun vals =>
       let ⟨vals1, vals2⟩ := Task.Parameters.splitProduct vals
