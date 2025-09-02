@@ -20,7 +20,7 @@ structure Task where
     ids to generate. -/
   params : Task.Parameters
   /-- The message to send to the recipient. -/
-  message : params.Product → SomeMessage
+  message : params.Product → Option SomeMessage
   /-- Task actions - actions to perform parameterised by fetched objects and new
     object ids. -/
   actions : params.Product → Rand (Option Task.Actions)
@@ -55,7 +55,8 @@ def Task.composeMessages (tasks : List Task) (vals : HList (Products tasks)) : L
   match tasks, vals with
   | [], _ => []
   | task :: tasks', HList.cons vals' vals'' =>
-    task.message vals' :: composeMessages tasks' vals''
+    (task.message vals' |>.toList) ++
+      composeMessages tasks' vals''
 
 def Task.composeParams (tasks : List Task) : Task.Parameters :=
   tasks |>.map (·.params) |> .concat
@@ -73,7 +74,7 @@ def Task.composeActions
       deltaWitness := Anoma.DeltaWitness.compose witness actions.deltaWitness }
 
 def Task.composeWithAction
-  (msg : SomeMessage)
+  (msg : Option SomeMessage)
   (tasks : List Task)
   (mkAction : HList (Products tasks) → Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
   : Task :=
@@ -82,7 +83,7 @@ def Task.composeWithAction
     actions := composeActions tasks mkAction }
 
 def Task.compose
-  (msg : SomeMessage)
+  (msg : Option SomeMessage)
   (tasks : List Task)
   (consumedObj : SomeConsumableObject)
   (createdObjects : List CreatedObject)
@@ -91,5 +92,5 @@ def Task.compose
     : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
     let try consumedObject := consumedObj.consume
     let createdMessages := composeMessages tasks vals
-    Action.create [consumedObject] createdObjects [msg] createdMessages
+    Action.create [consumedObject] createdObjects msg.toList createdMessages
   Task.composeWithAction msg tasks mkAction
