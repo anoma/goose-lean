@@ -103,17 +103,17 @@ inductive Program' (lab : Ecosystem.Label) (ReturnType : Type) : Program.Paramet
       (val : params.Product → ReturnType)
       : Program' lab ReturnType params
 
-def Program'.toBody {lab ReturnType params} (prog : Program' lab ReturnType params) : Class.Member.Body lab ReturnType params.toTaskParameters :=
+def Program'.toAVM {lab ReturnType params} (prog : Program' lab ReturnType params) : AVM.Program' lab ReturnType params.toTaskParameters :=
   match prog with
   | .create C cid constrId args next =>
-    let next' := cast (by rw [Program.Parameters.toTaskParameters_genId]) (toBody next)
+    let next' := cast (by rw [Program.Parameters.toTaskParameters_genId]) (Program'.toAVM next)
     .constructor cid constrId (convertFun args) next'
   | .destroy cid destrId selfId args next =>
-    .destructor cid destrId (convertFun selfId) (convertFun args) (toBody next)
+    .destructor cid destrId (convertFun selfId) (convertFun args) (Program'.toAVM next)
   | .call cid methodId selfId args next =>
-    .method cid methodId (convertFun selfId) (convertFun args) (toBody next)
+    .method cid methodId (convertFun selfId) (convertFun args) (Program'.toAVM next)
   | @fetch _ _ _ C i objId next =>
-    let next' := cast (by rw [Program.Parameters.toTaskParameters_snocFetch C objId]) (toBody next)
+    let next' := cast (by rw [Program.Parameters.toTaskParameters_snocFetch C objId]) (Program'.toAVM next)
     .fetch (fun vals => ⟨i.classId.label, objId (Task.Parameters.Values.toProgramParameterValues vals)⟩) next'
   | .return val =>
     .return (convertFun val)

@@ -82,15 +82,22 @@ def Task.composeWithAction
     message := fun _ => msg,
     actions := composeActions tasks mkAction }
 
-def Task.compose
-  (msg : Option SomeMessage)
+def Task.composeWithMessage
+  (msg : SomeMessage)
   (tasks : List Task)
-  (consumedObj : SomeConsumableObject)
+  (consumedObjs : List SomeConsumableObject)
   (createdObjects : List CreatedObject)
   : Task :=
   let mkAction (vals : HList (Products tasks))
     : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
-    let try consumedObject := consumedObj.consume
+    let try consumedObjects := consumedObjs.map (·.consume) |>.getSome
     let createdMessages := composeMessages tasks vals
-    Action.create [consumedObject] createdObjects msg.toList createdMessages
+    Action.create consumedObjects createdObjects [msg] createdMessages
   Task.composeWithAction msg tasks mkAction
+
+def Task.compose (tasks : List Task) : Task :=
+  let mkAction (vals : HList (Products tasks))
+    : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
+    let createdMessages := composeMessages tasks vals
+    Action.create [] [] [] createdMessages
+  Task.composeWithAction none tasks mkAction
