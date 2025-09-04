@@ -7,70 +7,79 @@ namespace AVM
 
 /-- The parameters `params` represent objects fetched and new object ids
   generated in the body before the current statement. -/
-inductive Program.{u} (lab : Ecosystem.Label) : (ReturnType : Type u) → Type (u + 1) where
+inductive Program'.{u} (lab : Ecosystem.Label) : (ReturnType : Type u) → Nat → Type (u + 1) where
   | constructor
     {ReturnType : Type u}
+    {n : Nat}
     (cid : lab.ClassId)
     (constrId : cid.label.ConstructorId)
     (args : constrId.Args.type)
-    (next : ObjectId → Program lab ReturnType)
-    : Program lab ReturnType
+    (next : ObjectId → Program' lab ReturnType n)
+    : Program' lab ReturnType (n + 1)
   | destructor
     {ReturnType : Type u}
+    {n : Nat}
     (cid : lab.ClassId)
     (destrId : cid.label.DestructorId)
     (selfId : ObjectId)
     (args : destrId.Args.type)
-    (next : Program lab ReturnType)
-    : Program lab ReturnType
+    (next : Program' lab ReturnType n)
+    : Program' lab ReturnType (n + 1)
   | method
     {ReturnType : Type u}
+    {n : Nat}
     (cid : lab.ClassId)
     (methodId : cid.label.MethodId)
     (selfId : ObjectId)
     (args : methodId.Args.type)
-    (next : Program lab ReturnType)
-    : Program lab ReturnType
+    (next : Program' lab ReturnType n)
+    : Program' lab ReturnType (n + 1)
   | fetch
     {ReturnType : Type u}
+    {n : Nat}
     (objId : TypedObjectId)
-    (next : Object objId.classLabel → Program lab ReturnType)
-    : Program lab ReturnType
+    (next : Object objId.classLabel → Program' lab ReturnType n)
+    : Program' lab ReturnType (n + 1)
   | invoke
     {ReturnType α : Type u}
+    {n : Nat}
     (i : Inhabited α)
-    (prog : Program lab α)
-    (next : α → Program lab ReturnType)
-    : Program lab ReturnType
+    (prog : Program' lab α n)
+    (next : α → Program' lab ReturnType n)
+    : Program' lab ReturnType (n + 1)
   | return
     {ReturnType : Type u}
+    {n : Nat}
     (val : ReturnType)
-    : Program lab ReturnType
+    : Program' lab ReturnType n
 
 instance (ReturnType : Type u) [Inhabited ReturnType] :
     Inhabited (Σ (params : Program.Parameters), params.Product → ReturnType) :=
   ⟨⟨.empty, fun _ => default⟩⟩
 
-def Program.result {ReturnType} [Inhabited ReturnType] (lab : Ecosystem.Label) (prog : Program lab ReturnType)
+def Program lab ReturnType := Σ n, Program' lab ReturnType n
+
+def Program'.result {lab : Ecosystem.Label} {ReturnType} {n : Nat} (prog : Program' lab ReturnType n)
   : Σ (params : Program.Parameters), params.Product → ReturnType :=
-  match prog with
-  | .constructor _ _ _ next =>
-    ⟨.genId (fun objId => Program.result lab (next objId) |>.1),
-      fun ⟨objId, vals⟩ => Program.result lab (next objId) |>.2 vals⟩
-  | .destructor _ _ _ _ next => next.result
-  | .method _ _ _ _ next => next.result
-  | .fetch objId next =>
-    ⟨.fetch objId (fun obj => Program.result lab (next obj) |>.1),
-      fun ⟨obj, vals⟩ => Program.result lab (next obj) |>.2 vals⟩
-  | .invoke _ p next =>
-    let ⟨pParams, pReturn⟩ := p.result
+  match n, prog with
+  | Nat.succ z, .constructor _ _ _ next =>
+    ⟨.genId (fun objId => result (n := z) (next objId) |>.1),
+      fun ⟨objId, vals⟩ => result (n := z) (next objId) |>.2 vals⟩
+  | Nat.succ m, .destructor _ _ _ _ next => next.result (n := m)
+  | Nat.succ m, .method _ _ _ _ next => next.result (n := m)
+  | Nat.succ m, .fetch objId next =>
+    ⟨.fetch objId (fun obj => result (n := m) (next obj) |>.1),
+      fun ⟨obj, vals⟩ => result (n := m) (next obj) |>.2 vals⟩
+  | Nat.succ m, .invoke _ p next =>
+    let ⟨pParams, pReturn⟩ := p.result (n := m)
     let params :=
       pParams.append (fun pVals =>
-        Program.result lab (next (pReturn pVals)) |>.1)
+        result (n := m) (next (pReturn pVals)) |>.1)
     ⟨params, fun vals =>
       let ⟨pVals, vals'⟩ := Program.Parameters.splitProduct vals
-      Program.result lab (next (pReturn pVals)) |>.2 vals'⟩
-  | .return val => ⟨.empty, fun () => val⟩
+      result (n := m) (next (pReturn pVals)) |>.2 vals'⟩
+  | _, .return val => ⟨.empty, fun () => val⟩
+
 
 /-- All body parameters - the parameters at the point of the return statement. -/
 def Program.params {lab ReturnType} [Inhabited ReturnType] (prog : Program lab ReturnType) : Program.Parameters :=
