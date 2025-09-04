@@ -24,6 +24,7 @@ structure Label : Type (u + 1) where
   name : String
 
   PrivateFields : SomeType.{u}
+  [privateFieldsInhabited : Inhabited PrivateFields.type]
 
   /-- The dynamic label is used to put dynamic data into the Resource label -/
   DynamicLabel : DynamicLabel.{u} PrivateFields.type := default
