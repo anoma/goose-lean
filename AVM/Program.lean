@@ -51,23 +51,25 @@ instance (ReturnType : Type u) [Inhabited ReturnType] :
     Inhabited (Σ (params : Program.Parameters), params.Product → ReturnType) :=
   ⟨⟨.empty, fun _ => default⟩⟩
 
-partial def Program.result {lab ReturnType} [Inhabited ReturnType] (prog : Program lab ReturnType)
+def Program.result {ReturnType} [Inhabited ReturnType] (lab : Ecosystem.Label) (prog : Program lab ReturnType)
   : Σ (params : Program.Parameters), params.Product → ReturnType :=
   match prog with
   | .constructor _ _ _ next =>
-    ⟨.genId (fun objId => next objId |>.result.1), fun ⟨objId, vals⟩ => next objId |>.result.2 vals⟩
+    ⟨.genId (fun objId => Program.result lab (next objId) |>.1),
+      fun ⟨objId, vals⟩ => Program.result lab (next objId) |>.2 vals⟩
   | .destructor _ _ _ _ next => next.result
   | .method _ _ _ _ next => next.result
   | .fetch objId next =>
-    ⟨.fetch objId (fun obj => next obj |>.result.1), fun ⟨obj, vals⟩ => next obj |>.result.2 vals⟩
+    ⟨.fetch objId (fun obj => Program.result lab (next obj) |>.1),
+      fun ⟨obj, vals⟩ => Program.result lab (next obj) |>.2 vals⟩
   | .invoke _ p next =>
     let ⟨pParams, pReturn⟩ := p.result
     let params :=
       pParams.append (fun pVals =>
-        (next (pReturn pVals)).result.1)
+        Program.result lab (next (pReturn pVals)) |>.1)
     ⟨params, fun vals =>
       let ⟨pVals, vals'⟩ := Program.Parameters.splitProduct vals
-      (next (pReturn pVals)).result.2 vals'⟩
+      Program.result lab (next (pReturn pVals)) |>.2 vals'⟩
   | .return val => ⟨.empty, fun () => val⟩
 
 /-- All body parameters - the parameters at the point of the return statement. -/
