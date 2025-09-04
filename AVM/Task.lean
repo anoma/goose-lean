@@ -2,7 +2,7 @@ import Anoma
 import AVM.Object
 import AVM.Message
 import AVM.Action
-import AVM.Task.Parameters
+import AVM.Program.Parameters
 
 namespace AVM
 
@@ -18,7 +18,7 @@ structure Task.Actions where
 structure Task.{u} : Type (u + 1) where
   /-- Task parameters - objects to fetch from the Anoma system and new object
     ids to generate. -/
-  params : Task.Parameters
+  params : Program.Parameters
   /-- The message to send to the recipient. -/
   message : params.Product → Option SomeMessage
   /-- Task actions - actions to perform parameterised by fetched objects and new
@@ -26,13 +26,13 @@ structure Task.{u} : Type (u + 1) where
   actions : params.Product → Rand (Option Task.Actions)
 deriving Inhabited
 
-def Task.absorbParams.{u} (params : Task.Parameters) (task : params.Product → Task.{u}) : Task.{u} :=
+def Task.absorbParams.{u} (params : Program.Parameters) (task : params.Product → Task.{u}) : Task.{u} :=
   { params := params.append (fun vals => (task vals).params),
     message := fun vals =>
-      let ⟨vals1, vals2⟩ := Task.Parameters.splitProduct vals
+      let ⟨vals1, vals2⟩ := Program.Parameters.splitProduct vals
       (task vals1).message vals2,
     actions := fun vals =>
-      let ⟨vals1, vals2⟩ := Task.Parameters.splitProduct vals
+      let ⟨vals1, vals2⟩ := Program.Parameters.splitProduct vals
       (task vals1).actions vals2 }
 
 def Task.Products (tasks : List Task) : List Type :=
@@ -58,7 +58,7 @@ def Task.composeMessages (tasks : List Task) (vals : HList (Products tasks)) : L
     (task.message vals' |>.toList) ++
       composeMessages tasks' vals''
 
-def Task.composeParams (tasks : List Task) : Task.Parameters :=
+def Task.composeParams (tasks : List Task) : Program.Parameters :=
   tasks |>.map (·.params) |> .concat
 
 def Task.composeActions
@@ -66,7 +66,7 @@ def Task.composeActions
   (mkAction : HList (Products tasks) → Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
   (vals : (Task.composeParams tasks).Product)
   : Rand (Option Task.Actions) := do
-  let vals' := Task.Parameters.splitProducts vals
+  let vals' := Program.Parameters.splitProducts vals
   let try actions ← Task.makeActions tasks vals'
   let try (action, witness) ← mkAction vals'
   pure <| some <|

@@ -6,66 +6,6 @@ namespace Applib
 
 open AVM
 
-inductive Program.Parameters where
-  | empty
-  | fetch (C : Type) (i : IsObject C) (param : ObjectId) (rest : C → Program.Parameters)
-  | genRef (C : Type) (rest : Reference C → Program.Parameters)
-deriving Inhabited
-
-def Program.Parameters.Product : Program.Parameters → Type
-  | .empty => Unit
-  | .fetch C _ _ rest => Σ (c : C), (rest c).Product
-  | .genRef C rest => Σ (ref : Reference C), (rest ref).Product
-
-def Program.Parameters.append (params1 : Program.Parameters) (params2 : params1.Product → Program.Parameters) : Program.Parameters :=
-  match params1 with
-  | .empty =>
-    params2 ()
-  | .fetch C i p1 ps1 =>
-    .fetch C i p1
-      (fun obj =>
-        (ps1 obj).append
-          (fun vals =>
-            params2 ⟨obj, vals⟩))
-  | .genRef C ps1 =>
-    .genRef C (fun ref => (ps1 ref).append (fun vals => params2 ⟨ref, vals⟩))
-
-def Program.Parameters.snocFetch (C : Type) [i : IsObject C] (params : Program.Parameters) (objId : params.Product → ObjectId) : Program.Parameters :=
-  params.append (fun vals => .fetch C i (objId vals) (fun _ => .empty))
-
-def Program.Parameters.snocGenId (C : Type) (params : Program.Parameters) : Program.Parameters :=
-  params.append (fun _ => .genRef C (fun _ => .empty))
-
-def Program.Parameters.toTaskParameters : Program.Parameters → Task.Parameters
-  | .empty => .empty
-  | .fetch _ i p rest => .fetch ⟨i.classId.label, p⟩ (fun obj => toTaskParameters (rest (i.fromObject obj.data)))
-  | .genRef _ rest => .genId (fun id => toTaskParameters (rest ⟨id⟩))
-
-def Task.Parameters.Values.toProgramParameterValues {params : Program.Parameters} (vals : params.toTaskParameters.Product) : params.Product :=
-  match params with
-  | .empty => ()
-  | .fetch _ i _ _ =>
-    let ⟨obj, vals'⟩ := vals
-    ⟨i.fromObject obj.data, toProgramParameterValues vals'⟩
-  | .genRef _ _ =>
-    let ⟨objId, vals'⟩ := vals
-    ⟨⟨objId⟩, toProgramParameterValues vals'⟩
-
-lemma Program.Parameters.toTaskParameters_genId {params : Program.Parameters} (C : Type) :
-  (params.snocGenId C).toTaskParameters = params.toTaskParameters.snocGenId := by
-  induction params <;> simp [Program.Parameters.snocGenId, Program.Parameters.toTaskParameters, Program.Parameters.append]
-  case fetch C' i p1 ps1 ih => congr; funext; apply ih
-  case genRef C' ps1 ih => congr; funext; apply ih
-  case empty => rfl
-
-lemma Program.Parameters.toTaskParameters_snocFetch (C : Type) [i : IsObject C] {params : Program.Parameters} (objId : params.Product → ObjectId) :
-  (params.snocFetch C objId).toTaskParameters =
-    params.toTaskParameters.snocFetch (fun vals => ⟨i.classId.label, objId (Task.Parameters.Values.toProgramParameterValues vals)⟩) := by
-  induction params <;> simp [Program.Parameters.snocFetch, Program.Parameters.toTaskParameters, Program.Parameters.append]
-  case fetch C' i' p1 ps1 ih => congr; funext; apply ih
-  case genRef C' ps1 ih => congr; funext; apply ih
-  case empty => rfl
-
 inductive Program (lab : Ecosystem.Label) (ReturnType : Type) where
   | create
       (C : Type)

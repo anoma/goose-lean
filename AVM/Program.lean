@@ -1,7 +1,7 @@
 import AVM.Object
 import AVM.Class.Label
 import AVM.Ecosystem.Label
-import AVM.Task.Parameters
+import AVM.Program.Parameters
 
 namespace AVM
 
@@ -37,7 +37,7 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (u + 
       : Program lab ReturnType
 
 /-- All body parameters - the parameters at the point of the return statement. -/
-def Program.params {lab ReturnType} (prog : Program lab ReturnType) : Task.Parameters :=
+def Program.params {lab ReturnType} (prog : Program lab ReturnType) : Program.Parameters :=
   match prog with
   | .constructor _ _ _ next => .genId (fun objId => next objId |>.params)
   | .destructor _ _ _ _ next => next.params
