@@ -24,7 +24,7 @@ inductive Program'.{u} (lab : Ecosystem.Label) : (ReturnType : Type u) â†’ Nat â
     (selfId : ObjectId)
     (args : destrId.Args.type)
     (next : Program' lab ReturnType n)
-    : Program' lab ReturnType (n + 1)
+    : Program' lab ReturnType n
   | method
     {ReturnType : Type u}
     {n : Nat}
@@ -33,7 +33,7 @@ inductive Program'.{u} (lab : Ecosystem.Label) : (ReturnType : Type u) â†’ Nat â
     (selfId : ObjectId)
     (args : methodId.Args.type)
     (next : Program' lab ReturnType n)
-    : Program' lab ReturnType (n + 1)
+    : Program' lab ReturnType n
   | fetch
     {ReturnType : Type u}
     {n : Nat}
