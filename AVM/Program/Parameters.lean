@@ -50,12 +50,6 @@ def append (params1 : Program.Parameters) (params2 : params1.Product → Program
   | .genId ps1 =>
     .genId (fun objId => (ps1 objId).append (fun vals => params2 ⟨objId, vals⟩))
 
-def snocFetch (params : Program.Parameters) (objId : params.Product → TypedObjectId) : Program.Parameters :=
-  params.append (fun vals => .fetch (objId vals) (fun _ => .empty))
-
-def snocGenId (params : Program.Parameters) : Program.Parameters :=
-  params.append (fun _ => .genId (fun _ => .empty))
-
 def concat (params : List Program.Parameters) : Program.Parameters :=
   match params with
   | [] => .empty
@@ -88,43 +82,3 @@ def splitProducts
     let ⟨vals1, vals'⟩ := splitProduct vals
     let rest : HList (ps.map Program.Parameters.Product) := splitProducts vals'
     HList.cons vals1 rest
-
-def Values.snocFetch {ps : Program.Parameters} (objId : ps.Product → TypedObjectId) (vals : ps.Product) (obj : Object (objId vals).classLabel) : (ps.snocFetch objId).Product :=
-  match ps with
-  | .empty => ⟨obj, PUnit.unit⟩
-  | .fetch _ _ =>
-    let ⟨obj', vals'⟩ := vals
-    ⟨obj', Values.snocFetch (fun vs => objId ⟨obj', vs⟩) vals' obj⟩
-  | .genId _ =>
-    let ⟨objId', vals'⟩ := vals
-    ⟨objId', Values.snocFetch (fun vs => objId ⟨objId', vs⟩) vals' obj⟩
-
-def Values.snocGenId {ps : Program.Parameters} (vals : ps.Product) (objId : ObjectId) : ps.snocGenId.Product :=
-  match ps with
-  | .empty => ⟨objId, PUnit.unit⟩
-  | .fetch _ _ =>
-    let ⟨obj', vals'⟩ := vals
-    ⟨obj', Values.snocGenId vals' objId⟩
-  | .genId _ =>
-    let ⟨objId', vals'⟩ := vals
-    ⟨objId', Values.snocGenId vals' objId⟩
-
-def Values.dropLastGenId {ps : Program.Parameters} (vals : ps.snocGenId.Product) : ps.Product :=
-  match ps with
-  | .empty => vals.2
-  | .fetch _ _ =>
-    let ⟨obj, vals'⟩ := vals
-    ⟨obj, dropLastGenId vals'⟩
-  | .genId _ =>
-    let ⟨objId, vals'⟩ := vals
-    ⟨objId, dropLastGenId vals'⟩
-
-def Values.dropLastFetch {ps : Program.Parameters} {objId : ps.Product → TypedObjectId} (vals : (ps.snocFetch objId).Product) : ps.Product :=
-  match ps with
-  | .empty => vals.2
-  | .fetch _ _ =>
-    let ⟨obj, vals'⟩ := vals
-    ⟨obj, dropLastFetch vals'⟩
-  | .genId _ =>
-    let ⟨objId, vals'⟩ := vals
-    ⟨objId, dropLastFetch vals'⟩
