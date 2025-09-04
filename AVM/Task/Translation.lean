@@ -16,6 +16,7 @@ def toTransaction (task : Task) (vals : task.params.Product) : Rand (Option Anom
     let try actions : Task.Actions ← task.actions vals
     let witness' : Anoma.DeltaWitness :=
       Anoma.DeltaWitness.compose actions.deltaWitness witness
+    -- NOTE: Anoma.DeltaWitness.compose is assumed to be associative here
     let acts : List Anoma.Action := action :: actions.actions
     pure <| some <|
       { actions := acts,
