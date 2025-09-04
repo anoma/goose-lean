@@ -50,10 +50,6 @@ inductive Program.Sized.{u} (lab : Ecosystem.Label) : (ReturnType : Type u) → 
     (val : ReturnType)
     : Program.Sized lab ReturnType n
 
-instance (ReturnType : Type u) [Inhabited ReturnType] :
-    Inhabited (Σ (params : Program.Parameters), params.Product → ReturnType) :=
-  ⟨⟨.empty, fun _ => default⟩⟩
-
 def Program lab ReturnType := Σ n, Program.Sized lab ReturnType n
 
 def Program.Sized.result {lab : Ecosystem.Label} {ReturnType} {n : Nat} (prog : Program.Sized lab ReturnType n)
