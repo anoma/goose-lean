@@ -139,23 +139,24 @@ def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (
 
 mutual
 
-partial def Program.tasks {α} {params : Task.Parameters} {lab : Ecosystem.Label} (eco : Ecosystem lab) (body : Program' lab α params) (vals : body.params.Product) : List Task :=
-  let vals1 := Program'.prefixProduct body vals
+partial def Program.tasks {α} {lab : Ecosystem.Label} (eco : Ecosystem lab) (body : Program lab α) (vals : body.params.Product) : List Task :=
   match body with
   | .constructor classId constrId args next =>
     let constr := eco.classes classId |>.constructors constrId
-    let task := constr.task eco (args vals1)
-    task :: Program.tasks eco next vals
+    let task := constr.task eco args
+    let ⟨newId, vals'⟩ := vals
+    task :: Program.tasks eco (next newId) vals'
   | .destructor classId destrId selfId args next =>
     let destr := eco.classes classId |>.destructors destrId
-    let task := destr.task eco (selfId vals1) (args vals1)
+    let task := destr.task eco selfId args
     task :: Program.tasks eco next vals
   | .method classId methodId selfId args next =>
     let method := eco.classes classId |>.methods methodId
-    let task := method.task eco (selfId vals1) (args vals1)
+    let task := method.task eco selfId args
     task :: Program.tasks eco next vals
   | .fetch _ next =>
-    Program.tasks eco next vals
+    let ⟨obj, vals'⟩ := vals
+    Program.tasks eco (next obj) vals'
   | .return _ =>
     []
 
@@ -169,7 +170,7 @@ partial def Constructor.task
   (args : constrId.Args.type)
   : Task :=
   let bodyParams := (constr.body args).params
-  let params := Task.Parameters.genId (fun _ => bodyParams)
+  let params := Program.Parameters.genId (fun _ => bodyParams)
   Task.absorbParams params fun ⟨newId, vals⟩ =>
     let body := constr.body args
     let tasks := Program.tasks eco body vals
@@ -197,7 +198,7 @@ partial def Destructor.task
   : Task :=
   let consumedObjectId : TypedObjectId := ⟨classId.label, selfId⟩
   let bodyParams (self : Object classId.label) := (destructor.body self args).params
-  let params := Task.Parameters.fetch consumedObjectId bodyParams
+  let params := Program.Parameters.fetch consumedObjectId bodyParams
   Task.absorbParams params fun ⟨self, vals⟩ =>
     let tasks : List Task := Program.tasks eco (destructor.body self args) vals
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
@@ -218,7 +219,7 @@ partial def Method.task
   : Task :=
   let consumedObjectId : TypedObjectId := ⟨classId.label, selfId⟩
   let bodyParams (self : Object classId.label) := (method.body self args).params
-  let params := Task.Parameters.fetch consumedObjectId bodyParams
+  let params := Program.Parameters.fetch consumedObjectId bodyParams
   Task.absorbParams params fun ⟨self, vals⟩ =>
     let body := method.body self args
     let tasks : List Task := Program.tasks eco body vals
