@@ -5,8 +5,6 @@ import AVM.Program.Parameters
 
 namespace AVM
 
-/-- The parameters `params` represent objects fetched and new object ids
-  generated in the body before the current statement. -/
 inductive Program.Sized.{u} (lab : Ecosystem.Label) : (ReturnType : Type u) → Nat → Type (u + 1) where
   | constructor
     {ReturnType : Type u}
@@ -96,18 +94,3 @@ def Program.params {lab ReturnType} (prog : Program lab ReturnType) : Program.Pa
 
 def Program.returnValue {lab ReturnType} (prog : Program lab ReturnType) (vals : prog.params.Product) : ReturnType :=
   prog.result.2 vals
-
--- def Program.map {lab : Ecosystem.Label} {A B : Type u} (f : A → B) (prog : Program lab A) : Program lab B :=
---    match prog with
---    | .constructor cid constrId args next =>
---      .constructor cid constrId args (fun x => map f (next x))
---    | .destructor cid destrId selfId args next =>
---      .destructor cid destrId selfId args (map f next)
---    | .method cid methodId selfId args next =>
---      .method cid methodId selfId args (map f next)
---    | .fetch objId next =>
---      .fetch objId (fun x => map f (next x))
---    | .invoke i p next =>
---      .invoke i p (fun x => map f (next x))
---    | .return val =>
---      .return (f val)
