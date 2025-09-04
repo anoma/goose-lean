@@ -24,7 +24,7 @@ inductive Program.Sized.{u} (lab : Ecosystem.Label) : (ReturnType : Type u) → 
     (selfId : ObjectId)
     (args : destrId.Args.type)
     (next : Program.Sized lab ReturnType n)
-    : Program.Sized lab ReturnType n
+    : Program.Sized lab ReturnType (n + 1)
   | method
     {ReturnType : Type u}
     {n : Nat}
@@ -33,7 +33,7 @@ inductive Program.Sized.{u} (lab : Ecosystem.Label) : (ReturnType : Type u) → 
     (selfId : ObjectId)
     (args : methodId.Args.type)
     (next : Program.Sized lab ReturnType n)
-    : Program.Sized lab ReturnType n
+    : Program.Sized lab ReturnType (n + 1)
   | fetch
     {ReturnType : Type u}
     {n : Nat}
