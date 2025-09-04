@@ -127,10 +127,10 @@ def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Progr
 def Program.create' {ReturnType} (C : Type) [i : IsObject C] (constrId : i.classId.label.ConstructorId) (args : constrId.Args.type) (next : Reference C → Program i.label ReturnType) : Program i.label ReturnType :=
   Program.create C i.classId constrId args (fun objId => next ⟨objId⟩)
 
-def Program.destroy' {ReturnType} (C : Type) [i : IsObject C] (destrId : i.classId.label.DestructorId) (r : Reference C) (args : destrId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=
+def Program.destroy' {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (destrId : i.classId.label.DestructorId) (args : destrId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=
   Program.destroy i.classId destrId r.objId args next
 
-def Program.call' {ReturnType} (C : Type) [i : IsObject C] (methodId : i.classId.label.MethodId) (r : Reference C) (args : methodId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=
+def Program.call' {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (methodId : i.classId.label.MethodId) (args : methodId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=
   Program.call i.classId methodId r.objId args next
 
 def Program.fetch' {ReturnType} {lab : Ecosystem.Label} {C : Type} (r : Reference C) [i : IsObject C] (next : C → Program lab ReturnType) : Program lab ReturnType :=
