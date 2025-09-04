@@ -139,23 +139,23 @@ def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (
 
 mutual
 
-partial def Member.Body.tasks {α} {params : Task.Parameters} {lab : Ecosystem.Label} (eco : Ecosystem lab) (body : Member.Body lab α params) (vals : body.params.Product) : List Task :=
-  let vals1 := Member.Body.prefixProduct body vals
+partial def Program.tasks {α} {params : Task.Parameters} {lab : Ecosystem.Label} (eco : Ecosystem lab) (body : Program' lab α params) (vals : body.params.Product) : List Task :=
+  let vals1 := Program'.prefixProduct body vals
   match body with
   | .constructor classId constrId args next =>
     let constr := eco.classes classId |>.constructors constrId
     let task := constr.task eco (args vals1)
-    task :: next.tasks eco vals
+    task :: Program.tasks eco next vals
   | .destructor classId destrId selfId args next =>
     let destr := eco.classes classId |>.destructors destrId
     let task := destr.task eco (selfId vals1) (args vals1)
-    task :: next.tasks eco vals
+    task :: Program.tasks eco next vals
   | .method classId methodId selfId args next =>
     let method := eco.classes classId |>.methods methodId
     let task := method.task eco (selfId vals1) (args vals1)
-    task :: next.tasks eco vals
+    task :: Program.tasks eco next vals
   | .fetch _ next =>
-    next.tasks eco vals
+    Program.tasks eco next vals
   | .return _ =>
     []
 
@@ -172,7 +172,7 @@ partial def Constructor.task
   let params := Task.Parameters.genId (fun _ => bodyParams)
   Task.absorbParams params fun ⟨newId, vals⟩ =>
     let body := constr.body args
-    let tasks := body.tasks eco vals
+    let tasks := Program.tasks eco body vals
     let newObjData : ObjectData classId.label := body.returnValue vals
     let newObj : SomeObject :=
       let obj : Object classId.label :=
@@ -183,7 +183,7 @@ partial def Constructor.task
     let consumedObj := newObj.toConsumable (ephemeral := true)
     let createdObjects : List CreatedObject :=
       [CreatedObject.fromSomeObject newObj (ephemeral := false)]
-    Task.compose (constr.message ⟨bodyParams.Product⟩ vals newId args) tasks consumedObj createdObjects
+    Task.composeWithMessage (constr.message ⟨bodyParams.Product⟩ vals newId args) tasks [consumedObj] createdObjects
 
 /-- Creates a Task for a given object destructor. -/
 partial def Destructor.task
@@ -199,13 +199,13 @@ partial def Destructor.task
   let bodyParams (self : Object classId.label) := (destructor.body self args).params
   let params := Task.Parameters.fetch consumedObjectId bodyParams
   Task.absorbParams params fun ⟨self, vals⟩ =>
-    let tasks : List Task := (destructor.body self args).tasks eco vals
+    let tasks : List Task := Program.tasks eco (destructor.body self args) vals
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let createdObjects : List CreatedObject :=
       [{ uid := self.uid,
          data := self.data,
          ephemeral := true }]
-    Task.compose (destructor.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks consumedObj createdObjects
+    Task.composeWithMessage (destructor.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
 
 partial def Method.task
   {lab : Ecosystem.Label}
@@ -221,13 +221,13 @@ partial def Method.task
   let params := Task.Parameters.fetch consumedObjectId bodyParams
   Task.absorbParams params fun ⟨self, vals⟩ =>
     let body := method.body self args
-    let tasks : List Task := body.tasks eco vals
+    let tasks : List Task := Program.tasks eco body vals
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let obj := (body.returnValue vals).toSomeObject
     let createdObjects : List CreatedObject :=
       [{ uid := obj.object.uid,
          data := obj.object.data,
          ephemeral := false }]
-    Task.compose (method.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks consumedObj createdObjects
+    Task.composeWithMessage (method.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
 
 end -- mutual

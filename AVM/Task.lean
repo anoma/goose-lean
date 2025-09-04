@@ -15,18 +15,18 @@ structure Task.Actions where
   step. Tasks enable modularity of the translation – they are at the right
   level of abstraction to compose translations of different message sends,
   enabling nested method calls and subobjects. -/
-structure Task where
+structure Task.{u} : Type (u + 1) where
   /-- Task parameters - objects to fetch from the Anoma system and new object
     ids to generate. -/
   params : Task.Parameters
   /-- The message to send to the recipient. -/
-  message : params.Product → SomeMessage
+  message : params.Product → Option SomeMessage
   /-- Task actions - actions to perform parameterised by fetched objects and new
     object ids. -/
   actions : params.Product → Rand (Option Task.Actions)
 deriving Inhabited
 
-def Task.absorbParams (params : Task.Parameters) (task : params.Product → Task) : Task :=
+def Task.absorbParams.{u} (params : Task.Parameters) (task : params.Product → Task.{u}) : Task.{u} :=
   { params := params.append (fun vals => (task vals).params),
     message := fun vals =>
       let ⟨vals1, vals2⟩ := Task.Parameters.splitProduct vals
@@ -55,7 +55,8 @@ def Task.composeMessages (tasks : List Task) (vals : HList (Products tasks)) : L
   match tasks, vals with
   | [], _ => []
   | task :: tasks', HList.cons vals' vals'' =>
-    task.message vals' :: composeMessages tasks' vals''
+    (task.message vals' |>.toList) ++
+      composeMessages tasks' vals''
 
 def Task.composeParams (tasks : List Task) : Task.Parameters :=
   tasks |>.map (·.params) |> .concat
@@ -73,7 +74,7 @@ def Task.composeActions
       deltaWitness := Anoma.DeltaWitness.compose witness actions.deltaWitness }
 
 def Task.composeWithAction
-  (msg : SomeMessage)
+  (msg : Option SomeMessage)
   (tasks : List Task)
   (mkAction : HList (Products tasks) → Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
   : Task :=
@@ -81,15 +82,22 @@ def Task.composeWithAction
     message := fun _ => msg,
     actions := composeActions tasks mkAction }
 
-def Task.compose
+def Task.composeWithMessage
   (msg : SomeMessage)
   (tasks : List Task)
-  (consumedObj : SomeConsumableObject)
+  (consumedObjs : List SomeConsumableObject)
   (createdObjects : List CreatedObject)
   : Task :=
   let mkAction (vals : HList (Products tasks))
     : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
-    let try consumedObject := consumedObj.consume
+    let try consumedObjects := consumedObjs.map (·.consume) |>.getSome
     let createdMessages := composeMessages tasks vals
-    Action.create [consumedObject] createdObjects [msg] createdMessages
+    Action.create consumedObjects createdObjects [msg] createdMessages
   Task.composeWithAction msg tasks mkAction
+
+def Task.compose (tasks : List Task) : Task :=
+  let mkAction (vals : HList (Products tasks))
+    : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
+    let createdMessages := composeMessages tasks vals
+    Action.create [] [] [] createdMessages
+  Task.composeWithAction none tasks mkAction

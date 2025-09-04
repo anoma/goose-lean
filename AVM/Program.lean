@@ -3,46 +3,46 @@ import AVM.Class.Label
 import AVM.Ecosystem.Label
 import AVM.Task.Parameters
 
-namespace AVM.Class
+namespace AVM
 
 /-- The parameters `params` represent objects fetched and new object ids
   generated in the body before the current statement. -/
-inductive Member.Body.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Task.Parameters.{u} → Type (u + 1) where
+inductive Program'.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Task.Parameters.{u} → Type (u + 1) where
   | constructor
       {params : Task.Parameters}
       (cid : lab.ClassId)
       (constrId : cid.label.ConstructorId)
       (args : params.Product → constrId.Args.type)
-      (next : Member.Body lab ReturnType params.snocGenId)
-      : Member.Body lab ReturnType params
+      (next : Program' lab ReturnType params.snocGenId)
+      : Program' lab ReturnType params
   | destructor
       {params : Task.Parameters}
       (cid : lab.ClassId)
       (destrId : cid.label.DestructorId)
       (selfId : params.Product → ObjectId)
       (args : params.Product → destrId.Args.type)
-      (next : Member.Body lab ReturnType params)
-      : Member.Body lab ReturnType params
+      (next : Program' lab ReturnType params)
+      : Program' lab ReturnType params
   | method
       {params : Task.Parameters}
       (cid : lab.ClassId)
       (methodId : cid.label.MethodId)
       (selfId : params.Product → ObjectId)
       (args : params.Product → methodId.Args.type)
-      (next : Member.Body lab ReturnType params)
-      : Member.Body lab ReturnType params
+      (next : Program' lab ReturnType params)
+      : Program' lab ReturnType params
   | fetch
       {params : Task.Parameters}
       (objId : params.Product → TypedObjectId)
-      (next : Member.Body lab ReturnType (params.snocFetch objId))
-      : Member.Body lab ReturnType params
+      (next : Program' lab ReturnType (params.snocFetch objId))
+      : Program' lab ReturnType params
   | return
       {params : Task.Parameters}
       (val : params.Product → ReturnType)
-      : Member.Body lab ReturnType params
+      : Program' lab ReturnType params
 
 /-- All body parameters - the parameters at the point of the return statement. -/
-def Member.Body.params {lab ReturnType params} (body : Member.Body lab ReturnType params) : Task.Parameters :=
+def Program'.params {lab ReturnType params} (body : Program' lab ReturnType params) : Task.Parameters :=
   match body with
   | .constructor _ _ _ next => next.params
   | .destructor _ _ _ _ next => next.params
@@ -50,7 +50,7 @@ def Member.Body.params {lab ReturnType params} (body : Member.Body lab ReturnTyp
   | .fetch _ next => next.params
   | .return _ => params
 
-def Member.Body.returnValue {lab ReturnType params} (body : Member.Body lab ReturnType params) (vals : body.params.Product) : ReturnType :=
+def Program'.returnValue {lab ReturnType params} (body : Program' lab ReturnType params) (vals : body.params.Product) : ReturnType :=
   match body with
   | .constructor _ _ _ next => next.returnValue vals
   | .destructor _ _ _ _ next => next.returnValue vals
@@ -58,7 +58,7 @@ def Member.Body.returnValue {lab ReturnType params} (body : Member.Body lab Retu
   | .fetch _ next => next.returnValue vals
   | .return val => val vals
 
-def Member.Body.prefixProduct {lab ReturnType params} (body : Member.Body lab ReturnType params) (vals : body.params.Product)
+def Program'.prefixProduct {lab ReturnType params} (body : Program' lab ReturnType params) (vals : body.params.Product)
   : params.Product :=
   match body with
   | .constructor _ _ _ next =>
@@ -69,7 +69,7 @@ def Member.Body.prefixProduct {lab ReturnType params} (body : Member.Body lab Re
     prefixProduct next vals |> Task.Parameters.Values.dropLastFetch
   | .return _ => vals
 
-def Member.Body.map {lab : Ecosystem.Label} {A B : Type u} {params : Task.Parameters} (f : A → B) (body : Member.Body lab A params) : Member.Body lab B params :=
+def Program'.map {lab : Ecosystem.Label} {A B : Type u} {params : Task.Parameters} (f : A → B) (body : Program' lab A params) : Program' lab B params :=
   match body with
   | .constructor cid constrId args next =>
     .constructor cid constrId args (map f next)
@@ -81,3 +81,6 @@ def Member.Body.map {lab : Ecosystem.Label} {A B : Type u} {params : Task.Parame
     .fetch objId (map f next)
   | .return val =>
     .return (fun p => f (val p))
+
+def Program (lab : Ecosystem.Label) (ReturnType : Type u) : Type (u + 1) :=
+  Program' lab ReturnType Task.Parameters.empty
