@@ -69,14 +69,31 @@ def Program.Sized.map {n : Nat} {lab : Ecosystem.Label} {A B : Type} (f : A → 
   | .return val =>
     .return (f val)
 
-def Program.Sized.create' {ReturnType} (C : Type) [i : IsObject C] (constrId : i.classId.label.ConstructorId) (args : constrId.Args.type) (next : Reference C → Program i.label ReturnType) : Program i.label ReturnType :=
-  Program.create C i.classId constrId args (fun objId => next ⟨objId⟩)
+def Program.Sized.create' {n : Nat} {ReturnType} (C : Type) [i : IsObject C] (constrId : i.classId.label.ConstructorId) (args : constrId.Args.type) (next : Reference C → Program.Sized i.label ReturnType n) : Program.Sized i.label ReturnType (n + 1) :=
+  Program.Sized.create C i.classId constrId args (fun objId => next ⟨objId⟩)
 
-def Program.destroy' {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (destrId : i.classId.label.DestructorId) (args : destrId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=
-  Program.destroy i.classId destrId r.objId args next
+def Program.Sized.destroy' {n : Nat} {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (destrId : i.classId.label.DestructorId) (args : destrId.Args.type) (next : Program.Sized i.label ReturnType n) : Program.Sized i.label ReturnType (n + 1) :=
+  Program.Sized.destroy i.classId destrId r.objId args next
 
-def Program.call' {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (methodId : i.classId.label.MethodId) (args : methodId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=
-  Program.call i.classId methodId r.objId args next
+def Program.Sized.call' {n : Nat} {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (methodId : i.classId.label.MethodId) (args : methodId.Args.type) (next : Program.Sized i.label ReturnType n) : Program.Sized i.label ReturnType (n + 1) :=
+  Program.Sized.call i.classId methodId r.objId args next
 
-def Program.fetch' {ReturnType} {lab : Ecosystem.Label} {C : Type} (r : Reference C) [i : IsObject C] (next : C → Program lab ReturnType) : Program lab ReturnType :=
-  Program.fetch C r.objId next
+def Program.Sized.fetch' {n : Nat} {ReturnType} {lab : Ecosystem.Label} {C : Type} (r : Reference C) [i : IsObject C] (next : C → Program.Sized lab ReturnType n) : Program.Sized lab ReturnType (n + 1) :=
+  Program.Sized.fetch C r.objId next
+
+def Program.Sized.return' {lab : Ecosystem.Label} {ReturnType} (val : ReturnType) : Program.Sized lab ReturnType 0 :=
+  Program.Sized.return val
+
+def Program lab ReturnType := Σ n, Program.Sized lab ReturnType n
+
+def Program.Sized.toProgram {n : Nat} {lab ReturnType} (prog : Program.Sized lab ReturnType n) : Program lab ReturnType :=
+  ⟨n, prog⟩
+
+def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Program lab A) : Program lab B :=
+  ⟨prog.1, prog.2.map f⟩
+
+def Program.return {lab : Ecosystem.Label} {ReturnType} (val : ReturnType) : Program lab ReturnType :=
+  ⟨0, .return val⟩
+
+def Program.toAVM {lab : Ecosystem.Label} {ReturnType} (prog : Program lab ReturnType) : AVM.Program lab ReturnType :=
+  ⟨prog.1, prog.2.toAVM⟩

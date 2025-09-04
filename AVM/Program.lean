@@ -43,7 +43,6 @@ inductive Program.Sized.{u} (lab : Ecosystem.Label) : (ReturnType : Type u) → 
   | invoke
     {ReturnType α : Type u}
     {n : Nat}
-    (i : Inhabited α)
     (prog : Program.Sized lab α n)
     (next : α → Program.Sized lab ReturnType n)
     : Program.Sized lab ReturnType (n + 1)
@@ -74,7 +73,7 @@ def Program.Sized.result {lab : Ecosystem.Label} {ReturnType} {n : Nat} (prog : 
             : Σ (params : Program.Parameters.{0}), params.Product → ReturnType := prog.result
     ⟨.fetch objId (fun obj => helper (next obj) |>.1),
       fun ⟨obj, vals⟩ => helper (next obj) |>.2 vals⟩
-  | .invoke (n := a) _ p next =>
+  | .invoke (n := a) p next =>
     let helper {ReturnType} (prog : Program.Sized lab ReturnType a)
             : Σ (params : Program.Parameters.{0}), params.Product → ReturnType := prog.result
     let ⟨pParams, pReturn⟩ := helper p
@@ -92,10 +91,10 @@ def Program.result {lab : Ecosystem.Label} {ReturnType} (prog : Program lab Retu
   prog'.result
 
 /-- All body parameters - the parameters at the point of the return statement. -/
-def Program.params {lab ReturnType} [Inhabited ReturnType] (prog : Program lab ReturnType) : Program.Parameters :=
+def Program.params {lab ReturnType} (prog : Program lab ReturnType) : Program.Parameters :=
   prog.result.1
 
-def Program.returnValue {lab ReturnType} [Inhabited ReturnType] (prog : Program lab ReturnType) (vals : prog.params.Product) : ReturnType :=
+def Program.returnValue {lab ReturnType} (prog : Program lab ReturnType) (vals : prog.params.Product) : ReturnType :=
   prog.result.2 vals
 
 -- def Program.map {lab : Ecosystem.Label} {A B : Type u} (f : A → B) (prog : Program lab A) : Program lab B :=

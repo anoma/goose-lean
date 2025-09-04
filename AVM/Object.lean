@@ -14,9 +14,6 @@ structure ObjectData (lab : Class.Label) where
   privateFields : lab.PrivateFields.type
   deriving BEq
 
-instance ObjectData.inhabited {lab : Class.Label} : Inhabited (ObjectData lab) where
-  default := {quantity := 0, privateFields := lab.privateFieldsInhabited.default}
-
 instance ObjectData.hasTypeRep (lab : Class.Label) : TypeRep (ObjectData lab) where
   rep := Rep.composite "AVM.ObjectData" [Rep.atomic lab.name]
 
@@ -39,7 +36,7 @@ structure Object.{u} (lab : Class.Label.{u}) : Type u where
   uid : Anoma.ObjectId
   nonce : Anoma.Nonce
   data : ObjectData lab
-  deriving BEq, Inhabited
+  deriving BEq
 
 instance Object.hasTypeRep (lab : Class.Label) : TypeRep (Object lab) where
   rep := Rep.composite "AVM.Object" [Rep.atomic lab.name]

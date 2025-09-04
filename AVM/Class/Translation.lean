@@ -139,7 +139,7 @@ def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (
 
 mutual
 
-partial def Program.tasks {α} [Inhabited α] {lab : Ecosystem.Label} (eco : Ecosystem lab) (prog : Program lab α) (vals : prog.params.Product) : List Task :=
+partial def Program.tasks {α} {lab : Ecosystem.Label} (eco : Ecosystem lab) (prog : Program lab α) (vals : prog.params.Product) : List Task :=
   match prog with
   | ⟨Nat.succ n, .constructor classId constrId args next⟩ =>
     let constr := eco.classes classId |>.constructors constrId
@@ -157,7 +157,7 @@ partial def Program.tasks {α} [Inhabited α] {lab : Ecosystem.Label} (eco : Eco
   | ⟨Nat.succ n, .fetch _ next⟩ =>
     let ⟨obj, vals'⟩ := vals
     Program.tasks eco ⟨n, next obj⟩ vals'
-  | ⟨Nat.succ n, .invoke _ p next⟩ =>
+  | ⟨Nat.succ n, .invoke p next⟩ =>
     let ⟨pVals, vals'⟩ := Program.Parameters.splitProduct vals
     let tasks := Program.tasks eco ⟨n, p⟩ pVals
     let nextProg := next (p.result.2 pVals)
