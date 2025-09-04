@@ -60,37 +60,36 @@ def Program.Sized.result {lab : Ecosystem.Label} {ReturnType} {n : Nat} (prog : 
   : Σ (params : Program.Parameters), params.Product → ReturnType :=
   match prog with
   | .constructor (n := a) _ _ _ next =>
-    let tmp (prog : Program.Sized lab ReturnType a)
-            : Σ (params : Program.Parameters.{0}), params.Product → ReturnType := prog.result
-    ⟨.genId (fun objId => tmp (next objId) |>.1),
-    fun ⟨objId, vals⟩ => tmp (next objId) |>.2 vals⟩
+    let helper (prog : Program.Sized lab ReturnType a)
+            : Σ (params : Program.Parameters), params.Product → ReturnType := prog.result
+    ⟨.genId (fun objId => helper (next objId) |>.fst),
+      fun ⟨objId, vals⟩ => helper (next objId) |>.snd vals⟩
   | .destructor _ _ _ _ next => next.result
   | .method _ _ _ _ next => next.result
   | .fetch (n := a) objId next =>
     let helper (prog : Program.Sized lab ReturnType a)
-            : Σ (params : Program.Parameters.{0}), params.Product → ReturnType := prog.result
-    ⟨.fetch objId (fun obj => helper (next obj) |>.1),
-      fun ⟨obj, vals⟩ => helper (next obj) |>.2 vals⟩
+            : Σ (params : Program.Parameters), params.Product → ReturnType := prog.result
+    ⟨.fetch objId (fun obj => helper (next obj) |>.fst),
+      fun ⟨obj, vals⟩ => helper (next obj) |>.snd vals⟩
   | .invoke (n := a) p next =>
     let helper {ReturnType} (prog : Program.Sized lab ReturnType a)
-            : Σ (params : Program.Parameters.{0}), params.Product → ReturnType := prog.result
+            : Σ (params : Program.Parameters), params.Product → ReturnType := prog.result
     let ⟨pParams, pReturn⟩ := helper p
     let params :=
       pParams.append (fun pVals =>
-        helper (next (pReturn pVals)) |>.1)
+        helper (next (pReturn pVals)) |>.fst)
     ⟨params, fun vals =>
       let ⟨pVals, vals'⟩ := Program.Parameters.splitProduct vals
-      result (next (pReturn pVals)) |>.2 vals'⟩
+      result (next (pReturn pVals)) |>.snd vals'⟩
   | .return val => ⟨.empty, fun () => val⟩
 
 def Program.result {lab : Ecosystem.Label} {ReturnType} (prog : Program lab ReturnType)
   : Σ (params : Program.Parameters), params.Product → ReturnType :=
-  let ⟨_, prog'⟩ := prog
-  prog'.result
+  prog.snd.result
 
 /-- All body parameters - the parameters at the point of the return statement. -/
 def Program.params {lab ReturnType} (prog : Program lab ReturnType) : Program.Parameters :=
-  prog.result.1
+  prog.result.fst
 
 def Program.returnValue {lab ReturnType} (prog : Program lab ReturnType) (vals : prog.params.Product) : ReturnType :=
-  prog.result.2 vals
+  prog.result.snd vals

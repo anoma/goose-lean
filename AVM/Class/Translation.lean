@@ -160,7 +160,7 @@ partial def Program.tasks {α} {lab : Ecosystem.Label} (eco : Ecosystem lab) (pr
   | ⟨Nat.succ n, .invoke p next⟩ =>
     let ⟨pVals, vals'⟩ := Program.Parameters.splitProduct vals
     let tasks := Program.tasks eco ⟨n, p⟩ pVals
-    let nextProg := next (p.result.2 pVals)
+    let nextProg := next (p.result.snd pVals)
     tasks ++ Program.tasks eco ⟨n, nextProg⟩ vals'
   | ⟨_, .return _⟩ =>
     []
