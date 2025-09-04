@@ -6,7 +6,7 @@ inductive Program.Parameters where
   | empty
   | fetch (param : TypedObjectId) (rest : Object param.classLabel → Program.Parameters)
   | genId (rest : ObjectId → Program.Parameters)
-deriving Inhabited
+deriving Inhabited, Nonempty
 
 def Program.Parameters.Product (params : Program.Parameters) : Type u :=
   match params with

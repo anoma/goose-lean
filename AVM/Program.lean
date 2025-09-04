@@ -5,67 +5,87 @@ import AVM.Program.Parameters
 
 namespace AVM
 
-/-- The parameters `params` represent objects fetched and new object ids
-  generated in the body before the current statement. -/
-inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (u + 1) where
+inductive Program.Sized.{u} (lab : Ecosystem.Label) : (ReturnType : Type u) → Nat → Type (u + 1) where
   | constructor
-      (cid : lab.ClassId)
-      (constrId : cid.label.ConstructorId)
-      (args : constrId.Args.type)
-      (next : ObjectId → Program lab ReturnType)
-      : Program lab ReturnType
+    {ReturnType : Type u}
+    {n : Nat}
+    (cid : lab.ClassId)
+    (constrId : cid.label.ConstructorId)
+    (args : constrId.Args.type)
+    (next : ObjectId → Program.Sized lab ReturnType n)
+    : Program.Sized lab ReturnType (n + 1)
   | destructor
-      (cid : lab.ClassId)
-      (destrId : cid.label.DestructorId)
-      (selfId : ObjectId)
-      (args : destrId.Args.type)
-      (next : Program lab ReturnType)
-      : Program lab ReturnType
+    {ReturnType : Type u}
+    {n : Nat}
+    (cid : lab.ClassId)
+    (destrId : cid.label.DestructorId)
+    (selfId : ObjectId)
+    (args : destrId.Args.type)
+    (next : Program.Sized lab ReturnType n)
+    : Program.Sized lab ReturnType (n + 1)
   | method
-      (cid : lab.ClassId)
-      (methodId : cid.label.MethodId)
-      (selfId : ObjectId)
-      (args : methodId.Args.type)
-      (next : Program lab ReturnType)
-      : Program lab ReturnType
+    {ReturnType : Type u}
+    {n : Nat}
+    (cid : lab.ClassId)
+    (methodId : cid.label.MethodId)
+    (selfId : ObjectId)
+    (args : methodId.Args.type)
+    (next : Program.Sized lab ReturnType n)
+    : Program.Sized lab ReturnType (n + 1)
   | fetch
-      (objId : TypedObjectId)
-      (next : Object objId.classLabel → Program lab ReturnType)
-      : Program lab ReturnType
+    {ReturnType : Type u}
+    {n : Nat}
+    (objId : TypedObjectId)
+    (next : Object objId.classLabel → Program.Sized lab ReturnType n)
+    : Program.Sized lab ReturnType (n + 1)
+  | invoke
+    {ReturnType α : Type u}
+    {n : Nat}
+    (prog : Program.Sized lab α n)
+    (next : α → Program.Sized lab ReturnType n)
+    : Program.Sized lab ReturnType (n + 1)
   | return
-      (val : ReturnType)
-      : Program lab ReturnType
+    {ReturnType : Type u}
+    {n : Nat}
+    (val : ReturnType)
+    : Program.Sized lab ReturnType n
+
+def Program lab ReturnType := Σ n, Program.Sized lab ReturnType n
+
+def Program.Sized.result {lab : Ecosystem.Label} {ReturnType} {n : Nat} (prog : Program.Sized lab ReturnType n)
+  : Σ (params : Program.Parameters), params.Product → ReturnType :=
+  match prog with
+  | .constructor (n := a) _ _ _ next =>
+    let helper (prog : Program.Sized lab ReturnType a)
+            : Σ (params : Program.Parameters), params.Product → ReturnType := prog.result
+    ⟨.genId (fun objId => helper (next objId) |>.fst),
+      fun ⟨objId, vals⟩ => helper (next objId) |>.snd vals⟩
+  | .destructor _ _ _ _ next => next.result
+  | .method _ _ _ _ next => next.result
+  | .fetch (n := a) objId next =>
+    let helper (prog : Program.Sized lab ReturnType a)
+            : Σ (params : Program.Parameters), params.Product → ReturnType := prog.result
+    ⟨.fetch objId (fun obj => helper (next obj) |>.fst),
+      fun ⟨obj, vals⟩ => helper (next obj) |>.snd vals⟩
+  | .invoke (n := a) p next =>
+    let helper {ReturnType} (prog : Program.Sized lab ReturnType a)
+            : Σ (params : Program.Parameters), params.Product → ReturnType := prog.result
+    let ⟨pParams, pReturn⟩ := helper p
+    let params :=
+      pParams.append (fun pVals =>
+        helper (next (pReturn pVals)) |>.fst)
+    ⟨params, fun vals =>
+      let ⟨pVals, vals'⟩ := Program.Parameters.splitProduct vals
+      result (next (pReturn pVals)) |>.snd vals'⟩
+  | .return val => ⟨.empty, fun () => val⟩
+
+def Program.result {lab : Ecosystem.Label} {ReturnType} (prog : Program lab ReturnType)
+  : Σ (params : Program.Parameters), params.Product → ReturnType :=
+  prog.snd.result
 
 /-- All body parameters - the parameters at the point of the return statement. -/
 def Program.params {lab ReturnType} (prog : Program lab ReturnType) : Program.Parameters :=
-  match prog with
-  | .constructor _ _ _ next => .genId (fun objId => next objId |>.params)
-  | .destructor _ _ _ _ next => next.params
-  | .method _ _ _ _ next => next.params
-  | .fetch objId next => .fetch objId (fun obj => next obj |>.params)
-  | .return _ => .empty
+  prog.result.fst
 
 def Program.returnValue {lab ReturnType} (prog : Program lab ReturnType) (vals : prog.params.Product) : ReturnType :=
-  match prog with
-  | .constructor _ _ _ next =>
-    let ⟨newId, vals'⟩ := vals
-    next newId |>.returnValue vals'
-  | .destructor _ _ _ _ next => next.returnValue vals
-  | .method _ _ _ _ next => next.returnValue vals
-  | .fetch _ next =>
-    let ⟨obj, vals'⟩ := vals
-    next obj |>.returnValue vals'
-  | .return val => val
-
-def Program.map {lab : Ecosystem.Label} {A B : Type u} (f : A → B) (prog : Program lab A) : Program lab B :=
-  match prog with
-  | .constructor cid constrId args next =>
-    .constructor cid constrId args (fun x => map f (next x))
-  | .destructor cid destrId selfId args next =>
-    .destructor cid destrId selfId args (map f next)
-  | .method cid methodId selfId args next =>
-    .method cid methodId selfId args (map f next)
-  | .fetch objId next =>
-    .fetch objId (fun x => map f (next x))
-  | .return val =>
-    .return (f val)
+  prog.result.snd vals
