@@ -6,39 +6,44 @@ namespace Applib
 
 open AVM
 
-inductive Program (lab : Ecosystem.Label) (ReturnType : Type) where
+inductive Program.Sized (lab : Ecosystem.Label) (ReturnType : Type) : Nat → Type 2 where
   | create
-      (C : Type)
-      (cid : lab.ClassId)
-      (constrId : cid.label.ConstructorId)
-      (args : constrId.Args.type)
-      (next : ObjectId → Program lab ReturnType)
-      : Program lab ReturnType
+    {n : Nat}
+    (C : Type)
+    (cid : lab.ClassId)
+    (constrId : cid.label.ConstructorId)
+    (args : constrId.Args.type)
+    (next : ObjectId → Program.Sized lab ReturnType n)
+    : Program.Sized lab ReturnType (n + 1)
   | destroy
-      (cid : lab.ClassId)
-      (destrId : cid.label.DestructorId)
-      (selfId : ObjectId)
-      (args : destrId.Args.type)
-      (next : Program lab ReturnType)
-      : Program lab ReturnType
+    {n : Nat}
+    (cid : lab.ClassId)
+    (destrId : cid.label.DestructorId)
+    (selfId : ObjectId)
+    (args : destrId.Args.type)
+    (next : Program.Sized lab ReturnType n)
+    : Program.Sized lab ReturnType (n + 1)
   | call
-      (cid : lab.ClassId)
-      (methodId : cid.label.MethodId)
-      (selfId : ObjectId)
-      (args : methodId.Args.type)
-      (next : Program lab ReturnType)
-      : Program lab ReturnType
+    {n : Nat}
+    (cid : lab.ClassId)
+    (methodId : cid.label.MethodId)
+    (selfId : ObjectId)
+    (args : methodId.Args.type)
+    (next : Program.Sized lab ReturnType n)
+    : Program.Sized lab ReturnType (n + 1)
   | fetch
-      (C : Type)
-      [i : IsObject C]
-      (objId : ObjectId)
-      (next : C → Program lab ReturnType)
-      : Program lab ReturnType
+    {n : Nat}
+    (C : Type)
+    [i : IsObject C]
+    (objId : ObjectId)
+    (next : C → Program.Sized lab ReturnType n)
+    : Program.Sized lab ReturnType (n + 1)
   | return
-      (val : ReturnType)
-      : Program lab ReturnType
+    {n : Nat}
+    (val : ReturnType)
+    : Program.Sized lab ReturnType n
 
-def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program lab ReturnType :=
+def Program.Sized.toAVM {n : Nat} {lab ReturnType} (prog : Program.Sized lab ReturnType n) : AVM.Program.Sized lab ReturnType n :=
   match prog with
   | .create _ cid constrId args next =>
     .constructor cid constrId args (fun objId => toAVM (next objId))
@@ -46,12 +51,12 @@ def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program
     .destructor cid destrId selfId args (toAVM next)
   | .call cid methodId selfId args next =>
     .method cid methodId selfId args (toAVM next)
-  | @fetch _ _ _ i objId next =>
+  | @fetch _ _ _ _ i objId next =>
     .fetch ⟨i.classId.label, objId⟩ (fun obj => toAVM (next (i.fromObject obj.data)))
   | .return val =>
     .return val
 
-def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Program lab A) : Program lab B :=
+def Program.Sized.map {n : Nat} {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Program.Sized lab A n) : Program.Sized lab B n :=
   match prog with
   | .create C cid constrId args next =>
     .create C cid constrId args (fun x => map f (next x))
@@ -59,12 +64,12 @@ def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Progr
     .destroy cid destrId selfId args (map f next)
   | .call cid methodId selfId args next =>
     .call cid methodId selfId args (map f next)
-  | @fetch _ _ C _ objId next =>
+  | @fetch _ _ _ C _ objId next =>
     .fetch C objId (fun x => map f (next x))
   | .return val =>
     .return (f val)
 
-def Program.create' {ReturnType} (C : Type) [i : IsObject C] (constrId : i.classId.label.ConstructorId) (args : constrId.Args.type) (next : Reference C → Program i.label ReturnType) : Program i.label ReturnType :=
+def Program.Sized.create' {ReturnType} (C : Type) [i : IsObject C] (constrId : i.classId.label.ConstructorId) (args : constrId.Args.type) (next : Reference C → Program i.label ReturnType) : Program i.label ReturnType :=
   Program.create C i.classId constrId args (fun objId => next ⟨objId⟩)
 
 def Program.destroy' {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (destrId : i.classId.label.DestructorId) (args : destrId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=

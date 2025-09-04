@@ -141,29 +141,28 @@ mutual
 
 partial def Program.tasks {α} [Inhabited α] {lab : Ecosystem.Label} (eco : Ecosystem lab) (prog : Program lab α) (vals : prog.params.Product) : List Task :=
   match prog with
-  | .constructor classId constrId args next =>
+  | ⟨Nat.succ n, .constructor classId constrId args next⟩ =>
     let constr := eco.classes classId |>.constructors constrId
     let task := constr.task eco args
     let ⟨newId, vals'⟩ := vals
-    task :: Program.tasks eco (next newId) vals'
-  | .destructor classId destrId selfId args next =>
+    task :: Program.tasks eco ⟨n, next newId⟩ vals'
+  | ⟨Nat.succ n, .destructor classId destrId selfId args next⟩ =>
     let destr := eco.classes classId |>.destructors destrId
     let task := destr.task eco selfId args
-    task :: Program.tasks eco next vals
-  | .method classId methodId selfId args next =>
+    task :: Program.tasks eco ⟨n, next⟩ vals
+  | ⟨Nat.succ n, .method classId methodId selfId args next⟩ =>
     let method := eco.classes classId |>.methods methodId
     let task := method.task eco selfId args
-    task :: Program.tasks eco next vals
-  | .fetch _ next =>
+    task :: Program.tasks eco ⟨n, next⟩ vals
+  | ⟨Nat.succ n, .fetch _ next⟩ =>
     let ⟨obj, vals'⟩ := vals
-    Program.tasks eco (next obj) vals'
-  | .invoke _ p next =>
-    let ⟨pParams, pReturn⟩ := p.result
-    let ⟨pVals, vals'⟩ := vals
-    let tasks := Program.tasks eco p pVals
-    let nextProg := next (pReturn pVals)
-    tasks ++ Program.tasks eco nextProg vals'
-  | .return _ =>
+    Program.tasks eco ⟨n, next obj⟩ vals'
+  | ⟨Nat.succ n, .invoke _ p next⟩ =>
+    let ⟨pVals, vals'⟩ := Program.Parameters.splitProduct vals
+    let tasks := Program.tasks eco ⟨n, p⟩ pVals
+    let nextProg := next (p.result.2 pVals)
+    tasks ++ Program.tasks eco ⟨n, nextProg⟩ vals'
+  | ⟨_, .return _⟩ =>
     []
 
 /-- Creates a Task for a given object constructor. -/
