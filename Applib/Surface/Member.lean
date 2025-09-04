@@ -30,7 +30,7 @@ def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.classId.label.Con
     body (args : constrId.Args.type) := body args |>.map i.toObject |>.toAVM
 
 def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.classId.label.DestructorId}
- (body : (self : cl) → destructorId.Args.type → Program i.label PUnit := fun _ _ => Program.return fun _ => ())
+ (body : (self : cl) → destructorId.Args.type → Program i.label PUnit := fun _ _ => Program.return ())
  (invariant : (self : cl) -> destructorId.Args.type → Bool := fun _ _ => true)
  : Class.Destructor i.classId destructorId where
     invariant (self : Object i.classId.label) (args : destructorId.Args.type) :=
