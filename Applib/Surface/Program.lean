@@ -79,7 +79,14 @@ def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Progr
   | .return val =>
     .return (f val)
 
-def Program.create' {ReturnType} (C : Type) [i : IsObject C] (constrId : i.classId.label.ConstructorId) (args : constrId.Args.type) (next : Reference C → Program i.label ReturnType) : Program i.label ReturnType :=
+def Program.create'
+  {ReturnType}
+  (C : Type)
+  [i : IsObject C]
+  (constrId : i.classId.label.ConstructorId)
+  (args : constrId.Args.type)
+  (next : Reference C → Program i.label ReturnType)
+  : Program i.label ReturnType :=
   Program.create C i.classId constrId args (fun objId => next ⟨objId⟩)
 
 def Program.destroy' {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (destrId : i.classId.label.DestructorId) (args : destrId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=
