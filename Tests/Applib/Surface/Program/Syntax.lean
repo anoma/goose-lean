@@ -25,7 +25,24 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Eco.lab Unit
 example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
+  c1 := fetch self.c1
+  c2 := fetch self.c2
+  if c1.count > c2.count then
+    call Counter.Methods.Incr self.c1 (2 : Nat)
+  else
+    call Counter.Methods.Incr self.c2 (2 : Nat)
   return self
+⟫
+
+example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+  invoke mutualIncrement self.c1 self.c2 n
+  invoke mutualIncrement self.c2 self.c1 n
+  c1 := fetch self.c1
+  c2 := fetch self.c2
+  if c1.count > c2.count then
+    return c1
+  else
+    return c2
 ⟫
 
 example : Program Eco.lab (Reference TwoCounter) := ⟪
