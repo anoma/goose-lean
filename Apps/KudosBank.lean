@@ -242,6 +242,7 @@ def label : AVM.Ecosystem.Label where
     | Classes.Bank => BankLabel
     | Classes.Check => Check.Label
     | Classes.Auction => Auction.Label
+  FunctionObjectArgClass {f : Empty} := f.elim
 
 instance Auction.instIsObject : IsObject Auction where
   label := label

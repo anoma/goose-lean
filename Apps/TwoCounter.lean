@@ -109,6 +109,7 @@ def lab : Ecosystem.Label where
   classLabel := fun
     | .Counter => Counter.lab
     | .TwoCounter => TwoCounter.lab
+  FunctionObjectArgClass {f : Empty} := f.elim
 
 end Eco
 

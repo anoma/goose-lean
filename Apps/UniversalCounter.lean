@@ -19,10 +19,6 @@ inductive Constructors where
   | Zero : Constructors
   deriving DecidableEq, Fintype, Repr
 
-inductive Classes where
-  | Counter : Classes
-  deriving DecidableEq, FinEnum, Repr
-
 open AVM
 
 def clab : Class.Label where
@@ -37,11 +33,7 @@ def clab : Class.Label where
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
 
-def label : Ecosystem.Label where
-  name := "UniversalCounterEcosystem"
-  ClassId := Classes
-  classLabel := fun
-    | Classes.Counter => clab
+def label : Ecosystem.Label := Ecosystem.Label.singleton clab
 
 def toObject (c : Counter) : ObjectData clab where
   quantity := 1
@@ -52,7 +44,7 @@ def fromObject (o : ObjectData clab) : Counter :=
 
 instance instIsObject : IsObject Counter where
   label := label
-  classId := Classes.Counter
+  classId := PUnit.unit
   toObject := Counter.toObject
   fromObject := Counter.fromObject
 
@@ -62,13 +54,13 @@ def newCounter : Counter where
 def incrementBy (step : Nat) (c : Counter) : Counter :=
   {c with count := c.count + step}
 
-def counterConstructor : @Class.Constructor label Classes.Counter Constructors.Zero := defConstructor
+def counterConstructor : @Class.Constructor label .unit Constructors.Zero := defConstructor
   (body := fun (_noArgs : Unit) => ⟪return newCounter⟫)
 
-def counterIncr : @Class.Method label Classes.Counter Methods.Incr := defMethod
+def counterIncr : @Class.Method label .unit Methods.Incr := defMethod
   (body := fun (self : Counter) (step : Nat) => ⟪return self.incrementBy step⟫)
 
-def counterClass : @Class label Classes.Counter where
+def counterClass : @Class label .unit where
   constructors := fun
     | Constructors.Zero => counterConstructor
   methods := fun
