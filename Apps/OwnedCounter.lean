@@ -28,10 +28,6 @@ inductive Destructors where
   | Ten : Destructors
   deriving DecidableEq, Fintype, Repr
 
-inductive Classes where
-  | OwnedCounter : Classes
-  deriving DecidableEq, FinEnum, Repr
-
 open AVM
 
 def clab : Class.Label where
@@ -46,11 +42,7 @@ def clab : Class.Label where
     | Constructors.Zero => ⟨Unit⟩
   DestructorId := Destructors
 
-def label : Ecosystem.Label where
-  name := "OwnedCounterEcosystem"
-  ClassId := Classes
-  classLabel := fun
-    | Classes.OwnedCounter => clab
+def label : Ecosystem.Label := Ecosystem.Label.singleton clab
 
 def toObject (c : OwnedCounter) : ObjectData clab where
   quantity := 1
@@ -61,7 +53,7 @@ def fromObject (o : ObjectData clab) : OwnedCounter :=
 
 instance instIsObject : IsObject OwnedCounter where
   label := label
-  classId := Classes.OwnedCounter
+  classId := .unit
   toObject := OwnedCounter.toObject
   fromObject := OwnedCounter.fromObject
 
@@ -72,21 +64,21 @@ def newCounter (owner : PublicKey) : OwnedCounter where
 def incrementBy (step : Nat) (c : OwnedCounter) : OwnedCounter :=
   {c with count := c.count + step}
 
-def counterConstructor : @Class.Constructor label Classes.OwnedCounter Constructors.Zero := defConstructor
+def counterConstructor : @Class.Constructor label .unit Constructors.Zero := defConstructor
   (body := fun (_noArgs : Unit) => ⟪return newCounter default⟫)
 
-def counterIncr : @Class.Method label Classes.OwnedCounter Methods.Incr := defMethod OwnedCounter
+def counterIncr : @Class.Method label .unit Methods.Incr := defMethod OwnedCounter
   (body := fun (self : OwnedCounter) (step : Nat) => ⟪return self.incrementBy step⟫)
 
-def counterTransfer : @Class.Method label Classes.OwnedCounter Methods.Transfer := defMethod OwnedCounter
+def counterTransfer : @Class.Method label .unit Methods.Transfer := defMethod OwnedCounter
   (body := fun (self : OwnedCounter) (newOwner : PublicKey) =>
     ⟪return {self with owner := newOwner : OwnedCounter}⟫)
 
 /-- We only allow the counter to be destroyed if its count is at least 10 -/
-def counterDestroy : @Class.Destructor label Classes.OwnedCounter Destructors.Ten := defDestructor
+def counterDestroy : @Class.Destructor label .unit Destructors.Ten := defDestructor
   (invariant := fun (self : OwnedCounter) () => self.count >= 10)
 
-def counterClass : @Class label Classes.OwnedCounter where
+def counterClass : @Class label .unit where
   constructors := fun
     | Constructors.Zero => counterConstructor
   methods := fun
