@@ -34,6 +34,33 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
   return self
 ⟫
 
+example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
+  invoke mutualIncrement self.c1 self.c2 n
+  invoke mutualIncrement self.c2 self.c1 n
+  c1 := fetch self.c1
+  c2 := fetch self.c2
+  if c1.count > c2.count then
+    call Counter.Methods.Incr self.c1 (2 : Nat)
+    call Counter.Methods.Incr self.c2 (1 : Nat)
+  else
+    call Counter.Methods.Incr self.c2 (2 : Nat)
+    invoke mutualIncrement self.c2 self.c1 n
+  invoke mutualIncrement self.c1 self.c1 n
+  return self
+⟫
+
+example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
+  invoke mutualIncrement self.c1 self.c2 n
+  invoke mutualIncrement self.c2 self.c1 n
+  c1 := fetch self.c1
+  c2 := fetch self.c2
+  if c1.count > c2.count then
+    call Counter.Methods.Incr self.c1 (2 : Nat)
+    call Counter.Methods.Incr self.c2 (1 : Nat)
+    invoke mutualIncrement self.c1 self.c1 n
+  return self
+⟫
+
 example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
