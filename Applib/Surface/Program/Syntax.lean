@@ -11,24 +11,24 @@ def matchAltsParser : Parser.Parser :=
   Lean.Parser.Term.matchAlts (Lean.Parser.withPosition (Lean.Parser.categoryParser `branch_body 0))
 
 syntax program : branch_body
-syntax colEq withPosition("match " term,+ " with " ppLine colGe matchAltsParser) : program
-syntax colEq withPosition("match " term,+ " with " ppLine colGe matchAltsParser) optSemicolon(program) : program
-syntax colEq withPosition("if " term " then " colGt withPosition(program)) withPosition(" else " colGt withPosition(program)) : program
-syntax colEq withPosition("if " term " then " colGt withPosition(program)) withPosition(" else " colGt withPosition(program)) optSemicolon(program) : program
-syntax colEq withPosition("if " term " then " colGt withPosition(program)) : program
-syntax colEq withPosition("if " term " then " colGt withPosition(program)) optSemicolon(program) : program
-syntax colEq "create " ident ident term : program
-syntax colEq withPosition("create " ident ident term) optSemicolon(program) : program
-syntax colEq withPosition(ident " := " " create " ident ident term) optSemicolon(program) : program
-syntax colEq "destroy " ident term : program
-syntax colEq withPosition("destroy " ident term) optSemicolon(program) : program
-syntax colEq "call " ident term : program
-syntax colEq withPosition("call " ident term) optSemicolon(program) : program
-syntax colEq "invoke " term : program
-syntax colEq withPosition("invoke " term) optSemicolon(program) : program
-syntax colEq withPosition(ident " := " " invoke " term) optSemicolon(program) : program
-syntax colEq withPosition(ident " := " " fetch " term) optSemicolon(program) : program
-syntax colEq "return " term : program
+syntax colGe withPosition("match " term,+ " with " ppLine colGe matchAltsParser) : program
+syntax colGe withPosition("match " term,+ " with " ppLine colGe matchAltsParser) optSemicolon(program) : program
+syntax colGe withPosition("if " term " then " colGt withPosition(program)) withPosition(" else " colGt withPosition(program)) : program
+syntax colGe withPosition("if " term " then " colGt withPosition(program)) withPosition(" else " colGt withPosition(program)) optSemicolon(program) : program
+syntax colGe withPosition("if " term " then " colGt withPosition(program)) : program
+syntax colGe withPosition("if " term " then " colGt withPosition(program)) optSemicolon(program) : program
+syntax colGe "create " ident ident term : program
+syntax colGe withPosition("create " ident ident term) optSemicolon(program) : program
+syntax colGe withPosition(ident " := " " create " ident ident term) optSemicolon(program) : program
+syntax colGe "destroy " ident term : program
+syntax colGe withPosition("destroy " ident term) optSemicolon(program) : program
+syntax colGe "call " ident term : program
+syntax colGe withPosition("call " ident term) optSemicolon(program) : program
+syntax colGe "invoke " term : program
+syntax colGe withPosition("invoke " term) optSemicolon(program) : program
+syntax colGe withPosition(ident " := " " invoke " term) optSemicolon(program) : program
+syntax colGe withPosition(ident " := " " fetch " term) optSemicolon(program) : program
+syntax colGe "return " term : program
 syntax "⟪" withPosition(program) "⟫" : term
 
 macro_rules
