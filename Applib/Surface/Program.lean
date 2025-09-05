@@ -89,7 +89,15 @@ def Program.create'
   : Program i.label ReturnType :=
   Program.create C i.classId constrId args (fun objId => next ⟨objId⟩)
 
-def Program.destroy' {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (destrId : i.classId.label.DestructorId) (args : destrId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=
+def Program.destroy'
+  {ReturnType}
+  {C : Type}
+  (r : Reference C)
+  [i : IsObject C]
+  (destrId : i.classId.label.DestructorId)
+  (args : destrId.Args.type)
+  (next : Program i.label ReturnType)
+  : Program i.label ReturnType :=
   Program.destroy i.classId destrId r.objId args next
 
 def Program.call' {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (methodId : i.classId.label.MethodId) (args : methodId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=
