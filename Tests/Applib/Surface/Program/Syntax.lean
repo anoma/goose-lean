@@ -89,6 +89,58 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
   return self
 ⟫
 
+example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+  invoke mutualIncrement self.c1 self.c2 n
+  invoke mutualIncrement self.c2 self.c1 n
+  c1 := fetch self.c1
+  c2 := fetch self.c2
+  match c1.count with
+  | 0 => return c2
+  | Nat.succ n' =>
+    if c1.count > c2.count then
+      invoke mutualIncrement self.c2 self.c1 n'
+      return c1
+    else
+      invoke mutualIncrement self.c1 self.c2 n'
+      return c2
+⟫
+
+example (self : TwoCounter) (n : Nat) : Program Eco.lab Unit := ⟪
+  invoke mutualIncrement self.c1 self.c2 n
+  invoke mutualIncrement self.c2 self.c1 n
+  c1 := fetch self.c1
+  c2 := fetch self.c2
+  match c1.count with
+  | 0 => return ()
+  | Nat.succ n' =>
+    if c1.count > c2.count then
+      invoke mutualIncrement self.c2 self.c1 n'
+    else
+      invoke mutualIncrement self.c1 self.c2 n'
+    call Counter.Methods.Incr self.c2 n'
+  call Counter.Methods.Incr self.c1 n
+  call Counter.Methods.Incr self.c2 n
+⟫
+
+example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+  invoke mutualIncrement self.c1 self.c2 n
+  invoke mutualIncrement self.c2 self.c1 n
+  c1 := fetch self.c1
+  c2 := fetch self.c2
+  match c1.count with
+  | 0 => return c2
+  | Nat.succ n' =>
+    if c1.count > c2.count then
+      invoke mutualIncrement self.c2 self.c1 n'
+      return c1
+    else
+      if c1.count < c2.count then
+        invoke mutualIncrement self.c1 self.c2 n'
+        return c2
+      else
+        return c1
+⟫
+
 end TwoCounterApp
 
 namespace OwnedCounter

@@ -5,7 +5,14 @@ namespace Applib
 open Lean
 
 declare_syntax_cat program
+declare_syntax_cat branch_body
 
+def matchAltsParser : Parser.Parser :=
+  Lean.Parser.Term.matchAlts (Lean.Parser.withPosition (Lean.Parser.categoryParser `branch_body 0))
+
+syntax program : branch_body
+syntax colEq withPosition("match " term,+ " with " ppLine colGe matchAltsParser) : program
+syntax colEq withPosition("match " term,+ " with " ppLine colGe matchAltsParser) optSemicolon(program) : program
 syntax colEq withPosition("if " term " then " colGt withPosition(program)) withPosition(" else " colGt withPosition(program)) : program
 syntax colEq withPosition("if " term " then " colGt withPosition(program)) withPosition(" else " colGt withPosition(program)) optSemicolon(program) : program
 syntax colEq withPosition("if " term " then " colGt withPosition(program)) : program
@@ -25,6 +32,12 @@ syntax colEq "return " term : program
 syntax "⟪" withPosition(program) "⟫" : term
 
 macro_rules
+  | `(branch_body| $p:program) =>
+    `(⟪$p⟫)
+  | `(⟪match $es:term with $alts⟫) =>
+    `(match $es:term with $alts)
+  | `(⟪match $es:term with $alts ; $p:program⟫) =>
+    `(Program.invoke (match $es:term with $alts) (fun _ => ⟪$p⟫))
   | `(⟪if $cond:term then $thenProg:program else $elseProg:program⟫) =>
     `(if $cond then ⟪$thenProg⟫ else ⟪$elseProg⟫)
   | `(⟪if $cond:term then $thenProg:program else $elseProg:program ; $p:program⟫) =>
