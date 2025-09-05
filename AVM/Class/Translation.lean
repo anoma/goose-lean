@@ -113,8 +113,9 @@ def Method.Message.logic
   let! [selfRes] := consumedResObjs
   let try selfObj : Object classId.label := Object.fromResource selfRes
   check method.invariant selfObj argsData
-  let try vals : (method.body selfObj argsData).params.Product := tryCast msg.vals
-  let createdObject : Object classId.label := method.body selfObj argsData |>.returnValue vals
+  let body := method.body selfObj argsData
+  let try vals : body.params.Product := tryCast msg.vals
+  let createdObject : Object classId.label := body |>.returnValue vals
   Logic.checkResourcesData [createdObject.toSomeObjectData] createdResObjs
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
@@ -140,29 +141,23 @@ def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (
 mutual
 
 partial def Program.tasks {α} {lab : Ecosystem.Label} (eco : Ecosystem lab) (prog : Program lab α) (vals : prog.params.Product) : List Task :=
-  let ⟨_, sized⟩ := prog
-  match sized with
+  match prog with
   | .constructor classId constrId args next =>
     let constr := eco.classes classId |>.constructors constrId
     let task := constr.task eco args
     let ⟨newId, vals'⟩ := vals
-    task :: Program.tasks eco ⟨_, next newId⟩ vals'
+    task :: Program.tasks eco (next newId) vals'
   | .destructor classId destrId selfId args next =>
     let destr := eco.classes classId |>.destructors destrId
     let task := destr.task eco selfId args
-    task :: Program.tasks eco ⟨_, next⟩ vals
+    task :: Program.tasks eco next vals
   | .method classId methodId selfId args next =>
     let method := eco.classes classId |>.methods methodId
     let task := method.task eco selfId args
-    task :: Program.tasks eco ⟨_, next⟩ vals
+    task :: Program.tasks eco next vals
   | .fetch _ next =>
     let ⟨obj, vals'⟩ := vals
-    Program.tasks eco ⟨_, next obj⟩ vals'
-  | .invoke p next =>
-    let ⟨pVals, vals'⟩ := Program.Parameters.splitProduct vals
-    let tasks := Program.tasks eco ⟨_, p⟩ pVals
-    let nextProg := next (p.result.snd pVals)
-    tasks ++ Program.tasks eco ⟨_, nextProg⟩ vals'
+    Program.tasks eco (next obj) vals'
   | .return _ => []
 
 /-- Creates a Task for a given object constructor. -/
