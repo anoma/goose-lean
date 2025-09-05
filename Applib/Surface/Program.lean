@@ -100,7 +100,15 @@ def Program.destroy'
   : Program i.label ReturnType :=
   Program.destroy i.classId destrId r.objId args next
 
-def Program.call' {ReturnType} {C : Type} (r : Reference C) [i : IsObject C] (methodId : i.classId.label.MethodId) (args : methodId.Args.type) (next : Program i.label ReturnType) : Program i.label ReturnType :=
+def Program.call'
+  {ReturnType}
+  {C : Type}
+  (r : Reference C)
+  [i : IsObject C]
+  (methodId : i.classId.label.MethodId)
+  (args : methodId.Args.type)
+  (next : Program i.label ReturnType)
+  : Program i.label ReturnType :=
   Program.call i.classId methodId r.objId args next
 
 def Program.fetch' {ReturnType} {lab : Ecosystem.Label} {C : Type} (r : Reference C) [i : IsObject C] (next : C → Program lab ReturnType) : Program lab ReturnType :=
