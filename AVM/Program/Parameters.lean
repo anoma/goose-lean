@@ -25,7 +25,7 @@ def fetchManyHList
   (rest : HList (params.map (fun param => Object param.classLabel)) → Program.Parameters)
   : Program.Parameters := fetchMany params (HList.toPi rest)
 
--- I think this is true
+-- TODO improve the proof
 theorem helper
   {lab : Ecosystem.Label}
   {multiId : lab.MultiMethodId}
@@ -34,7 +34,19 @@ theorem helper
     (List.map (fun param => Object param.classLabel)
     (List.map (fun arg => { classLabel := arg.classId.label, uid := selvesIds arg : TypedObjectId }) multiId.objectArgNames))
     =
-    HList (List.map (fun c => Object c.label) multiId.argsClasses) := sorry
+    HList (List.map (fun c => Object c.label) multiId.argsClasses) := by
+    rw [List.map_map]
+    unfold Function.comp
+    simp
+    congr 1
+    unfold Ecosystem.Label.MultiMethodId.objectArgNames Ecosystem.Label.MultiMethodId.argsClasses
+    rw [List.map_map]
+    unfold Function.comp
+    simp
+    unfold Ecosystem.Label.MultiMethodId.objectArgNames
+    simp
+    intro x
+    congr 1
 
 def fetchSelves
   {lab : Ecosystem.Label}

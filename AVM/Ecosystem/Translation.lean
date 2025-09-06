@@ -171,7 +171,8 @@ partial def Ecosystem.Label.MultiMethodId.task.{u}
   let bodyParams (selves : methodId.Selves) : Program.Parameters := method.body selves args |>.params
   let params : Program.Parameters := Program.Parameters.fetchSelves (multiId := methodId) selvesIds bodyParams
   Task.absorbParams params fun (selvesAndVals : params.Product) =>
-    -- let body := method.body ?self args
+    let selves : methodId.Selves := sorry
+    let body := method.body selves args
     -- let tasks : List Task := Program.tasks eco body ?vals
     -- let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     -- let obj := (body.returnValue vals).toSomeObject
