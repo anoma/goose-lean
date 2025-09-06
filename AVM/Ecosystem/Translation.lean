@@ -1,4 +1,5 @@
 import AVM.Ecosystem
+import AVM.Ecosystem.AppData
 import Prelude
 import AVM.Class.Translation
 import AVM.Logic
@@ -17,7 +18,22 @@ def Function.parseObjectArgs
   let try consumedVec : Vector Anoma.Resource funId.numObjectArgs := consumed.toSizedVector
   let mkConsumedObject (a : funId.ObjectArgNames) : Option (Object a.classId.label) := Object.fromResource (consumedVec.get a.ix)
   @FinEnum.decImageOption'
-        funId.ObjectArgNames
-        (lab.objectArgNamesEnum funId)
-        (fun a => Object a.classId.label)
-        mkConsumedObject
+    funId.ObjectArgNames
+    (lab.objectArgNamesEnum funId)
+    (fun a => Object a.classId.label)
+    mkConsumedObject
+
+def Function.logic
+  {lab : Ecosystem.Label}
+  (eco : Ecosystem lab)
+  (args : Logic.Args)
+  (funId : lab.FunctionId)
+  (funData : FunctionData)
+  (fargs : funId.Args.type)
+  : Bool := sorry
+
+private def logic
+  {lab : Ecosystem.Label}
+  (eco : Ecosystem lab)
+  (args : Logic.Args)
+  : Bool := sorry

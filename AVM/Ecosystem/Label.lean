@@ -96,6 +96,9 @@ def argsClasses {lab : Ecosystem.Label} (functionId : lab.FunctionId) : List lab
   let getArg (a : functionId.ObjectArgNames) : lab.ClassId := lab.FunctionObjectArgClass a
   List.map getArg functionId.objectArgNames
 
+def Selves {lab : Ecosystem.Label} (functionId : lab.FunctionId) : Type :=
+  (argName : lab.FunctionObjectArgNames functionId) → Object (lab.FunctionObjectArgClass argName).label
+
 end FunctionId
 
 inductive MemberId (lab : Ecosystem.Label) where

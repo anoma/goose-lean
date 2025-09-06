@@ -177,3 +177,4 @@ def ecosystem : Ecosystem lab where
   classes := fun
     | .Counter => counterClass
     | .TwoCounter => twoCounterClass
+  functions (f : Empty) := f.elim
