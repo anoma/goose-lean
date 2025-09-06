@@ -16,6 +16,14 @@ def Program.Parameters.Product (params : Program.Parameters) : Type u :=
   | .genId rest =>
     Σ (objId : ObjectId), Program.Parameters.Product (rest objId)
 
+def Program.Parameters.map (f : {lab : Class.Label} → Object lab → Object lab) (params : Program.Parameters) : Program.Parameters :=
+  match params with
+  | .empty => .empty
+  | .fetch p rest =>
+    .fetch p (fun obj => map f (rest (f obj)))
+  | .genId rest =>
+    .genId (fun objId => map f (rest objId))
+
 instance {params : Program.Parameters} : TypeRep params.Product where
   rep := Rep.atomic "Program.Parameters.Product" -- TODO: this should depend on params
 
@@ -50,13 +58,22 @@ def append (params1 : Program.Parameters) (params2 : params1.Product → Program
   | .genId ps1 =>
     .genId (fun objId => (ps1 objId).append (fun vals => params2 ⟨objId, vals⟩))
 
-def concat (params : List Program.Parameters) : Program.Parameters :=
-  match params with
-  | [] => .empty
-  | ps :: rest =>
-    ps.append (fun _ => concat rest)
+def Product.append
+  {params1 : Program.Parameters}
+  {params2 : params1.Product → Program.Parameters}
+  (vals1 : params1.Product)
+  (vals2 : (params2 vals1).Product)
+  : (params1.append params2).Product :=
+  match params1 with
+  | .empty => vals2
+  | .fetch _ _ =>
+    let ⟨obj, vals1'⟩ := vals1
+    ⟨obj, Product.append vals1' vals2⟩
+  | .genId _ =>
+    let ⟨objId, vals1'⟩ := vals1
+    ⟨objId, Product.append vals1' vals2⟩
 
-def splitProduct
+def Product.split
   {params1 : Program.Parameters}
   {params2 : params1.Product → Program.Parameters}
   (vals : params1.append params2 |>.Product)
@@ -65,20 +82,9 @@ def splitProduct
   | .empty => ⟨PUnit.unit, vals⟩
   | .fetch _ _ =>
     let ⟨obj, vals'⟩ := vals
-    let ⟨vals1, vals2⟩ := splitProduct vals'
+    let ⟨vals1, vals2⟩ := vals'.split
     ⟨⟨obj, vals1⟩, vals2⟩
   | .genId _ =>
     let ⟨objId, vals'⟩ := vals
-    let ⟨vals1, vals2⟩ := splitProduct vals'
+    let ⟨vals1, vals2⟩ := vals'.split
     ⟨⟨objId, vals1⟩, vals2⟩
-
-def splitProducts
-  {params : List Program.Parameters}
-  (vals : Program.Parameters.concat params |>.Product)
-  : HList (params.map Program.Parameters.Product) :=
-  match params with
-  | [] => HList.nil
-  | _ :: ps =>
-    let ⟨vals1, vals'⟩ := splitProduct vals
-    let rest : HList (ps.map Program.Parameters.Product) := splitProducts vals'
-    HList.cons vals1 rest

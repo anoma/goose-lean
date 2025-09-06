@@ -11,6 +11,7 @@ import AVM.Logic
 import AVM.Message
 import AVM.Ecosystem
 import AVM.Task
+import AVM.Tasks
 
 namespace AVM.Class
 
@@ -184,7 +185,7 @@ partial def Constructor.task
     let consumedObj := newObj.toConsumable (ephemeral := true)
     let createdObjects : List CreatedObject :=
       [CreatedObject.fromSomeObject newObj (ephemeral := false)]
-    Task.composeWithMessage (constr.message ⟨bodyParams.Product⟩ vals newId args) tasks [consumedObj] createdObjects
+    Tasks.composeWithMessage (constr.message ⟨bodyParams.Product⟩ vals newId args) tasks [consumedObj] createdObjects
 
 /-- Creates a Task for a given object destructor. -/
 partial def Destructor.task
@@ -206,7 +207,7 @@ partial def Destructor.task
       [{ uid := self.uid,
          data := self.data,
          ephemeral := true }]
-    Task.composeWithMessage (destructor.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
+    Tasks.composeWithMessage (destructor.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
 
 partial def Method.task
   {lab : Ecosystem.Label}
@@ -229,6 +230,6 @@ partial def Method.task
       [{ uid := obj.object.uid,
          data := obj.object.data,
          ephemeral := false }]
-    Task.composeWithMessage (method.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
+    Tasks.composeWithMessage (method.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
 
 end -- mutual

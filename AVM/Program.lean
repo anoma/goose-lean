@@ -52,7 +52,9 @@ def Program.invoke
   | .return val =>
     next val
 
-/-- All body parameters - the parameters at the point of the return statement. -/
+/-- All body parameters - the parameters at the point of the return statement.
+  This does not include the parameters of the called methods / constructors /
+  destructors. -/
 def Program.params {lab ReturnType} (prog : Program lab ReturnType) : Program.Parameters :=
   match prog with
   | .constructor _ _ _ next =>
