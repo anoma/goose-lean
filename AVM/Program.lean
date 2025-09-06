@@ -51,28 +51,3 @@ def Program.invoke
     .fetch objId (fun obj => Program.invoke (cont obj) next)
   | .return val =>
     next val
-
-/-- All body parameters - the parameters at the point of the return statement.
-  This does not include the parameters of the called methods / constructors /
-  destructors. -/
-def Program.params {lab ReturnType} (prog : Program lab ReturnType) : Program.Parameters :=
-  match prog with
-  | .constructor _ _ _ next =>
-    .genId (fun newId => next newId |>.params)
-  | .destructor _ _ _ _ next => next.params
-  | .method _ _ _ _ next => next.params
-  | .fetch objId next =>
-    .fetch objId (fun obj => next obj |>.params)
-  | .return _ => .empty
-
-def Program.returnValue {lab ReturnType} (prog : Program lab ReturnType) (vals : prog.params.Product) : ReturnType :=
-  match prog, vals with
-  | .constructor _ _ _ next, ⟨newId, vals'⟩ =>
-    next newId |>.returnValue vals'
-  | .destructor _ _ _ _ next, vals' =>
-    next.returnValue vals'
-  | .method _ _ _ _ next, vals' =>
-    next.returnValue vals'
-  | .fetch _ next, ⟨obj, vals'⟩ =>
-    next obj |>.returnValue vals'
-  | .return val, () => val
