@@ -26,7 +26,7 @@ structure Task.{u} : Type (u + 1) where
   actions : params.Product → Rand (Option Task.Actions.{u})
   deriving Inhabited
 
-def Task.absorbParams.{u} (params : Program.Parameters) (task : params.Product → Task.{u}) : Task.{u} :=
+def Task.absorbParams.{u} (params : Program.Parameters.{u}) (task : params.Product → Task.{u}) : Task.{u} :=
   { params := params.append (fun vals => (task vals).params),
     message := fun vals =>
       let ⟨vals1, vals2⟩ := Program.Parameters.splitProduct vals

@@ -42,9 +42,11 @@ end AVM.Ecosystem
 
 namespace AVM
 
+set_option pp.universes true
+
 mutual
 
-partial def Program.tasks
+partial def Program.tasks.{u}
   {α}
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
@@ -75,16 +77,16 @@ partial def Program.tasks
   | .return _ => []
 
 /-- Creates a Task for a given object constructor. -/
-partial def Class.Constructor.task
+partial def Class.Constructor.task.{u}
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   {classId : lab.ClassId}
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor classId constrId)
   (args : constrId.Args.type)
-  : Task :=
+  : Task.{u} :=
   let bodyParams := (constr.body args).params
-  let params := Program.Parameters.genId (fun _ => bodyParams)
+  let params : Program.Parameters.{u} := Program.Parameters.genId (fun _ => bodyParams)
   Task.absorbParams params fun ⟨newId, vals⟩ =>
     let body := constr.body args
     let tasks := Program.tasks eco body vals
@@ -101,7 +103,7 @@ partial def Class.Constructor.task
     Task.composeWithMessage (constr.message ⟨bodyParams.Product⟩ vals newId args) tasks [consumedObj] createdObjects
 
 /-- Creates a Task for a given object destructor. -/
-partial def Class.Destructor.task
+partial def Class.Destructor.task.{u}
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   {classId : lab.ClassId}
@@ -109,7 +111,7 @@ partial def Class.Destructor.task
   (destructor : Class.Destructor classId destructorId)
   (selfId : ObjectId)
   (args : destructorId.Args.type)
-  : Task :=
+  : Task.{u} :=
   let consumedObjectId : TypedObjectId := ⟨classId.label, selfId⟩
   let bodyParams (self : Object classId.label) := (destructor.body self args).params
   let params := Program.Parameters.fetch consumedObjectId bodyParams
@@ -122,7 +124,7 @@ partial def Class.Destructor.task
          ephemeral := true }]
     Task.composeWithMessage (destructor.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
 
-partial def Class.Method.task
+partial def Class.Method.task.{u}
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   {classId : lab.ClassId}
@@ -130,7 +132,7 @@ partial def Class.Method.task
   (method : Class.Method classId methodId)
   (selfId : ObjectId)
   (args : methodId.Args.type)
-  : Task :=
+  : Task.{u} :=
   let consumedObjectId : TypedObjectId := ⟨classId.label, selfId⟩
   let bodyParams (self : Object classId.label) := (method.body self args).params
   let params := Program.Parameters.fetch consumedObjectId bodyParams
@@ -145,16 +147,16 @@ partial def Class.Method.task
          ephemeral := false }]
     Task.composeWithMessage (method.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
 
-partial def MultiMethod.task
+partial def MultiMethod.task.{u}
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   {methodId : lab.MultiMethodId}
   (method : MultiMethod methodId)
   (selvesIds : methodId.SelvesIds)
   (args : methodId.Args.type)
-  : Task :=
-  let bodyParams (selves : methodId.Selves) : Program.Parameters.{1} := method.body selves args |>.params
-  let params : Program.Parameters.{0} := Program.Parameters.fetchSelves selvesIds bodyParams
+  : Task.{u} :=
+  let bodyParams (selves : methodId.Selves) : Program.Parameters := method.body selves args |>.params
+  let params : Program.Parameters := Program.Parameters.fetchSelves (multiId := methodId) selvesIds bodyParams
   sorry
   -- Task.absorbParams params fun (selvesVals : params.Product) =>
   --   let body := method.body self args

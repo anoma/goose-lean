@@ -4,7 +4,7 @@ import AVM.Ecosystem.Label
 namespace AVM
 
 /-- A message is a communication sent from one object to another in the AVM. -/
-structure Message (lab : Ecosystem.Label.{u}) : Type (u + 1) where
+structure Message (lab : Ecosystem.Label) : Type 1 where
   {Vals : SomeType.{0}}
   /-- Message parameter values. The message parameters are object resources and
     generated object ids that are used in the body of the call associated with

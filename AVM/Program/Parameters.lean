@@ -3,7 +3,7 @@ import AVM.Ecosystem.Label
 
 namespace AVM
 
-inductive Program.Parameters : Type (u + 1) where
+inductive Program.Parameters.{u} : Type (u + 1) where
   | empty
   | fetch (param : TypedObjectId.{u}) (rest : Object param.classLabel → Program.Parameters)
   | genId (rest : ObjectId → Program.Parameters)

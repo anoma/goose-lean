@@ -5,7 +5,7 @@ import AVM.Program.Parameters
 
 namespace AVM
 
-inductive Program.{u} (lab : Ecosystem.Label.{u}) (ReturnType : Type u) : Type (u + 1) where
+inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (u + 1) where
   | constructor
     (cid : lab.ClassId)
     (constrId : cid.label.ConstructorId)
@@ -33,7 +33,7 @@ inductive Program.{u} (lab : Ecosystem.Label.{u}) (ReturnType : Type u) : Type (
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | fetch
-    (objId : TypedObjectId)
+    (objId : TypedObjectId.{u})
     (next : Object objId.classLabel → Program lab ReturnType)
     : Program lab ReturnType
   | return
@@ -61,7 +61,7 @@ def Program.invoke
     next val
 
 /-- All body parameters - the parameters at the point of the return statement. -/
-def Program.params {lab ReturnType} (prog : Program.{u} lab ReturnType) : Program.Parameters.{u} :=
+def Program.params.{u} {lab ReturnType} (prog : Program.{u} lab ReturnType) : Program.Parameters.{u} :=
   match prog with
   | .constructor _ _ _ next =>
     .genId (fun newId => next newId |>.params)

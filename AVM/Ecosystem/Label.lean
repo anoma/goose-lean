@@ -3,7 +3,7 @@ import AVM.Object
 
 namespace AVM.Ecosystem
 
-structure Label : Type (u + 1) where
+structure Label : Type 1 where
   name : String
 
   ClassId : Type
@@ -55,7 +55,7 @@ def MultiMethodObjectArgNames.classId
 
 namespace ClassId
 
-def label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label.{u} :=
+def label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label.{0} :=
   lab.classLabel classId
 
 def MemberId {lab : Ecosystem.Label} (c : lab.ClassId) := c.label.MemberId
