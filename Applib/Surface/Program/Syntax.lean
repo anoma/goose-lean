@@ -14,25 +14,22 @@ syntax withPosition("invoke " term) optSemicolon(program) : program
 syntax withPosition(ident " := " " invoke " term) optSemicolon(program) : program
 syntax withPosition(ident " := " " fetch " term) optSemicolon(program) : program
 syntax "return " term : program
-syntax "Ξ " program : term
 syntax "⟪" program "⟫" : term
 
 macro_rules
-  | `(⟪$p:program⟫) => do
-    `(Program.Sized.toProgram (Ξ $p))
-  | `(Ξ create $c:ident $m:ident $e:term ; $p:program) => do
-    `(Program.Sized.create' $c $m $e (fun _ => Ξ $p))
-  | `(Ξ $x:ident := create $c:ident $m:ident $e:term ; $p:program) => do
-    `(Program.Sized.create' $c $m $e (fun $x => Ξ $p))
-  | `(Ξ destroy $m:ident $e:term $args:term ; $p:program) => do
-    `(Program.Sized.destroy' $e $m $args (Ξ $p))
-  | `(Ξ call $m:ident $e:term $args:term ; $p:program) => do
-    `(Program.Sized.call' $e $m $args (Ξ $p))
-  | `(Ξ invoke $e:term ; $p:program) => do
-    `(Program.Sized.invoke' $e (fun _ => Ξ $p))
-  | `(Ξ $x:ident := invoke $e:term ; $p:program) => do
-    `(Program.Sized.invoke' $e (fun $x => Ξ $p))
-  | `(Ξ $x:ident := fetch $e:term ; $p:program) => do
-    `(Program.Sized.fetch' $e (fun $x => Ξ $p))
-  | `(Ξ return $e:term) => do
-    `(Program.Sized.return' $e)
+  | `(⟪create $c:ident $m:ident $e:term ; $p:program⟫) => do
+    `(Program.create' $c $m $e (fun _ => ⟪$p⟫))
+  | `(⟪$x:ident := create $c:ident $m:ident $e:term ; $p:program⟫) => do
+    `(Program.create' $c $m $e (fun $x => ⟪$p⟫))
+  | `(⟪destroy $m:ident $e:term $args:term ; $p:program⟫) => do
+    `(Program.destroy' $e $m $args (⟪$p⟫))
+  | `(⟪call $m:ident $e:term $args:term ; $p:program⟫) => do
+    `(Program.call' $e $m $args (⟪$p⟫))
+  | `(⟪invoke $e:term ; $p:program⟫) => do
+    `(Program.invoke $e (fun _ => ⟪$p⟫))
+  | `(⟪$x:ident := invoke $e:term ; $p:program⟫) => do
+    `(Program.invoke $e (fun $x => ⟪$p⟫))
+  | `(⟪$x:ident := fetch $e:term ; $p:program⟫) => do
+    `(Program.fetch' $e (fun $x => ⟪$p⟫))
+  | `(⟪return $e:term⟫) => do
+    `(Program.return $e)
