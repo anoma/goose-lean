@@ -5,18 +5,35 @@ namespace AVM
 inductive Tasks (α : Type u) where
   | task (task : Task) (rest : task.params.Product → Tasks α) : Tasks α
   | fetch (param : TypedObjectId) (rest : Object param.classLabel → Tasks α) : Tasks α
+  | genId (rest : ObjectId → Tasks α) : Tasks α
   | result (value : α) : Tasks α
+  deriving Inhabited
 
 def Tasks.params {α} (tasks : Tasks α) : Program.Parameters :=
   match tasks with
   | .task t rest => (t.params.append (fun vals => (rest vals).params))
   | .fetch p rest => .fetch p (fun obj => (rest obj).params)
+  | .genId rest => .genId (fun objId => (rest objId).params)
   | .result _ => .empty
+
+def Tasks.value {α} (tasks : Tasks α) (vals : tasks.params.Product) : α :=
+  match tasks with
+  | .task _ rest =>
+    let ⟨vals1, vals2⟩ := vals.split
+    Tasks.value (rest vals1) vals2
+  | .fetch _ rest =>
+    let ⟨obj, vals'⟩ := vals
+    Tasks.value (rest obj) vals'
+  | .genId rest =>
+    let ⟨objId, vals'⟩ := vals
+    Tasks.value (rest objId) vals'
+  | .result v => v
 
 def Tasks.map {α β} (tasks : Tasks α) (f : tasks.params.Product → α → β) : Tasks β :=
   match tasks with
   | .task t rest => .task t (fun vals => map (rest vals) (fun vals' => f (vals.append vals')))
   | .fetch p rest => .fetch p (fun obj => map (rest obj) (fun vals' => f ⟨obj, vals'⟩))
+  | .genId rest => .genId (fun objId => map (rest objId) (fun vals' => f ⟨objId, vals'⟩))
   | .result v => .result (f () v)
 
 def Tasks.coerce {α β} {tasks : Tasks α} {f : tasks.params.Product → α → β} (vals : (tasks.map f).params.Product) : tasks.params.Product :=
@@ -27,6 +44,9 @@ def Tasks.coerce {α β} {tasks : Tasks α} {f : tasks.params.Product → α →
   | .fetch _ _ =>
     let ⟨obj, vals'⟩ := vals
     ⟨obj, coerce vals'⟩
+  | .genId _ =>
+    let ⟨objId, vals'⟩ := vals
+    ⟨objId, coerce vals'⟩
   | .result _ => vals
 
 def TasksWithAction := Tasks (Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
@@ -49,6 +69,9 @@ def Tasks.composeActions
   | .fetch _ rest =>
     let ⟨obj, vals'⟩ := vals
     composeActions (rest obj) vals'
+  | .genId rest =>
+    let ⟨objId, vals'⟩ := vals
+    composeActions (rest objId) vals'
 
 def Tasks.composeMessages {α} (tasks : Tasks α) (vals : tasks.params.Product) : List SomeMessage :=
   match tasks with
@@ -60,6 +83,9 @@ def Tasks.composeMessages {α} (tasks : Tasks α) (vals : tasks.params.Product) 
   | .fetch _ rest =>
     let ⟨obj, vals'⟩ := vals
     composeMessages (rest obj) vals'
+  | .genId rest =>
+    let ⟨objId, vals'⟩ := vals
+    composeMessages (rest objId) vals'
 
 def Tasks.composeWithAction
   (tasks : TasksWithAction)
