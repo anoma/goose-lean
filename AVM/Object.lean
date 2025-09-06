@@ -97,8 +97,8 @@ def SomeObject.toResource
     nullifierKeyCommitment := default }
 
 /-- Converts Object to a Resource. -/
-def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) (nonce : Anoma.Nonce) : Anoma.Resource
- := obj.toSomeObject.toResource ephemeral nonce
+def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) : Anoma.Resource
+ := obj.toSomeObject.toResource ephemeral obj.nonce
 
 def Object.fromResource
   {lab : Class.Label}

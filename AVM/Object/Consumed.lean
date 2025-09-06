@@ -20,10 +20,10 @@ def SomeObject.toConsumable (ephemeral : Bool) (sobj : SomeObject) : SomeConsuma
        ephemeral }}
 
 def ConsumableObject.toResource {lab : Class.Label} (c : ConsumableObject lab) : Anoma.Resource :=
-  c.object.toResource c.ephemeral c.object.nonce
+  c.object.toResource c.ephemeral
 
 structure ConsumedObject (lab : Class.Label) extends ConsumableObject lab where
-  can_nullify : Anoma.CanNullifyResource Anoma.NullifierKey.universal (object.toResource ephemeral object.nonce)
+  can_nullify : Anoma.CanNullifyResource Anoma.NullifierKey.universal (object.toResource ephemeral)
 
 def ConsumedObject.toConsumable {lab : Class.Label} (c : ConsumedObject lab) : ConsumableObject lab :=
  { object := c.object
