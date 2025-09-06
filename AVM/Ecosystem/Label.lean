@@ -12,18 +12,18 @@ structure Label : Type 1 where
   [classesRepr : Repr ClassId]
   [classesBEq : BEq ClassId]
 
-  FunctionId : Type := Empty
+  MultiMethodId : Type := Empty
   /-- Type of function arguments excluding `self` arguments. -/
-  FunctionArgs : FunctionId → SomeType := fun _ => ⟨PUnit⟩
+  MultiMethodArgs : MultiMethodId → SomeType := fun _ => ⟨PUnit⟩
   /-- Names of `self` arguments for a given function. -/
-  FunctionObjectArgNames : FunctionId → Type := fun _ => PUnit
+  MultiMethodObjectArgNames : MultiMethodId → Type := fun _ => PUnit
   /-- Class identifiers for `self` arguments. -/
-  FunctionObjectArgClass : {f : FunctionId} → FunctionObjectArgNames f → ClassId
-  [objectArgNamesEnum (f : FunctionId) : FinEnum (FunctionObjectArgNames f)]
-  [objectArgNamesBEq (f : FunctionId) : BEq (FunctionObjectArgNames f)]
-  [functionsFinite : FinEnum FunctionId]
-  [functionsRepr : Repr FunctionId]
-  [functionsBEq : BEq FunctionId]
+  MultiMethodObjectArgClass : {f : MultiMethodId} → MultiMethodObjectArgNames f → ClassId
+  [objectArgNamesEnum (f : MultiMethodId) : FinEnum (MultiMethodObjectArgNames f)]
+  [objectArgNamesBEq (f : MultiMethodId) : BEq (MultiMethodObjectArgNames f)]
+  [functionsFinite : FinEnum MultiMethodId]
+  [functionsRepr : Repr MultiMethodId]
+  [functionsBEq : BEq MultiMethodId]
 
 def Label.classId (l : Label) (clab : Class.Label) : Option l.ClassId :=
   l.classesEnum.toList.find? (fun b => l.classLabel b == clab)
@@ -42,7 +42,7 @@ def singleton (l : Class.Label) : Ecosystem.Label where
   ClassId := PUnit
   classLabel := fun _ => l
 
-  FunctionObjectArgClass {f : Empty} := f.elim
+  MultiMethodObjectArgClass {f : Empty} := f.elim
 
 def dummy : Label := singleton Class.Label.dummy
 
@@ -71,45 +71,45 @@ instance {lab : Ecosystem.Label} {classId : lab.ClassId}
   : CoeHead classId.label.DestructorId classId.MemberId where
   coe := .destructorId
 
-namespace FunctionId
+namespace MultiMethodId
 
-def Args {lab : Ecosystem.Label} (functionId : lab.FunctionId) : SomeType :=
-  lab.FunctionArgs functionId
+def Args {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : SomeType :=
+  lab.MultiMethodArgs functionId
 
-def ObjectArgNames {lab : Ecosystem.Label} (functionId : lab.FunctionId) : Type :=
-  lab.FunctionObjectArgNames functionId
+def ObjectArgNames {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : Type :=
+  lab.MultiMethodObjectArgNames functionId
 
-def objectArgNames {lab : Ecosystem.Label} (functionId : lab.FunctionId) : List functionId.ObjectArgNames :=
+def objectArgNames {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : List functionId.ObjectArgNames :=
   (lab.objectArgNamesEnum functionId).toList
 
-def ObjectArgNames.classId {lab : Ecosystem.Label} {functionId : lab.FunctionId} (argName : functionId.ObjectArgNames) : lab.ClassId :=
-  lab.FunctionObjectArgClass argName
+def ObjectArgNames.classId {lab : Ecosystem.Label} {functionId : lab.MultiMethodId} (argName : functionId.ObjectArgNames) : lab.ClassId :=
+  lab.MultiMethodObjectArgClass argName
 
 /-- Returns the index of an object argument -/
-def ObjectArgNames.ix {lab : Ecosystem.Label} {functionId : lab.FunctionId} (argName : functionId.ObjectArgNames) : Fin (lab.objectArgNamesEnum functionId).card :=
+def ObjectArgNames.ix {lab : Ecosystem.Label} {functionId : lab.MultiMethodId} (argName : functionId.ObjectArgNames) : Fin (lab.objectArgNamesEnum functionId).card :=
   (lab.objectArgNamesEnum functionId).equiv.toFun argName
 
-def numObjectArgs {lab : Ecosystem.Label} {functionId : lab.FunctionId} : Nat :=
+def numObjectArgs {lab : Ecosystem.Label} {functionId : lab.MultiMethodId} : Nat :=
   (lab.objectArgNamesEnum functionId).card
 
-def argsClasses {lab : Ecosystem.Label} (functionId : lab.FunctionId) : List lab.ClassId :=
-  let getArg (a : functionId.ObjectArgNames) : lab.ClassId := lab.FunctionObjectArgClass a
+def argsClasses {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : List lab.ClassId :=
+  let getArg (a : functionId.ObjectArgNames) : lab.ClassId := lab.MultiMethodObjectArgClass a
   List.map getArg functionId.objectArgNames
 
-def Selves {lab : Ecosystem.Label} (functionId : lab.FunctionId) : Type :=
-  (argName : lab.FunctionObjectArgNames functionId) → Object (lab.FunctionObjectArgClass argName).label
+def Selves {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : Type :=
+  (argName : lab.MultiMethodObjectArgNames functionId) → Object (lab.MultiMethodObjectArgClass argName).label
 
-end FunctionId
+end MultiMethodId
 
 inductive MemberId (lab : Ecosystem.Label) where
-  | functionId (funId : lab.FunctionId)
+  | functionId (funId : lab.MultiMethodId)
   | classMember {classId : lab.ClassId} (memId : classId.MemberId)
 
 namespace MemberId
 
 def Args {lab : Ecosystem.Label} (memberId : MemberId lab) : SomeType :=
   match memberId with
-  | functionId f => lab.FunctionArgs f
+  | functionId f => lab.MultiMethodArgs f
   | classMember m => Class.Label.MemberId.Args m
 
 instance hasBEq {lab : Ecosystem.Label} : BEq (Ecosystem.Label.MemberId lab) where

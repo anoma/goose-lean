@@ -9,10 +9,10 @@ namespace AVM.Ecosystem
 
 open AVM.Action
 
-def Function.parseObjectArgs
+def MultiMethod.parseObjectArgs
   {lab : Ecosystem.Label}
   (consumed : List Anoma.Resource)
-  (funId : lab.FunctionId)
+  (funId : lab.MultiMethodId)
   : Option funId.Selves
   :=
   let try consumedVec : Vector Anoma.Resource funId.numObjectArgs := consumed.toSizedVector
@@ -23,12 +23,12 @@ def Function.parseObjectArgs
     (fun a => Object a.classId.label)
     mkConsumedObject
 
-def Function.logic
+def MultiMethod.logic
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   (args : Logic.Args)
-  (funId : lab.FunctionId)
-  (funData : FunctionData)
+  (funId : lab.MultiMethodId)
+  (funData : MultiMethodData)
   (fargs : funId.Args.type)
   : Bool := sorry
 

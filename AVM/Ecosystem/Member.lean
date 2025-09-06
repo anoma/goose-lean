@@ -11,7 +11,7 @@ inductive DeconstructionKind : Type where
   | Disassembled
   deriving BEq
 
-structure FunctionResult {lab : Ecosystem.Label} (functionId : lab.FunctionId) : Type (u + 1) where
+structure MultiMethodResult {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : Type (u + 1) where
   /-- List of assembled objects. Assembled objects will be created.
       It is the responsibility of the user to ensure that
       assembled objects balance with the object arguments that are disassembled -/
@@ -24,15 +24,15 @@ structure FunctionResult {lab : Ecosystem.Label} (functionId : lab.FunctionId) :
   Note that if `argUsage arg = .Destroyed`, then the object that corresponds to `arg` should *not* be put in the destroyed list -/
   argDeconstruction : functionId.ObjectArgNames → DeconstructionKind
 
-def FunctionResult.numSelvesDestroyed
+def MultiMethodResult.numSelvesDestroyed
   {lab : Ecosystem.Label}
-  {functionId : lab.FunctionId}
-  (res : FunctionResult functionId)
+  {functionId : lab.MultiMethodId}
+  (res : MultiMethodResult functionId)
   : Nat :=
   functionId.objectArgNames.countP (fun a => res.argDeconstruction a == .Destroyed)
 
-structure Function {lab : Ecosystem.Label} (functionId : lab.FunctionId) where
-  /-- Computes the result of a function call. See `FunctionResult`. -/
-  body (selves : functionId.Selves) (args : functionId.Args.type) : Program lab (FunctionResult functionId)
+structure MultiMethod {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) where
+  /-- Computes the result of a function call. See `MultiMethodResult`. -/
+  body (selves : functionId.Selves) (args : functionId.Args.type) : Program lab (MultiMethodResult functionId)
   /-- Extra function logic. -/
   invariant (selves : functionId.Selves) (args : functionId.Args.type) : Bool
