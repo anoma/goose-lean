@@ -82,11 +82,7 @@ def clab : Class.Label where
   DestructorArgs := fun
     | Destructors.Burn => ⟨PUnit⟩
 
-def label : Ecosystem.Label where
-  name := "KudosEcosystem"
-  ClassId := Classes
-  classLabel := fun
-    | Classes.Kudos => clab
+def label : Ecosystem.Label := Ecosystem.Label.singleton clab
 
 def toObject (c : Kudos) : ObjectData clab where
   quantity := c.quantity
@@ -99,11 +95,11 @@ def fromObject (o : ObjectData clab) : Kudos :=
 
 instance hasIsObject : IsObject Kudos where
   label := label
-  classId := Classes.Kudos
+  classId := .unit
   toObject := Kudos.toObject
   fromObject := Kudos.fromObject
 
-def kudosMint : @Class.Constructor label Classes.Kudos Constructors.Mint := defConstructor
+def kudosMint : @Class.Constructor label .unit Constructors.Mint := defConstructor
   (body := fun (args : MintArgs) => ⟪
     return
       { quantity := args.quantity
@@ -112,14 +108,14 @@ def kudosMint : @Class.Constructor label Classes.Kudos Constructors.Mint := defC
   ⟫)
   (invariant := fun (args : MintArgs) => checkKey args.originator args.key)
 
-def kudosTransfer : @Class.Method label Classes.Kudos Methods.Transfer := defMethod Kudos
+def kudosTransfer : @Class.Method label .unit Methods.Transfer := defMethod Kudos
   (body := fun (self : Kudos) (args : TransferArgs) =>
     ⟪return {self with owner := args.newOwner : Kudos}⟫)
 
-def kudosBurn : @Class.Destructor label Classes.Kudos Destructors.Burn := defDestructor
+def kudosBurn : @Class.Destructor label .unit Destructors.Burn := defDestructor
   (invariant := fun (self : Kudos) (_args : PUnit) => self.originator == self.owner)
 
-def kudosClass : @Class label Classes.Kudos where
+def kudosClass : @Class label .unit where
   constructors := fun
     | Constructors.Mint => kudosMint
   methods := fun
