@@ -33,6 +33,6 @@ def FunctionResult.numSelvesDestroyed
 
 structure Function {lab : Ecosystem.Label} (functionId : lab.FunctionId) where
   /-- Computes the result of a function call. See `FunctionResult`. -/
-  body (selves : functionId.Selves) (args : functionId.Args.type) : FunctionResult functionId
+  body (selves : functionId.Selves) (args : functionId.Args.type) : Program lab (FunctionResult functionId)
   /-- Extra function logic. -/
   invariant (selves : functionId.Selves) (args : functionId.Args.type) : Bool
