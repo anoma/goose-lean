@@ -24,6 +24,8 @@ structure Task.{u} : Type (u + 1) where
   /-- Task actions - actions to perform parameterised by fetched objects and new
     object ids. -/
   actions : params.Product → Rand (Option Task.Actions)
+  /-- Adjust modified objects after the task is executed. -/
+  adjust : params.Product → SomeObject → Option SomeObject
 deriving Inhabited
 
 def Task.absorbParams.{u} (params : Program.Parameters) (task : params.Product → Task.{u}) : Task.{u} :=
@@ -33,7 +35,10 @@ def Task.absorbParams.{u} (params : Program.Parameters) (task : params.Product �
       (task vals1).message vals2,
     actions := fun vals =>
       let ⟨vals1, vals2⟩ := Program.Parameters.splitProduct vals
-      (task vals1).actions vals2 }
+      (task vals1).actions vals2,
+    adjust := fun vals obj =>
+      let ⟨vals1, vals2⟩ := Program.Parameters.splitProduct vals
+      (task vals1).adjust vals2 obj }
 
 def Task.Products (tasks : List Task) : List Type :=
   tasks.map (·.params) |> .map (·.Product)
@@ -73,6 +78,21 @@ def Task.composeActions
     { actions := action :: actions.actions,
       deltaWitness := Anoma.DeltaWitness.compose witness actions.deltaWitness }
 
+def Task.adjust.seq (f : SomeObject → Option SomeObject) (g : SomeObject → Option SomeObject) (obj : SomeObject) : Option SomeObject :=
+  let try obj' := f obj
+  g obj'
+
+def Task.composeAdjust' (tasks : List Task) (vals : HList (Products tasks)) (obj : SomeObject) : Option SomeObject :=
+  match tasks, vals with
+  | [], _ => some obj
+  | task :: tasks', HList.cons vals' vals'' =>
+    let try obj' := task.adjust vals' obj
+    composeAdjust' tasks' vals'' obj'
+
+def Task.composeAdjust (tasks : List Task) (vals : (composeParams tasks).Product) (obj : SomeObject) : Option SomeObject :=
+  let vals' := Program.Parameters.splitProducts vals
+  composeAdjust' tasks vals' obj
+
 def Task.composeWithAction
   (msg : Option SomeMessage)
   (tasks : List Task)
@@ -80,7 +100,8 @@ def Task.composeWithAction
   : Task :=
   { params := composeParams tasks,
     message := fun _ => msg,
-    actions := composeActions tasks mkAction }
+    actions := composeActions tasks mkAction,
+    adjust := composeAdjust tasks }
 
 def Task.composeWithMessage
   (msg : SomeMessage)
