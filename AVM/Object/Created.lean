@@ -22,4 +22,4 @@ def CreatedObject.fromSomeObject (obj : SomeObject) (ephemeral : Bool) : Created
 
 def CreatedObject.toResource (c : CreatedObject) (nonce : Anoma.Nonce) : Anoma.Resource :=
   let obj : Object c.label := {uid := c.uid, nonce, data := c.data}
-  Object.toResource obj (ephemeral := c.ephemeral)
+  obj.toResource (ephemeral := c.ephemeral)

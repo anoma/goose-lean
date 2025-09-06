@@ -83,7 +83,6 @@ instance {lab : Class.Label} : BEq (Object.Resource.Value lab) where
 def SomeObject.toResource
   (sobj : SomeObject)
   (ephemeral : Bool)
-  (nonce : Anoma.Nonce)
   : Anoma.Resource :=
   let lab := sobj.label
   let obj : Object lab := sobj.object
@@ -93,12 +92,12 @@ def SomeObject.toResource
     quantity := obj.data.quantity,
     value := ⟨obj.uid, obj.data.privateFields⟩,
     ephemeral := ephemeral,
-    nonce,
+    nonce := obj.nonce,
     nullifierKeyCommitment := default }
 
 /-- Converts Object to a Resource. -/
 def Object.toResource {lab : Class.Label} (obj : Object lab) (ephemeral : Bool) : Anoma.Resource
- := obj.toSomeObject.toResource ephemeral obj.nonce
+ := obj.toSomeObject.toResource ephemeral
 
 def Object.fromResource
   {lab : Class.Label}
