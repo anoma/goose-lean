@@ -10,6 +10,7 @@ import AVM.Class.Member
 import AVM.Logic
 import AVM.Message
 import AVM.Ecosystem
+import AVM.Ecosystem.Label
 import AVM.Task
 
 namespace AVM.Class
@@ -23,11 +24,11 @@ def Constructor.message
   (vals : Vals.type)
   (newId : ObjectId)
   (args : constrId.Args.type)
-  : Message classId.label :=
-  { id := Label.MemberId.constructorId constrId,
+  : Message lab :=
+  { id := .classMember (.constructorId constrId),
     vals,
     args,
-    recipient := newId }
+    recipient := [newId].toVector }
 
 def Destructor.message
   {lab : Ecosystem.Label}
@@ -38,11 +39,11 @@ def Destructor.message
   (vals : Vals.type)
   (selfId : ObjectId)
   (args : destructorId.Args.type)
-  : Message classId.label :=
-  { id := Label.MemberId.destructorId destructorId,
+  : Message lab :=
+  { id := .classMember (.destructorId destructorId),
     vals,
     args,
-    recipient := selfId }
+    recipient := [selfId].toVector }
 
 def Method.message
   {lab : Ecosystem.Label}
@@ -53,11 +54,11 @@ def Method.message
   (vals : Vals.type)
   (selfId : ObjectId)
   (args : methodId.Args.type)
-  : Message classId.label :=
-  { id := Label.MemberId.methodId methodId,
+  : Message lab :=
+  { id := .classMember (.methodId methodId),
     vals,
     args,
-    recipient := selfId }
+    recipient := [selfId].toVector }
 
 /-- Creates a message logic for a given constructor. -/
 def Constructor.Message.logic
@@ -67,7 +68,7 @@ def Constructor.Message.logic
   (constr : Class.Constructor classId constrId)
   (args : Logic.Args)
   : Bool :=
-  let try msg : Message classId.label := Message.fromResource args.self
+  let try msg : Message lab := Message.fromResource args.self
   let try argsData := SomeType.cast msg.args
   let try vals : (constr.body argsData).params.Product := tryCast msg.vals
   let newObjData := constr.body argsData |>.returnValue vals
@@ -87,7 +88,7 @@ def Destructor.Message.logic
   (destructor : Class.Destructor classId destructorId)
   (args : Logic.Args)
   : Bool :=
-  let try msg : Message classId.label := Message.fromResource args.self
+  let try msg : Message lab := Message.fromResource args.self
   let try argsData := SomeType.cast msg.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
@@ -106,7 +107,7 @@ def Method.Message.logic
   (method : Class.Method classId methodId)
   (args : Logic.Args)
   : Bool :=
-  let try msg : Message classId.label := Message.fromResource args.self
+  let try msg : Message lab := Message.fromResource args.self
   let try argsData := SomeType.cast msg.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
@@ -122,7 +123,12 @@ def Method.Message.logic
 
 /-- The class logic checks if all consumed messages in the action correspond
   to class members and the single consumed object is the receiver. -/
-def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (args : Logic.Args) : Bool :=
+def logic
+  {lab : Ecosystem.Label}
+  {classId : lab.ClassId}
+  (cl : Class classId)
+  (args : Logic.Args)
+  : Bool :=
   let try self : Object classId.label := Object.fromResource args.self
   check cl.invariant self args
   match args.status with
@@ -133,10 +139,11 @@ def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (
     let try consumedObject : Object classId.label := Object.fromResource consumedObjectResource
     consumedMessageResources.length + 1 == (Logic.filterOutDummy args.consumed).length
       && consumedMessageResources.all fun res =>
-        let try msg : Message classId.label := Message.fromResource res
+        let try msg : Message lab := Message.fromResource res
+        let! [recipient] := msg.recipient.toList
         -- NOTE: we should check that the resource logic of res corresponds to
         -- the message logic
-        consumedObject.uid == msg.recipient
+        consumedObject.uid == recipient
 
 mutual
 

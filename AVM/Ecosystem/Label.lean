@@ -28,6 +28,9 @@ structure Label : Type 1 where
 def Label.classId (l : Label) (clab : Class.Label) : Option l.ClassId :=
   l.classesEnum.toList.find? (fun b => l.classLabel b == clab)
 
+instance hasBEq : BEq Label where
+  beq a b := a.name == b.name
+
 end AVM.Ecosystem
 
 namespace AVM.Ecosystem.Label
@@ -41,14 +44,20 @@ def singleton (l : Class.Label) : Ecosystem.Label where
 
   FunctionObjectArgClass {f : Empty} := f.elim
 
-def ClassId.label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label :=
+def dummy : Label := singleton Class.Label.dummy
+
+namespace ClassId
+
+def label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label :=
   lab.classLabel classId
 
-def ClassId.MemberId {lab : Ecosystem.Label} (c : lab.ClassId) := c.label.MemberId
+def MemberId {lab : Ecosystem.Label} (c : lab.ClassId) := c.label.MemberId
 
-instance ClassId.MemberId.hasTypeRep {lab : Ecosystem.Label} {c : lab.ClassId} : TypeRep c.MemberId := Class.Label.MemberId.hasTypeRep c.label
+instance MemberId.hasTypeRep {lab : Ecosystem.Label} {c : lab.ClassId} : TypeRep c.MemberId := Class.Label.MemberId.hasTypeRep c.label
 
-instance ClassId.MemberId.hasBEq {lab : Ecosystem.Label} {c : lab.ClassId} : BEq c.MemberId := Class.Label.MemberId.hasBEq
+instance MemberId.hasBEq {lab : Ecosystem.Label} {c : lab.ClassId} : BEq c.MemberId := Class.Label.MemberId.hasBEq
+
+end ClassId
 
 instance {lab : Ecosystem.Label} {classId : lab.ClassId}
   : CoeHead classId.label.ConstructorId classId.MemberId where
@@ -88,3 +97,29 @@ def argsClasses {lab : Ecosystem.Label} (functionId : lab.FunctionId) : List lab
   List.map getArg functionId.objectArgNames
 
 end FunctionId
+
+inductive MemberId (lab : Ecosystem.Label) where
+  | functionId (funId : lab.FunctionId)
+  | classMember {classId : lab.ClassId} (memId : classId.MemberId)
+
+namespace MemberId
+
+def Args {lab : Ecosystem.Label} (memberId : MemberId lab) : SomeType :=
+  match memberId with
+  | functionId f => lab.FunctionArgs f
+  | classMember m => Class.Label.MemberId.Args m
+
+instance hasBEq {lab : Ecosystem.Label} : BEq (Ecosystem.Label.MemberId lab) where
+  beq a b :=
+    match a, b with
+    | functionId c1, functionId c2 => lab.functionsBEq.beq c1 c2
+    | functionId _, _ => false
+    | _, functionId _ => false
+    | classMember c1, classMember c2 => c1 === c2
+
+def numObjectArgs {lab : Ecosystem.Label} (memberId : MemberId lab) : Nat :=
+  match memberId with
+  | functionId f => f.numObjectArgs
+  | classMember _ => 1
+
+end MemberId
