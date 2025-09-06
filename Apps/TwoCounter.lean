@@ -109,6 +109,7 @@ def lab : Ecosystem.Label where
   classLabel := fun
     | .Counter => Counter.lab
     | .TwoCounter => TwoCounter.lab
+  MultiMethodObjectArgClass {f : Empty} := f.elim
 
 end Eco
 
@@ -176,3 +177,4 @@ def ecosystem : Ecosystem lab where
   classes := fun
     | .Counter => counterClass
     | .TwoCounter => twoCounterClass
+  multiMethods (f : Empty) := f.elim

@@ -6,7 +6,7 @@ import AVM.Program.Parameters
 
 namespace AVM
 
-structure Task.Actions where
+structure Task.Actions : Type (u + 1) where
   actions : List Anoma.Action
   deltaWitness : Anoma.DeltaWitness
 
@@ -23,8 +23,8 @@ structure Task.{u} : Type (u + 1) where
   message : params.Product → Option SomeMessage
   /-- Task actions - actions to perform parameterised by fetched objects and new
     object ids. -/
-  actions : params.Product → Rand (Option Task.Actions)
-deriving Inhabited
+  actions : params.Product → Rand (Option Task.Actions.{u})
+  deriving Inhabited
 
 def Task.absorbParams.{u} (params : Program.Parameters) (task : params.Product → Task.{u}) : Task.{u} :=
   { params := params.append (fun vals => (task vals).params),

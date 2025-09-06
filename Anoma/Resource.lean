@@ -33,7 +33,7 @@ def Resource.isEphemeral (r : Resource) : Bool :=
 def Resource.isPersistent (r : Resource) : Bool :=
   not r.isEphemeral
 
-structure Logic.Args.{u, v, w} (Data : Type w) where
+structure Logic.Args.{u, v, w} (Data : Type w) : Type (max u (max v w) + 1) where
   self : Resource.{u, v}
   status : ConsumedCreated
   consumed : List Resource.{u, v}

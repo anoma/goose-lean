@@ -7,41 +7,41 @@ abbrev AVM.ObjectId := Anoma.ObjectId
 
 namespace AVM.Class
 
-structure DynamicLabel (PrivateFields : Type u) : Type (u + 1) where
-  {Label : SomeType}
+structure DynamicLabel (PrivateFields : Type) : Type 1 where
+  {Label : SomeType.{0}}
   mkDynamicLabel : PrivateFields → Label.type
 
-instance DynamicLabel.instInhabited {A : Type u} : Inhabited (DynamicLabel A) where
+instance DynamicLabel.instInhabited {A : Type} : Inhabited (DynamicLabel A) where
   default := {Label := ⟨PUnit⟩
               mkDynamicLabel := fun _ => default}
 
 /-- A class label uniquely identifies and specifies a class. The class
   specification provided by a label consists of unique class name, private
   field types, constructor, destructor and method ids. -/
-structure Label : Type (u + 1) where
+structure Label : Type 1 where
   /-- The name of the class uniquely identifying the class.
       Assumption: lab1.name = lab2.name -> lab1 = lab2. -/
   name : String
 
-  PrivateFields : SomeType.{u}
+  PrivateFields : SomeType.{0}
 
   /-- The dynamic label is used to put dynamic data into the Resource label -/
-  DynamicLabel : DynamicLabel.{u} PrivateFields.type := default
+  DynamicLabel : DynamicLabel PrivateFields.type := default
 
   ConstructorId : Type
-  ConstructorArgs : ConstructorId -> SomeType.{u}
+  ConstructorArgs : ConstructorId -> SomeType
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
 
   DestructorId : Type := Empty
-  DestructorArgs : DestructorId -> SomeType.{u} := fun _ => ⟨PUnit⟩
+  DestructorArgs : DestructorId -> SomeType := fun _ => ⟨PUnit⟩
   [destructorsFinite : Fintype DestructorId]
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
 
   MethodId : Type
-  MethodArgs : MethodId -> SomeType.{u}
+  MethodArgs : MethodId -> SomeType
   [methodsFinite : Fintype MethodId]
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
@@ -94,7 +94,7 @@ def Label.MethodId.Args {lab : Class.Label} (methodId : lab.MethodId) : SomeType
 def Label.DestructorId.Args {lab : Class.Label} (destructorId : lab.DestructorId) : SomeType :=
   lab.DestructorArgs destructorId
 
-def Label.MemberId.Args {lab : Class.Label.{u}} (memberId : MemberId lab) : SomeType.{u} :=
+def Label.MemberId.Args {lab : Class.Label} (memberId : MemberId lab) : SomeType :=
   match memberId with
   | constructorId c => lab.ConstructorArgs c
   | destructorId c => lab.DestructorArgs c
