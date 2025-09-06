@@ -1,9 +1,10 @@
+import Prelude.Function
 /-
-Universe‑polymorphic heterogeneous list HList indexed by a list of types.
+Universe-polymorphic heterogeneous list HList indexed by a list of types.
 -/
 
 /-- Heterogeneous list whose element types are tracked by `ts : List (Type u)`. -/
-inductive HList.{u} : List (Type u) → Type (u+1) where
+inductive HList.{u} : List (Type u) → Type (u + 1) where
   | nil  : HList []
   | cons : {α : Type u} → {ts : List (Type u)} → α → HList ts → HList (α :: ts)
 
@@ -69,3 +70,18 @@ def zip.{u, v} :
     {ts : List (Type u)} → {us : List (Type v)} →
     HList.{u} ts → HList.{v} us → HList.{max u v} (List.zipWith (fun α β => α × β) ts us) :=
   zipWith (R := fun α β => α × β) (fun x y => (x, y))
+
+def PiCons
+  {ts : List (Type u)}
+  {ret : Type v}
+  (hl : HList (t :: ts) → ret)
+  : t → HList ts → ret := fun a h => hl (cons a h)
+
+def toPi
+  {ts : List (Type u)}
+  {ret : Type v}
+  (hl : HList ts → ret)
+  : Pi ts ret :=
+  match ts with
+  | [] => ULift.up (hl .nil)
+  | _t :: _ts => fun x => toPi (PiCons hl x)

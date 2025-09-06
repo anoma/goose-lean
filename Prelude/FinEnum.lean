@@ -64,3 +64,6 @@ def decImageOption' {A : Type u} [enum : FinEnum A] {B : (a : A) → Type v}
         have c := (p a).down
         rw [p1] at c
         contradiction
+
+def toVector {A : Type u} [enum : FinEnum A] : Vector A enum.card :=
+  Vector.ofFn (fun ix => enum.equiv.invFun ix)

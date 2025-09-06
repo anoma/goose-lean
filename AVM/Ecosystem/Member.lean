@@ -11,17 +11,17 @@ inductive DeconstructionKind : Type where
   | Disassembled
   deriving BEq
 
--- Question: Show it be allowed that there exists a disassembled object D such
+-- Question: Should it be allowed that there exists a disassembled object D such
 -- that there is no assembled object A such that D.uid = A.uid? Yes, I think this
 -- should be allowed
-structure Assembled {lab : Ecosystem.Label} {functionId : lab.MultiMethodId} (argDeconstruction : functionId.ObjectArgNames → DeconstructionKind) where
-  withArgumentUid : (arg : functionId.ObjectArgNames) → argDeconstruction arg = .Disassembled → Option SomeObjectData
+structure Assembled {lab : Ecosystem.Label} {multiMethodId : lab.MultiMethodId} (argDeconstruction : multiMethodId.ObjectArgNames → DeconstructionKind) : Type (u + 1) where
+  withArgumentUid : (arg : multiMethodId.ObjectArgNames) → argDeconstruction arg = .Disassembled → Option SomeObjectData
   withNewUid : List SomeObjectData
 
-structure MultiMethodResult {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : Type (u + 1) where
+structure MultiMethodResult {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : Type (u + 1) where
   /-- For each object argument we specify its usage. See `Usage`.
   Note that if `argUsage arg = .Destroyed`, then the object that corresponds to `arg` should *not* be put in the destroyed list -/
-  argDeconstruction : functionId.ObjectArgNames → DeconstructionKind
+  argDeconstruction : multiMethodId.ObjectArgNames → DeconstructionKind
   /-- List of assembled objects. Assembled objects will be created.
       It is the responsibility of the user to ensure that
       assembled objects balance with the object arguments that are disassembled -/
@@ -33,13 +33,13 @@ structure MultiMethodResult {lab : Ecosystem.Label} (functionId : lab.MultiMetho
 
 def MultiMethodResult.numSelvesDestroyed
   {lab : Ecosystem.Label}
-  {functionId : lab.MultiMethodId}
-  (res : MultiMethodResult functionId)
+  {multiMethodId : lab.MultiMethodId}
+  (res : MultiMethodResult multiMethodId)
   : Nat :=
-  functionId.objectArgNames.countP (fun a => res.argDeconstruction a == .Destroyed)
+  multiMethodId.objectArgNames.countP (fun a => res.argDeconstruction a == .Destroyed)
 
-structure MultiMethod {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) where
-  /-- Computes the result of a function call. See `MultiMethodResult`. -/
-  body (selves : functionId.Selves) (args : functionId.Args.type) : Program lab (MultiMethodResult functionId)
-  /-- Extra function logic. -/
-  invariant (selves : functionId.Selves) (args : functionId.Args.type) : Bool
+structure MultiMethod {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) where
+  /-- Computes the result of a multiMethod call. See `MultiMethodResult`. -/
+  body (selves : multiMethodId.Selves) (args : multiMethodId.Args.type) : Program lab (MultiMethodResult multiMethodId)
+  /-- Extra multiMethod logic. -/
+  invariant (selves : multiMethodId.Selves) (args : multiMethodId.Args.type) : Bool

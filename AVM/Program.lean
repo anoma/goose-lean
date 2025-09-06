@@ -5,7 +5,7 @@ import AVM.Program.Parameters
 
 namespace AVM
 
-inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (u + 1) where
+inductive Program.{u} (lab : Ecosystem.Label.{u}) (ReturnType : Type u) : Type (u + 1) where
   | constructor
     (cid : lab.ClassId)
     (constrId : cid.label.ConstructorId)
@@ -24,6 +24,12 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (u + 
     (methodId : cid.label.MethodId)
     (selfId : ObjectId)
     (args : methodId.Args.type)
+    (next : Program lab ReturnType)
+    : Program lab ReturnType
+  | multiMethod
+    (mid : lab.MultiMethodId)
+    (selfvesIds : mid.SelvesIds)
+    (args : mid.Args.type)
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | fetch
@@ -47,18 +53,21 @@ def Program.invoke
     .destructor cid destrId selfId args (Program.invoke cont next)
   | .method cid methodId selfId args cont =>
     .method cid methodId selfId args (Program.invoke cont next)
+  | .multiMethod mid selvesId args cont =>
+    .multiMethod mid selvesId args (Program.invoke cont next)
   | .fetch objId cont =>
     .fetch objId (fun obj => Program.invoke (cont obj) next)
   | .return val =>
     next val
 
 /-- All body parameters - the parameters at the point of the return statement. -/
-def Program.params {lab ReturnType} (prog : Program lab ReturnType) : Program.Parameters :=
+def Program.params {lab ReturnType} (prog : Program.{u} lab ReturnType) : Program.Parameters.{u} :=
   match prog with
   | .constructor _ _ _ next =>
     .genId (fun newId => next newId |>.params)
   | .destructor _ _ _ _ next => next.params
   | .method _ _ _ _ next => next.params
+  | .multiMethod _ _ _ next => next.params
   | .fetch objId next =>
     .fetch objId (fun obj => next obj |>.params)
   | .return _ => .empty
@@ -70,6 +79,8 @@ def Program.returnValue {lab ReturnType} (prog : Program lab ReturnType) (vals :
   | .destructor _ _ _ _ next, vals' =>
     next.returnValue vals'
   | .method _ _ _ _ next, vals' =>
+    next.returnValue vals'
+  | .multiMethod _ _ _ next, vals' =>
     next.returnValue vals'
   | .fetch _ next, ⟨obj, vals'⟩ =>
     next obj |>.returnValue vals'

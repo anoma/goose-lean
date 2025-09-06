@@ -3,7 +3,7 @@ import AVM.Object
 
 namespace AVM.Ecosystem
 
-structure Label : Type 1 where
+structure Label : Type (u + 1) where
   name : String
 
   ClassId : Type
@@ -13,17 +13,17 @@ structure Label : Type 1 where
   [classesBEq : BEq ClassId]
 
   MultiMethodId : Type := Empty
-  /-- Type of function arguments excluding `self` arguments. -/
+  /-- Type of multiMethod arguments excluding `self` arguments. -/
   MultiMethodArgs : MultiMethodId → SomeType := fun _ => ⟨PUnit⟩
-  /-- Names of `self` arguments for a given function. -/
+  /-- Names of `self` arguments for a given multiMethod. -/
   MultiMethodObjectArgNames : MultiMethodId → Type := fun _ => PUnit
   /-- Class identifiers for `self` arguments. -/
   MultiMethodObjectArgClass : {f : MultiMethodId} → MultiMethodObjectArgNames f → ClassId
   [objectArgNamesEnum (f : MultiMethodId) : FinEnum (MultiMethodObjectArgNames f)]
   [objectArgNamesBEq (f : MultiMethodId) : BEq (MultiMethodObjectArgNames f)]
-  [functionsFinite : FinEnum MultiMethodId]
-  [functionsRepr : Repr MultiMethodId]
-  [functionsBEq : BEq MultiMethodId]
+  [multiMethodsFinite : FinEnum MultiMethodId]
+  [multiMethodsRepr : Repr MultiMethodId]
+  [multiMethodsBEq : BEq MultiMethodId]
 
 def Label.classId (l : Label) (clab : Class.Label) : Option l.ClassId :=
   l.classesEnum.toList.find? (fun b => l.classLabel b == clab)
@@ -35,7 +35,8 @@ end AVM.Ecosystem
 
 namespace AVM.Ecosystem.Label
 
-/-- Singleton ecosystem: An ecosystem with a single class, no functions and no intents -/
+
+/-- Singleton ecosystem: An ecosystem with a single class, no multiMethods and no intents -/
 def singleton (l : Class.Label) : Ecosystem.Label where
   name := l.name
 
@@ -46,9 +47,15 @@ def singleton (l : Class.Label) : Ecosystem.Label where
 
 def dummy : Label := singleton Class.Label.dummy
 
+def MultiMethodObjectArgNames.classId
+  {lab : Ecosystem.Label}
+  {multiId : lab.MultiMethodId}
+  (arg : lab.MultiMethodObjectArgNames multiId)
+  : lab.ClassId := lab.MultiMethodObjectArgClass arg
+
 namespace ClassId
 
-def label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label :=
+def label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label.{u} :=
   lab.classLabel classId
 
 def MemberId {lab : Ecosystem.Label} (c : lab.ClassId) := c.label.MemberId
@@ -73,56 +80,71 @@ instance {lab : Ecosystem.Label} {classId : lab.ClassId}
 
 namespace MultiMethodId
 
-def Args {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : SomeType :=
-  lab.MultiMethodArgs functionId
+def Args {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : SomeType :=
+  lab.MultiMethodArgs multiMethodId
 
-def ObjectArgNames {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : Type :=
-  lab.MultiMethodObjectArgNames functionId
+def ObjectArgNames {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : Type :=
+  lab.MultiMethodObjectArgNames multiMethodId
 
-def objectArgNames {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : List functionId.ObjectArgNames :=
-  (lab.objectArgNamesEnum functionId).toList
+def numObjectArgs {lab : Ecosystem.Label} {multiMethodId : lab.MultiMethodId} : Nat :=
+  (lab.objectArgNamesEnum multiMethodId).card
 
-def ObjectArgNames.classId {lab : Ecosystem.Label} {functionId : lab.MultiMethodId} (argName : functionId.ObjectArgNames) : lab.ClassId :=
+def objectArgNames {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : List multiMethodId.ObjectArgNames :=
+  (lab.objectArgNamesEnum multiMethodId).toList
+
+def objectArgNamesVec {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : Vector multiMethodId.ObjectArgNames multiMethodId.numObjectArgs :=
+  (lab.objectArgNamesEnum multiMethodId).toVector
+
+def ObjectArgNames.classId {lab : Ecosystem.Label} {multiMethodId : lab.MultiMethodId} (argName : multiMethodId.ObjectArgNames) : lab.ClassId :=
   lab.MultiMethodObjectArgClass argName
 
 /-- Returns the index of an object argument -/
-def ObjectArgNames.ix {lab : Ecosystem.Label} {functionId : lab.MultiMethodId} (argName : functionId.ObjectArgNames) : Fin (lab.objectArgNamesEnum functionId).card :=
-  (lab.objectArgNamesEnum functionId).equiv.toFun argName
+def ObjectArgNames.ix {lab : Ecosystem.Label} {multiMethodId : lab.MultiMethodId} (argName : multiMethodId.ObjectArgNames) : Fin (lab.objectArgNamesEnum multiMethodId).card :=
+  (lab.objectArgNamesEnum multiMethodId).equiv.toFun argName
 
-def numObjectArgs {lab : Ecosystem.Label} {functionId : lab.MultiMethodId} : Nat :=
-  (lab.objectArgNamesEnum functionId).card
+def argsClasses {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : List lab.ClassId :=
+  let getArg (a : multiMethodId.ObjectArgNames) : lab.ClassId := lab.MultiMethodObjectArgClass a
+  List.map getArg multiMethodId.objectArgNames
 
-def argsClasses {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : List lab.ClassId :=
-  let getArg (a : functionId.ObjectArgNames) : lab.ClassId := lab.MultiMethodObjectArgClass a
-  List.map getArg functionId.objectArgNames
+def Selves {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : Type :=
+  (argName : lab.MultiMethodObjectArgNames multiMethodId) → Object (lab.MultiMethodObjectArgClass argName).label
 
-def Selves {lab : Ecosystem.Label} (functionId : lab.MultiMethodId) : Type :=
-  (argName : lab.MultiMethodObjectArgNames functionId) → Object (lab.MultiMethodObjectArgClass argName).label
+def SelvesFromHList
+  {lab : Ecosystem.Label}
+  (multiId : lab.MultiMethodId)
+  (l : HList (multiId.argsClasses.map (fun c => Object c.label)))
+  : multiId.Selves := sorry
+
+def SelvesIds
+  {lab : Ecosystem.Label}
+  (multiMethodId : lab.MultiMethodId)
+  : Type :=
+  (argName : lab.MultiMethodObjectArgNames multiMethodId) → ObjectId
 
 end MultiMethodId
 
 inductive MemberId (lab : Ecosystem.Label) where
-  | functionId (funId : lab.MultiMethodId)
+  | multiMethodId (funId : lab.MultiMethodId)
   | classMember {classId : lab.ClassId} (memId : classId.MemberId)
 
 namespace MemberId
 
 def Args {lab : Ecosystem.Label} (memberId : MemberId lab) : SomeType :=
   match memberId with
-  | functionId f => lab.MultiMethodArgs f
+  | multiMethodId f => lab.MultiMethodArgs f
   | classMember m => Class.Label.MemberId.Args m
 
 instance hasBEq {lab : Ecosystem.Label} : BEq (Ecosystem.Label.MemberId lab) where
   beq a b :=
     match a, b with
-    | functionId c1, functionId c2 => lab.functionsBEq.beq c1 c2
-    | functionId _, _ => false
-    | _, functionId _ => false
+    | multiMethodId c1, multiMethodId c2 => lab.multiMethodsBEq.beq c1 c2
+    | multiMethodId _, _ => false
+    | _, multiMethodId _ => false
     | classMember c1, classMember c2 => c1 === c2
 
 def numObjectArgs {lab : Ecosystem.Label} (memberId : MemberId lab) : Nat :=
   match memberId with
-  | functionId f => f.numObjectArgs
+  | multiMethodId f => f.numObjectArgs
   | classMember _ => 1
 
 end MemberId

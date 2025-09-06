@@ -3,8 +3,8 @@ import AVM.Class.Label
 
 namespace AVM
 
-structure TypedObjectId where
-  classLabel : Class.Label
+structure TypedObjectId : Type (u + 1) where
+  classLabel : Class.Label.{u}
   uid : ObjectId
 
 structure ObjectData (lab : Class.Label) where

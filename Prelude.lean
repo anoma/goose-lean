@@ -1,6 +1,7 @@
 import Prelude.Check
 import Prelude.FinEnum
 import Prelude.FinEnum.Derive
+import Prelude.Function
 import Prelude.HBeq
 import Prelude.HList
 import Prelude.HashMap
