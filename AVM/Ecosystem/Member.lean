@@ -18,11 +18,11 @@ structure Assembled
   {lab : Ecosystem.Label}
   {multiMethodId : lab.MultiMethodId}
   (argDeconstruction : multiMethodId.ObjectArgNames → DeconstructionKind)
-  : Type (u) where
-  withArgumentUid : (arg : multiMethodId.ObjectArgNames) → argDeconstruction arg = .Disassembled → Option SomeObjectData.{u}
+  : Type (u + 1) where
+  withArgumentUid : (arg : multiMethodId.ObjectArgNames) → argDeconstruction arg = .Disassembled → Option SomeObjectData
   withNewUid : List SomeObjectData
 
-structure MultiMethodResult {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : Type (u) where
+structure MultiMethodResult {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : Type (u + 1) where
   /-- For each object argument we specify its usage. See `Usage`.
   Note that if `argUsage arg = .Destroyed`, then the object that corresponds to `arg` should *not* be put in the destroyed list -/
   argDeconstruction : multiMethodId.ObjectArgNames → DeconstructionKind
@@ -42,7 +42,7 @@ def MultiMethodResult.numSelvesDestroyed
   : Nat :=
   multiMethodId.objectArgNames.countP (fun a => res.argDeconstruction a == .Destroyed)
 
-structure MultiMethod.{u} {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : Type (u + 2) where
+structure Ecosystem.MultiMethod.{u} {lab : Ecosystem.Label} (multiMethodId : lab.MultiMethodId) : Type (u + 2) where
   /-- Computes the result of a multiMethod call. See `MultiMethodResult`. -/
   body (selves : multiMethodId.Selves) (args : multiMethodId.Args.type) : Program lab (MultiMethodResult multiMethodId)
   /-- Extra multiMethod logic. -/

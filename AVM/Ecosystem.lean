@@ -7,4 +7,4 @@ namespace AVM
 /-- Ecosystem is a collection of classes. -/
 structure Ecosystem (label : Ecosystem.Label) where
   classes : (c : label.ClassId) → Class c
-  multiMethods : (f : label.MultiMethodId) → MultiMethod f
+  multiMethods : (f : label.MultiMethodId) → Ecosystem.MultiMethod f

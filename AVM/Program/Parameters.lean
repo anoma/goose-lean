@@ -3,9 +3,9 @@ import AVM.Ecosystem.Label
 
 namespace AVM
 
-inductive Program.Parameters.{u} : Type (u + 1) where
+inductive Program.Parameters : Type 1 where
   | empty
-  | fetch (param : TypedObjectId.{u}) (rest : Object param.classLabel → Program.Parameters)
+  | fetch (param : TypedObjectId) (rest : Object param.classLabel → Program.Parameters)
   | genId (rest : ObjectId → Program.Parameters)
   deriving Inhabited, Nonempty
 
@@ -25,6 +25,7 @@ def fetchManyHList
   (rest : HList (params.map (fun param => Object param.classLabel)) → Program.Parameters)
   : Program.Parameters := fetchMany params (HList.toPi rest)
 
+-- I think this is true
 theorem helper
   {lab : Ecosystem.Label}
   {multiId : lab.MultiMethodId}
@@ -47,7 +48,7 @@ def fetchSelves
                                        classLabel := arg.classId.label}))
       (fun h => rest (multiId.SelvesFromHList (helper selvesIds ▸ h)))
 
-def Product (params : Program.Parameters) : Type u :=
+def Product (params : Program.Parameters) : Type :=
   match params with
   | .empty => PUnit
   | .fetch param rest =>

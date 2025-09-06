@@ -3,8 +3,8 @@ import AVM.Class.Label
 
 namespace AVM
 
-structure TypedObjectId : Type (u + 1) where
-  classLabel : Class.Label.{u}
+structure TypedObjectId : Type 1 where
+  classLabel : Class.Label
   uid : ObjectId
 
 structure ObjectData (lab : Class.Label) where
@@ -31,7 +31,7 @@ def ObjectData.toSomeObjectData {lab : Class.Label} (data : ObjectData lab) : So
 
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
-structure Object.{u} (lab : Class.Label.{u}) : Type u where
+structure Object (lab : Class.Label) : Type where
   /-- Unique object identifier. Stored in the `value` field of the resource. -/
   uid : Anoma.ObjectId
   nonce : Anoma.Nonce
@@ -118,5 +118,5 @@ def SomeObject.fromResource
   let try obj := @Object.fromResource lab res
   some {label := lab, object := obj}
 
-def Resource.isSomeObject.{u, v, w} (res : Anoma.Resource.{u, v}) : Bool :=
-  Option.isSome (SomeObject.fromResource.{u, v, w} res)
+def Resource.isSomeObject.{u, v} (res : Anoma.Resource.{u, v}) : Bool :=
+  Option.isSome (SomeObject.fromResource.{u, v} res)

@@ -33,7 +33,7 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (u + 
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | fetch
-    (objId : TypedObjectId.{u})
+    (objId : TypedObjectId)
     (next : Object objId.classLabel → Program lab ReturnType)
     : Program lab ReturnType
   | return
@@ -61,7 +61,7 @@ def Program.invoke
     next val
 
 /-- All body parameters - the parameters at the point of the return statement. -/
-def Program.params.{u} {lab ReturnType} (prog : Program.{u} lab ReturnType) : Program.Parameters.{u} :=
+def Program.params {lab} {ReturnType : Type u} (prog : Program lab ReturnType) : Program.Parameters :=
   match prog with
   | .constructor _ _ _ next =>
     .genId (fun newId => next newId |>.params)
@@ -72,7 +72,7 @@ def Program.params.{u} {lab ReturnType} (prog : Program.{u} lab ReturnType) : Pr
     .fetch objId (fun obj => next obj |>.params)
   | .return _ => .empty
 
-def Program.returnValue {lab ReturnType} (prog : Program lab ReturnType) (vals : prog.params.Product) : ReturnType :=
+def Program.returnValue {lab} {ReturnType : Type 0} (prog : Program lab ReturnType) (vals : prog.params.Product) : ReturnType :=
   match prog, vals with
   | .constructor _ _ _ next, ⟨newId, vals'⟩ =>
     next newId |>.returnValue vals'
@@ -84,4 +84,4 @@ def Program.returnValue {lab ReturnType} (prog : Program lab ReturnType) (vals :
     next.returnValue vals'
   | .fetch _ next, ⟨obj, vals'⟩ =>
     next obj |>.returnValue vals'
-  | .return val, () => val
+  | .return val, _ => val

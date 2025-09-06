@@ -55,7 +55,7 @@ def MultiMethodObjectArgNames.classId
 
 namespace ClassId
 
-def label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label.{0} :=
+def label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label :=
   lab.classLabel classId
 
 def MemberId {lab : Ecosystem.Label} (c : lab.ClassId) := c.label.MemberId

@@ -18,7 +18,7 @@ structure Task.Actions : Type (u + 1) where
 structure Task.{u} : Type (u + 1) where
   /-- Task parameters - objects to fetch from the Anoma system and new object
     ids to generate. -/
-  params : Program.Parameters.{u}
+  params : Program.Parameters
   /-- The message to send to the recipient. -/
   message : params.Product → Option SomeMessage
   /-- Task actions - actions to perform parameterised by fetched objects and new
@@ -26,7 +26,7 @@ structure Task.{u} : Type (u + 1) where
   actions : params.Product → Rand (Option Task.Actions.{u})
   deriving Inhabited
 
-def Task.absorbParams.{u} (params : Program.Parameters.{u}) (task : params.Product → Task.{u}) : Task.{u} :=
+def Task.absorbParams.{u} (params : Program.Parameters) (task : params.Product → Task.{u}) : Task.{u} :=
   { params := params.append (fun vals => (task vals).params),
     message := fun vals =>
       let ⟨vals1, vals2⟩ := Program.Parameters.splitProduct vals

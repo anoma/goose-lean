@@ -38,6 +38,20 @@ private def logic
   (args : Logic.Args)
   : Bool := sorry
 
+def MultiMethod.message
+  {lab : Ecosystem.Label}
+  {multiId : lab.MultiMethodId}
+  (_method : Ecosystem.MultiMethod multiId)
+  (Vals : SomeType)
+  (vals : Vals.type)
+  (selfId : ObjectId)
+  (args : multiId.Args.type)
+  : Message lab :=
+  { id := .multiMethodId multiId,
+    vals,
+    args,
+    recipient := sorry }
+
 end AVM.Ecosystem
 
 namespace AVM
@@ -68,8 +82,7 @@ partial def Program.tasks.{u}
     let task := method.task eco selfId args
     task :: Program.tasks eco next vals
   | .multiMethod methodId selvesIds args next =>
-    let method : MultiMethod methodId := eco.multiMethods methodId
-    let task := method.task eco selvesIds args
+    let task := methodId.task eco selvesIds args
     task :: Program.tasks eco next vals
   | .fetch _ next =>
     let ⟨obj, vals'⟩ := vals
@@ -86,7 +99,7 @@ partial def Class.Constructor.task.{u}
   (args : constrId.Args.type)
   : Task.{u} :=
   let bodyParams := (constr.body args).params
-  let params : Program.Parameters.{u} := Program.Parameters.genId (fun _ => bodyParams)
+  let params : Program.Parameters := Program.Parameters.genId (fun _ => bodyParams)
   Task.absorbParams params fun ⟨newId, vals⟩ =>
     let body := constr.body args
     let tasks := Program.tasks eco body vals
@@ -147,26 +160,26 @@ partial def Class.Method.task.{u}
          ephemeral := false }]
     Task.composeWithMessage (method.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
 
-partial def MultiMethod.task.{u}
+partial def Ecosystem.Label.MultiMethodId.task.{u}
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   {methodId : lab.MultiMethodId}
-  (method : MultiMethod methodId)
   (selvesIds : methodId.SelvesIds)
   (args : methodId.Args.type)
   : Task.{u} :=
+  let method := eco.multiMethods methodId
   let bodyParams (selves : methodId.Selves) : Program.Parameters := method.body selves args |>.params
   let params : Program.Parameters := Program.Parameters.fetchSelves (multiId := methodId) selvesIds bodyParams
-  sorry
-  -- Task.absorbParams params fun (selvesVals : params.Product) =>
-  --   let body := method.body self args
-  --   let tasks : List Task := Program.tasks eco body vals
-  --   let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
-  --   let obj := (body.returnValue vals).toSomeObject
-  --   let createdObjects : List CreatedObject :=
-  --     [{ uid := obj.object.uid,
-  --        data := obj.object.data,
-  --        ephemeral := false }]
-  --   Task.composeWithMessage (method.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
+  Task.absorbParams params fun (selvesAndVals : params.Product) =>
+    -- let body := method.body ?self args
+    -- let tasks : List Task := Program.tasks eco body ?vals
+    -- let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
+    -- let obj := (body.returnValue vals).toSomeObject
+    -- let createdObjects : List CreatedObject :=
+    --   [{ uid := obj.object.uid,
+    --      data := obj.object.data,
+    --      ephemeral := false }]
+    -- Task.composeWithMessage (method.message ⟨(bodyParams self).Product⟩ vals selfId args) tasks [consumedObj] createdObjects
+    sorry
 
 end -- mutual
