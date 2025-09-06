@@ -111,5 +111,5 @@ def SomeObject.balanceConstructed (constructed : SomeObject) : SomeConsumedObjec
   consumed :=
   let obj : Object constructed.label := constructed.object
   { object := obj,
-    can_nullify := Anoma.Resource.nullifyUniversal (obj.toResource true obj.nonce)
+    can_nullify := Anoma.Resource.nullifyUniversal (obj.toResource true)
     ephemeral := true }
