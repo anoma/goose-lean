@@ -9,17 +9,12 @@ structure CreatedObject where
   uid : Anoma.ObjectId
   data : ObjectData label
   ephemeral : Bool
+  /-- A unique random value used for the nonce of the balancing dummy ephemeral
+    resource in the same compliance unit. -/
+  rand : Nat
 
-def CreatedObject.fromSomeObjectData (data : SomeObjectData) (uid : ObjectId) (ephemeral : Bool) : CreatedObject :=
-  { uid,
-    data := data.data,
-    ephemeral }
-
-def CreatedObject.fromSomeObject (obj : SomeObject) (ephemeral : Bool) : CreatedObject :=
+def CreatedObject.fromSomeObject (obj : SomeObject) (ephemeral : Bool) (rand : Nat) : CreatedObject :=
   { uid := obj.object.uid,
     data := obj.object.data,
-    ephemeral }
-
-def CreatedObject.toResource (c : CreatedObject) (nonce : Anoma.Nonce) : Anoma.Resource :=
-  let obj : Object c.label := {uid := c.uid, nonce, data := c.data}
-  obj.toResource (ephemeral := c.ephemeral)
+    ephemeral,
+    rand }

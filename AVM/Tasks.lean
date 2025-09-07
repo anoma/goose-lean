@@ -4,8 +4,11 @@ namespace AVM
 
 inductive Tasks (α : Type u) where
   | task (task : Task) (rest : task.params.Product → Tasks α) : Tasks α
+  /-- The `rest` continuation receives the unadjusted original object value and
+    is supposed to adjust it by the modifications to that object that occurred
+    from the start of the program up to the fetch. -/
   | fetch (param : TypedObjectId) (rest : Object param.classLabel → Tasks α) : Tasks α
-  | genId (rest : ObjectId → Tasks α) : Tasks α
+  | rand (rest : Nat → Tasks α) : Tasks α
   | result (value : α) : Tasks α
   deriving Inhabited
 
@@ -13,9 +16,12 @@ def Tasks.params {α} (tasks : Tasks α) : Program.Parameters :=
   match tasks with
   | .task t rest => (t.params.append (fun vals => (rest vals).params))
   | .fetch p rest => .fetch p (fun obj => (rest obj).params)
-  | .genId rest => .genId (fun objId => (rest objId).params)
+  | .rand rest => .rand (fun r => (rest r).params)
   | .result _ => .empty
 
+/-- `vals` are the object values as fetched from Anoma before the transaction
+  submission, i.e., they are not adjusted by subsequent modifications in the
+  program. -/
 def Tasks.value {α} (tasks : Tasks α) (vals : tasks.params.Product) : α :=
   match tasks with
   | .task _ rest =>
@@ -24,19 +30,22 @@ def Tasks.value {α} (tasks : Tasks α) (vals : tasks.params.Product) : α :=
   | .fetch _ rest =>
     let ⟨obj, vals'⟩ := vals
     Tasks.value (rest obj) vals'
-  | .genId rest =>
-    let ⟨objId, vals'⟩ := vals
-    Tasks.value (rest objId) vals'
+  | .rand rest =>
+    let ⟨r, vals'⟩ := vals
+    Tasks.value (rest r) vals'
   | .result v => v
 
-def Tasks.map {α β} (tasks : Tasks α) (f : tasks.params.Product → α → β) : Tasks β :=
+def Tasks.map' {α β} (tasks : Tasks α) (f : tasks.params.Product → α → β) : Tasks β :=
   match tasks with
-  | .task t rest => .task t (fun vals => map (rest vals) (fun vals' => f (vals.append vals')))
-  | .fetch p rest => .fetch p (fun obj => map (rest obj) (fun vals' => f ⟨obj, vals'⟩))
-  | .genId rest => .genId (fun objId => map (rest objId) (fun vals' => f ⟨objId, vals'⟩))
+  | .task t rest => .task t (fun vals => map' (rest vals) (fun vals' => f (vals.append vals')))
+  | .fetch p rest => .fetch p (fun obj => map' (rest obj) (fun vals' => f ⟨obj, vals'⟩))
+  | .rand rest => .rand (fun r => map' (rest r) (fun vals' => f ⟨r, vals'⟩))
   | .result v => .result (f () v)
 
-def Tasks.coerce {α β} {tasks : Tasks α} {f : tasks.params.Product → α → β} (vals : (tasks.map f).params.Product) : tasks.params.Product :=
+def Tasks.map {α β} (tasks : Tasks α) (f : α → β) : Tasks β :=
+  tasks.map' (fun _ a => f a)
+
+def Tasks.coerce {α β} {tasks : Tasks α} {f : tasks.params.Product → α → β} (vals : (tasks.map' f).params.Product) : tasks.params.Product :=
   match tasks with
   | .task _ _ =>
     let ⟨vals1, vals2⟩ := vals.split
@@ -44,9 +53,9 @@ def Tasks.coerce {α β} {tasks : Tasks α} {f : tasks.params.Product → α →
   | .fetch _ _ =>
     let ⟨obj, vals'⟩ := vals
     ⟨obj, coerce vals'⟩
-  | .genId _ =>
-    let ⟨objId, vals'⟩ := vals
-    ⟨objId, coerce vals'⟩
+  | .rand _ =>
+    let ⟨r, vals'⟩ := vals
+    ⟨r, coerce vals'⟩
   | .result _ => vals
 
 def TasksWithAction := Tasks (Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
@@ -69,9 +78,9 @@ def Tasks.composeActions
   | .fetch _ rest =>
     let ⟨obj, vals'⟩ := vals
     composeActions (rest obj) vals'
-  | .genId rest =>
-    let ⟨objId, vals'⟩ := vals
-    composeActions (rest objId) vals'
+  | .rand rest =>
+    let ⟨r, vals'⟩ := vals
+    composeActions (rest r) vals'
 
 def Tasks.composeMessages {α} (tasks : Tasks α) (vals : tasks.params.Product) : List SomeMessage :=
   match tasks with
@@ -83,9 +92,9 @@ def Tasks.composeMessages {α} (tasks : Tasks α) (vals : tasks.params.Product) 
   | .fetch _ rest =>
     let ⟨obj, vals'⟩ := vals
     composeMessages (rest obj) vals'
-  | .genId rest =>
-    let ⟨objId, vals'⟩ := vals
-    composeMessages (rest objId) vals'
+  | .rand rest =>
+    let ⟨r, vals'⟩ := vals
+    composeMessages (rest r) vals'
 
 def Tasks.composeWithAction
   (tasks : TasksWithAction)
@@ -98,20 +107,20 @@ def Tasks.composeWithAction
 def Tasks.composeWithMessage
   {α}
   (tasks : Tasks α)
-  (msg : tasks.params.Product → SomeMessage)
-  (objects : tasks.params.Product → α → List SomeConsumableObject × List CreatedObject)
+  (msg : α → SomeMessage)
+  (objects : α → List SomeConsumableObject × List CreatedObject)
   : Task :=
   let mkAction (vals : tasks.params.Product) (a : α)
     : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
-    let (consumedObjs, createdObjects) := objects vals a
+    let (consumedObjs, createdObjects) := objects a
     let try consumedObjects := consumedObjs.map (·.consume) |>.getSome
     let createdMessages := composeMessages tasks vals
-    Action.create consumedObjects createdObjects [msg vals] createdMessages
-  Tasks.composeWithAction (tasks.map mkAction) (fun vals => some (msg (coerce vals)))
+    Action.create consumedObjects createdObjects [msg a] createdMessages
+  Tasks.composeWithAction (tasks.map' mkAction) (fun vals => some (msg (tasks.value (coerce vals))))
 
 def Tasks.compose (tasks : Tasks Unit) : Task :=
   let mkAction (vals : tasks.params.Product) (_ : Unit)
     : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
     let createdMessages := tasks.composeMessages vals
     Action.create [] [] [] createdMessages
-  Tasks.composeWithAction (tasks.map mkAction) (fun _ => none)
+  Tasks.composeWithAction (tasks.map' mkAction) (fun _ => none)

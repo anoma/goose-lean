@@ -51,3 +51,26 @@ def Program.invoke
     .fetch objId (fun obj => Program.invoke (cont obj) next)
   | .return val =>
     next val
+
+def Program.params {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) : Parameters :=
+  match prog with
+  | .constructor _ _ _ next => .genId (fun newId => next newId |>.params)
+  | .destructor _ _ _ _ next => next.params
+  | .method _ _ _ _ next => next.params
+  | .fetch objId next => .fetch objId (fun obj => next obj |>.params)
+  | .return _ => .empty
+
+def Program.value {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) (vals : prog.params.Product) : α :=
+  match prog with
+  | .constructor _ _ _ next =>
+    let ⟨newId, vals'⟩ := vals
+    next newId |>.value vals'
+  | .destructor _ _ _ _ next =>
+    next.value vals
+  | .method _ _ _ _ next =>
+    next.value vals
+  | .fetch _ next =>
+    let ⟨obj, vals'⟩ := vals
+    next obj |>.value vals'
+  | .return val =>
+    val

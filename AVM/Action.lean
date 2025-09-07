@@ -12,6 +12,14 @@ import AVM.Message
 
 namespace AVM
 
+def CreatedObject.toObject (c : CreatedObject.{u}) : Object c.label :=
+  let res : Anoma.Resource.{u, u} := Action.dummyResource ⟨c.rand⟩
+  let nonce := res.nullifyUniversal.nullifier.toNonce
+  {uid := c.uid, nonce, data := c.data}
+
+def CreatedObject.toResource (c : CreatedObject) : Anoma.Resource :=
+  c.toObject.toResource (ephemeral := c.ephemeral)
+
 def Action.create'
   (g : StdGen)
   (consumedObjects : List SomeConsumedObject)
@@ -56,7 +64,7 @@ def Action.create'
         let nonce := res.nullifyUniversal.nullifier.toNonce
         let complianceWitness :=
             { consumedResource := res
-              createdResource := obj.toResource nonce
+              createdResource := obj.toResource
               nfKey := Anoma.NullifierKey.universal,
               rcv := r'.repr }
         (complianceWitness :: acc, g'')
@@ -101,10 +109,11 @@ def Action.create
   return (action, witness)
 
 /-- Used to balance a consumed object that's meant to be destroyed -/
-def SomeConsumedObject.balanceDestroyed (destroyed : SomeConsumedObject) : CreatedObject where
+def SomeConsumedObject.balanceDestroyed (rand : Nat) (destroyed : SomeConsumedObject) : CreatedObject where
   uid := destroyed.consumed.object.uid
   data := destroyed.consumed.object.data
   ephemeral := true
+  rand
 
 /-- Used to balance a constructed object -/
 def SomeObject.balanceConstructed (constructed : SomeObject) : SomeConsumedObject where

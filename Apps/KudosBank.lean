@@ -12,11 +12,11 @@ def Std.HashMap.modifyDefault
 
 structure Denomination where
   originator : PublicKey
-  deriving BEq, Hashable, DecidableEq
+  deriving BEq, Inhabited, Hashable, DecidableEq
 
 structure Account where
   assets : Std.HashMap Denomination Nat
-  deriving BEq
+  deriving BEq, Inhabited
 
 namespace Account
 
@@ -67,7 +67,7 @@ structure Check where
   denomination : Denomination
   owner : PublicKey
   quantity : Nat
-  deriving BEq
+  deriving BEq, Inhabited
 
 namespace Check
 
@@ -110,7 +110,7 @@ structure Auction where
   biddingDenomination : Denomination
   highestBid : Nat
   highestBidder : PublicKey
-  deriving BEq
+  deriving BEq, Inhabited
 
 namespace Auction
 

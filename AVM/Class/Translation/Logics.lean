@@ -1,4 +1,6 @@
-import AVM.Class.Translation
+import AVM.Class
+import AVM.Message
+import AVM.Logic
 
 namespace AVM.Class
 
@@ -13,7 +15,7 @@ def Constructor.Message.logic
   let try msg : Message classId.label := Message.fromResource args.self
   let try argsData := SomeType.cast msg.args
   let try vals : (constr.body argsData).params.Product := tryCast msg.vals
-  let newObjData := constr.body argsData |>.returnValue vals
+  let newObjData := constr.body argsData |>.value vals
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
   Logic.checkResourcesData [newObjData.toSomeObjectData] consumedResObjs
@@ -58,7 +60,7 @@ def Method.Message.logic
   check method.invariant selfObj argsData
   let body := method.body selfObj argsData
   let try vals : body.params.Product := tryCast msg.vals
-  let createdObject : Object classId.label := body |>.returnValue vals
+  let createdObject : Object classId.label := body |>.value vals
   Logic.checkResourcesData [createdObject.toSomeObjectData] createdResObjs
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
