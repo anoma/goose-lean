@@ -13,6 +13,6 @@ Example Anoma applications implemented with the GOOSE framework are available in
 
 1. `cd docbuild`
 2. `lake update doc-gen4`
-3. `lake build AVM:docs`
+3. `lake build Goose:docs`
 
 After executing the above commands, the documentation will be available in `docbuild/.lake/build/doc`. To view it, change into the `docbuild/.lake/build/doc` directory and run `python3 -m http.server`.
