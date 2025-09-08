@@ -22,6 +22,12 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Eco.lab Unit
   return ()
 ⟫
 
+def createCounter : Program Eco.lab (Reference Counter) := ⟪
+  r := create Counter Counter.Constructors.Zero ()
+  call Counter.Methods.Incr r (7 : Nat)
+  return r
+⟫
+
 example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
@@ -92,13 +98,16 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
 example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
+  cRef := invoke createCounter
   c1 := fetch self.c1
   c2 := fetch self.c2
   match c1.count with
   | 0 => return c2
   | Nat.succ n' =>
+    call Counter.Methods.Incr cRef (3 : Nat)
     if c1.count > c2.count then
-      invoke mutualIncrement self.c2 self.c1 n'
+      c := fetch cRef
+      invoke mutualIncrement self.c2 self.c1 (n' + c.count)
       return c1
     else
       invoke mutualIncrement self.c1 self.c2 n'
@@ -139,6 +148,64 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
         return c2
       else
         return c1
+⟫
+
+example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+  invoke mutualIncrement self.c1 self.c2 n
+  invoke mutualIncrement self.c2 self.c1 n
+  c1 := fetch self.c1
+  c2 := fetch self.c2
+  !let x := c1.count + c2.count
+  match c1.count with
+  | 0 => ⟪return c2⟫
+  | Nat.succ n' =>
+    if c1.count > c2.count then ⟪
+      invoke mutualIncrement self.c2 self.c1 (n' + x)
+      return c1
+    ⟫ else ⟪
+      if c1.count < c2.count then
+        invoke mutualIncrement self.c1 self.c2 (n' + x)
+        return c2
+      else
+        return c1
+    ⟫
+⟫
+
+example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+  invoke mutualIncrement self.c1 self.c2 n
+  invoke mutualIncrement self.c2 self.c1 n
+  c1 := fetch self.c1
+  c2 := fetch self.c2
+  let x : Nat := c1.count + c2.count
+  match c1.count with
+  | 0 => return c2
+  | Nat.succ n' =>
+    if c1.count > c2.count then
+      invoke mutualIncrement self.c2 self.c1 (n' + x)
+      return c1
+    else
+      if c1.count < c2.count then
+        invoke mutualIncrement self.c1 self.c2 (n' + x)
+        return c2
+      else
+        return c1
+⟫
+
+example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+  invoke mutualIncrement self.c1 self.c2 n
+  invoke mutualIncrement self.c2 self.c1 n
+  c1 := fetch self.c1
+  c2 := fetch self.c2
+  match c1.count with
+  | 0 => return c2
+  | Nat.succ n' =>
+    if c1.count >= c2.count then
+      invoke mutualIncrement self.c2 self.c1 n'
+      if c1.count == c2.count then
+        invoke mutualIncrement self.c1 self.c2 n'
+      else
+        invoke mutualIncrement self.c2 self.c1 n'
+    return c1
 ⟫
 
 end TwoCounterApp

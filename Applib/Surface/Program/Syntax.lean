@@ -11,10 +11,11 @@ def matchAltsParser : Parser.Parser :=
   Lean.Parser.Term.matchAlts (Lean.Parser.withPosition (Lean.Parser.categoryParser `branch_body 0))
 
 syntax program : branch_body
+syntax colGe withPosition("let" term (":" term)? ":=" term) optSemicolon(program) : program
 syntax colGe withPosition("match " term,+ " with " ppLine colGe matchAltsParser) : program
 syntax colGe withPosition("match " term,+ " with " ppLine colGe matchAltsParser) optSemicolon(program) : program
-syntax colGe withPosition("if " term " then " colGt withPosition(program)) withPosition(" else " colGt withPosition(program)) : program
-syntax colGe withPosition("if " term " then " colGt withPosition(program)) withPosition(" else " colGt withPosition(program)) optSemicolon(program) : program
+syntax colGe withPosition("if " term " then " colGt withPosition(program)) colGe withPosition(" else " colGt withPosition(program)) : program
+syntax colGe withPosition("if " term " then " colGt withPosition(program)) colGe withPosition(" else " colGt withPosition(program)) optSemicolon(program) : program
 syntax colGe withPosition("if " term " then " colGt withPosition(program)) : program
 syntax colGe withPosition("if " term " then " colGt withPosition(program)) optSemicolon(program) : program
 syntax colGe "create " ident ident term : program
@@ -29,11 +30,16 @@ syntax colGe withPosition("invoke " term) optSemicolon(program) : program
 syntax colGe withPosition(ident " := " " invoke " term) optSemicolon(program) : program
 syntax colGe withPosition(ident " := " " fetch " term) optSemicolon(program) : program
 syntax colGe "return " term : program
+syntax colGe "!" term : program
 syntax "⟪" withPosition(program) "⟫" : term
 
 macro_rules
   | `(branch_body| $p:program) =>
     `(⟪$p⟫)
+  | `(⟪let $x:term := $e:term ; $p:program⟫) =>
+    `(let ($x) := $e ; ⟪$p⟫)
+  | `(⟪let $x:term : $ty:term := $e:term ; $p:program⟫) =>
+    `(let ($x) : $ty := $e ; ⟪$p⟫)
   | `(⟪match $es:term with $alts⟫) =>
     `(match $es:term with $alts)
   | `(⟪match $es:term with $alts ; $p:program⟫) =>
@@ -70,3 +76,5 @@ macro_rules
     `(Program.fetch' $e (fun $x => ⟪$p⟫))
   | `(⟪return $e:term⟫) =>
     `(Program.return $e)
+  | `(⟪ ! $e:term⟫) =>
+    `($e)
