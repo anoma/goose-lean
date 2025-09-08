@@ -20,7 +20,7 @@ private axiom SomeType.eqTypeRep.{u} {A B : SomeType.{u}} : A.typeTypeRep.rep = 
 instance SomeType.instLawfulBEq : LawfulBEq SomeType where
   eq_of_beq := by
     intro a b eq
-    simp [BEq.beq, hasBEq] at eq
+    simp [BEq.beq] at eq
     exact SomeType.eqTypeRep eq
 
 instance {A : SomeType} : TypeRep A.type := A.typeTypeRep
