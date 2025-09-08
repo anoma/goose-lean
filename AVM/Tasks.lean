@@ -2,11 +2,11 @@ import AVM.Task
 
 namespace AVM
 
-/-- Tasks resulting from the compilation of an AVM program. The `Tasks` type
-  mimics more closely the structure of AVM programs than a single `Task`.
-  `AVM.Program` is compiled to `Tasks` which are then composed into a single
-  `Task`. The composition of `Tasks` collects and lifts out the parameters of
-  all subtasks. -/
+/-- The `Tasks` type represents a sequence of tasks with intervening object
+  fetches and random value generations. The `Tasks` type mimics more closely the
+  structure of AVM programs than a single `Task`. `AVM.Program` is compiled to
+  `Tasks` which are then composed into a single `Task`. The composition of
+  `Tasks` collects and lifts out the parameters of all subtasks. -/
 inductive Tasks (α : Type u) where
   /-- Execute a subtask and continue. The `rest` continuation receives the
     unadjusted parameter values. -/
