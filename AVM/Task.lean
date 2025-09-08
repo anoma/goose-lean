@@ -16,8 +16,9 @@ structure Task.Actions where
   level of abstraction to compose translations of different message sends,
   enabling nested method calls and subobjects. -/
 structure Task.{u} : Type (u + 1) where
-  /-- Task parameters - objects to fetch from the Anoma system and new object
-    ids to generate. -/
+  /-- Task parameters - objects to fetch from the Anoma system and random values
+    to generate. In general, values in `task.params.Product` are assumed to be
+    unadjusted (see `Program.Parameters.Product`). -/
   params : Program.Parameters
   /-- The message to send to the recipient. -/
   message : params.Product → Option SomeMessage

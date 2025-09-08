@@ -2,15 +2,32 @@ import AVM.Object
 
 namespace AVM
 
+/-- Type describing the parameters of a program. Program parameters are the
+  random values generated and the objects fetched inside the program. -/
 inductive Program.Parameters where
   | empty
   | fetch (param : TypedObjectId) (rest : Object param.classLabel → Program.Parameters)
   | rand (rest : Nat → Program.Parameters)
 deriving Inhabited, Nonempty
 
+/-- Generate a random unique ObjectId. -/
 def Program.Parameters.genId (rest : ObjectId → Program.Parameters) : Program.Parameters :=
   .rand rest
 
+/-- Type of program parameter values. Program parameter values can be adjusted
+  or unadjusted. Unadjusted parameter values are the values of parameters at the
+  start of the program, before any of the program instructions are executed
+  (this makes a difference only for object values). Adjusted parameter values
+  are the values of parameters at the point in the program where they are
+  fetched. For example, in the following program the adjusted value of `obj` is
+  equal to the unadjusted value of `obj` with `obj.count` incremented by `n`:
+  ```
+  example (objId : ObjectId) (n : Nat) : Program lab Nat :=
+    Program.method Counter Counter.Increment objId n <|
+    Program.fetch ⟨Counter, objId⟩ fun obj =>
+      Program.return obj.count
+  ```
+-/
 def Program.Parameters.Product (params : Program.Parameters) : Type u :=
   match params with
   | .empty => PUnit
@@ -19,7 +36,7 @@ def Program.Parameters.Product (params : Program.Parameters) : Type u :=
   | .rand rest =>
     Σ (r : Nat), Program.Parameters.Product (rest r)
 
-def Program.Parameters.Product.defaultValue (params : Program.Parameters) : params.Product :=
+private def Program.Parameters.Product.defaultValue (params : Program.Parameters) : params.Product :=
   match params with
   | .empty => PUnit.unit
   | .fetch _ rest =>
@@ -30,18 +47,18 @@ def Program.Parameters.Product.defaultValue (params : Program.Parameters) : para
 instance {params : Program.Parameters} : Inhabited params.Product where
   default := Program.Parameters.Product.defaultValue params
 
-def Program.Parameters.map (f : {lab : Class.Label} → Object lab → Object lab) (params : Program.Parameters) : Program.Parameters :=
+instance {params : Program.Parameters} : TypeRep params.Product where
+  rep := Rep.atomic "Program.Parameters.Product" -- TODO: this should depend on params
+
+namespace Program.Parameters
+
+def map (f : {lab : Class.Label} → Object lab → Object lab) (params : Program.Parameters) : Program.Parameters :=
   match params with
   | .empty => .empty
   | .fetch p rest =>
     .fetch p (fun obj => map f (rest (f obj)))
   | .rand rest =>
     .rand (fun r => map f (rest r))
-
-instance {params : Program.Parameters} : TypeRep params.Product where
-  rep := Rep.atomic "Program.Parameters.Product" -- TODO: this should depend on params
-
-namespace Program.Parameters
 
 def Product.beq {params : Program.Parameters} (a b : params.Product) :=
     match params with

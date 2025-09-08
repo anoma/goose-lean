@@ -6,23 +6,41 @@ import AVM.Class.Translation.Messages
 
 namespace AVM.Class
 
+/-- Type of functions which adjust object values by modifications that occurred
+  in the program up to a certain point. -/
 abbrev AdjustFun := {clab : Class.Label} → Object clab → Object clab
 
-structure Task' where
+private structure Task' where
   task : Task
+  /-- Function which adjusts object values by modifications that occurred in the
+    program up to the point after the task, i.e., up to and including the part
+    of the program corresponding to the task. -/
   adjust : task.params.Product → AdjustFun
   deriving Inhabited
 
-structure TasksResult (params : Program.Parameters) (α : Type u) where
-  adjust : AdjustFun
+/-- A helper type for data at the end of `Tasks` execution. -/
+private structure TasksResult (params : Program.Parameters) (α : Type u) where
+  /-- The return value of the tasks. -/
   value : α
-  /-- Body parameter values adjusted by modifications in the program. -/
+  /-- Function which adjusts object values by modifications that occurred in the
+    program up to after the tasks, i.e., up to and including the part of the
+    program corresponding to the tasks. -/
+  adjust : AdjustFun
+  /-- Body parameter values adjusted by preceding modifications in the program. -/
   bodyParameterValues : params.Product
   deriving Inhabited
 
 mutual
 
-partial def Body.tasks'
+/-- Creates `Tasks` for a given `body` program. The `adjust` argument adjusts
+   object values by modifications that occurred in the program up to before
+   executing `body`. The result in `TasksResult` contains:
+ 1. The return value of the body.
+ 2. The `adjust` function which adjusts object values by modifications that
+    occurred in the program up to after executing `body`.
+ 3. The adjusted values of body parameters (adjusted values in
+    `body.params.Product`). -/
+private partial def Body.tasks'
   (adjust : AdjustFun)
   {α}
   [Inhabited α]
@@ -36,28 +54,28 @@ partial def Body.tasks'
     Tasks.rand fun newId => Tasks.rand fun r =>
       let task := constr.task' adjust eco newId r args
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals ∘ adjust) eco (next newId)
-        |>.map (fun v => ⟨v.adjust, v.value, ⟨newId, v.bodyParameterValues⟩⟩)
+        Body.tasks' (task.adjust vals) eco (next newId)
+        |>.map (fun res => ⟨res.value, res.adjust, ⟨newId, res.bodyParameterValues⟩⟩)
   | .destructor classId destrId selfId args next =>
     let destr := eco.classes classId |>.destructors destrId
     Tasks.fetch ⟨classId.label, selfId⟩ fun self => Tasks.rand fun r =>
-      let task := destr.task' adjust eco r self args
+      let task := destr.task' adjust eco r (adjust self) args
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals ∘ adjust) eco next
+        Body.tasks' (task.adjust vals) eco next
   | .method classId methodId selfId args next =>
     let method := eco.classes classId |>.methods methodId
     Tasks.fetch ⟨classId.label, selfId⟩ fun self => Tasks.rand fun r =>
-      let task := method.task' adjust eco r self args
+      let task := method.task' adjust eco r (adjust self) args
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals ∘ adjust) eco next
+        Body.tasks' (task.adjust vals) eco next
   | .fetch objId next =>
     Tasks.fetch objId fun obj =>
       Body.tasks' adjust eco (next (adjust obj))
-      |>.map (fun v => ⟨v.adjust, v.value, ⟨adjust obj, v.bodyParameterValues⟩⟩)
+      |>.map (fun res => ⟨res.value, res.adjust, ⟨adjust obj, res.bodyParameterValues⟩⟩)
   | .return val =>
-    Tasks.result { adjust := adjust, value := val, bodyParameterValues := () }
+    Tasks.result ⟨val, adjust, ()⟩
 
-partial def Member.task'
+private partial def Member.task'
   {α}
   [Inhabited α]
   (adjust : AdjustFun)
@@ -87,7 +105,7 @@ partial def Member.task'
   ⟨task, mkAdjust⟩
 
 /-- Creates a Task for a given object constructor. -/
-partial def Constructor.task'
+private partial def Constructor.task'
   (adjust : AdjustFun)
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
@@ -99,8 +117,7 @@ partial def Constructor.task'
   (args : constrId.Args.type)
   : Task' :=
   let body : Program lab (ObjectData classId.label) := constr.body args
-  let mkActionData (newObjectData : ObjectData classId.label)
-      : List SomeConsumableObject × List CreatedObject :=
+  let mkActionData (newObjectData : ObjectData classId.label) : List SomeConsumableObject × List CreatedObject :=
     let newObj : SomeObject :=
       let obj : Object classId.label :=
         { uid := newId,
@@ -116,7 +133,7 @@ partial def Constructor.task'
   Member.task' adjust eco body mkActionData mkMessage
 
 /-- Creates a Task for a given object destructor. -/
-partial def Destructor.task'
+private partial def Destructor.task'
   (adjust : AdjustFun)
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
@@ -128,8 +145,7 @@ partial def Destructor.task'
   (args : destructorId.Args.type)
   : Task' :=
   let body : Program lab Unit := destructor.body self args
-  let mkActionData (_ : Unit)
-      : List SomeConsumableObject × List CreatedObject :=
+  let mkActionData (_ : Unit) : List SomeConsumableObject × List CreatedObject :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let createdObjects : List CreatedObject :=
       [{ uid := self.uid,
@@ -141,7 +157,8 @@ partial def Destructor.task'
     destructor.message ⟨body.params.Product⟩ vals self.uid args
   Member.task' adjust eco body mkActionData mkMessage
 
-partial def Method.task'
+/-- Creates a Task for a given method. -/
+private partial def Method.task'
   (adjust : AdjustFun)
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
@@ -153,8 +170,7 @@ partial def Method.task'
   (args : methodId.Args.type)
   : Task' :=
   let body : Program lab (Object classId.label) := method.body self args
-  let mkActionData (obj : Object classId.label)
-      : List SomeConsumableObject × List CreatedObject :=
+  let mkActionData (obj : Object classId.label) : List SomeConsumableObject × List CreatedObject :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let createdObjects : List CreatedObject :=
       [{ uid := obj.uid,
@@ -168,7 +184,8 @@ partial def Method.task'
 
 end -- mutual
 
-def Body.tasks
+/-- Creates Tasks for a given class member body program. -/
+def Member.Body.tasks
   {α}
   [Inhabited α]
   {lab : Ecosystem.Label}
