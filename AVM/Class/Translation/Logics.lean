@@ -105,7 +105,7 @@ def Method.Message.logic
   {methodId : classId.label.MethodId}
   (method : Class.Method classId methodId)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.Class.{classId.label.name}.Destructor.{@repr _ classId.label.methodsRepr methodId}"⟩,
+  { reference := ⟨s!"AVM.Class.{classId.label.name}.Method.{@repr _ classId.label.methodsRepr methodId}"⟩,
     function := Method.Message.logicFun method }
 
 def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) : Anoma.Logic :=
