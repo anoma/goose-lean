@@ -109,6 +109,7 @@ def Object.fromResource
   : Option (Object lab) :=
   let try resLab : Object.Resource.Label := tryCast res.label
   check (resLab.classLabel == lab)
+  check (res.logicRef == lab.logicRef)
   let try value : Object.Resource.Value lab := tryCast res.value
   some {  uid := value.uid,
           data := ⟨res.quantity, value.privateFields⟩,

@@ -20,10 +20,8 @@ def checkResourcesData (objectData : List SomeObjectData) (resources : List Anom
     && List.and (List.zipWith resourceDataEq objectData resources')
   where
     resourceDataEq (sdata : SomeObjectData) (res : Anoma.Resource) : Bool :=
-      -- NOTE: We should check the whole resource kind (label + logic) instead
-      -- of checking just the label. We should also check that the intent logic
-      -- hashes of `sobj` and `res` match.
       sdata.label === res.label &&
+      sdata.label.logicRef == res.logicRef &&
       sdata.data.quantity == res.quantity &&
         let try privateFields := tryCast sdata.data.privateFields
         res.value == privateFields

@@ -79,8 +79,6 @@ private def logicFun {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class
     consumedMessageResources.length + 1 == (Logic.filterOutDummy args.consumed).length
       && consumedMessageResources.all fun res =>
         let try msg : Message classId.label := Message.fromResource res
-        -- NOTE: we should check that the resource logic of res corresponds to
-        -- the message logic
         consumedObject.uid == msg.recipient
 
 def Constructor.Message.logic

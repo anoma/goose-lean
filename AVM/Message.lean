@@ -61,7 +61,9 @@ def SomeMessage.toResource (msg : SomeMessage) (nonce : Anoma.Nonce) : Anoma.Res
     nonce }
 
 def SomeMessage.fromResource (res : Anoma.Resource.{u, v}) : Option SomeMessage.{v} :=
-  tryCast res.label
+  let try msg : SomeMessage := tryCast res.label
+  check (msg.message.logicRef == res.logicRef)
+  some msg
 
 def Message.toResource {lab : Class.Label} (msg : Message lab) (nonce : Anoma.Nonce) : Anoma.Resource :=
   msg.toSomeMessage.toResource nonce
