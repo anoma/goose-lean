@@ -1,8 +1,9 @@
+import Anoma
 import AVM.Class.Member
 
 namespace AVM
 
-abbrev Logic.Args := Anoma.Logic.Args Unit
+abbrev Logic.Args.{u, v} := Anoma.Logic.Args.{u, v, 0}
 
 /-- Syntax-level object description (fields + constructors + methods) should
     desugar to the `Class` structure. -/

@@ -47,6 +47,9 @@ structure Label : Type (u + 1) where
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
 
+def Label.logicRef (lab : Label) : Anoma.LogicRef :=
+  ⟨"logic-of-" ++ lab.name⟩
+
 def Label.dummy : Label where
   name := "Dummy"
   PrivateFields := ⟨PUnit⟩

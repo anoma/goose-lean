@@ -92,6 +92,7 @@ def SomeObject.toResource
   { Val := ⟨Object.Resource.Value lab⟩,
     Label := ⟨Object.Resource.Label⟩,
     label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.data.privateFields⟩,
+    logicRef := lab.logicRef,
     quantity := obj.data.quantity,
     value := ⟨obj.uid, obj.data.privateFields⟩,
     ephemeral := ephemeral,
