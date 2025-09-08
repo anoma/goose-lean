@@ -2,7 +2,7 @@ import AVM.Program
 
 namespace AVM.Class
 
-structure Constructor {lab : Ecosystem.Label} (cid : lab.ClassId) (constrId : cid.label.ConstructorId) where
+structure Constructor.{u} {lab : Ecosystem.Label} (cid : lab.ClassId) (constrId : cid.label.ConstructorId) : Type (u + 1) where
   /-- Constructor call body. -/
   body : constrId.Args.type → Program lab (ObjectData cid.label)
   /-- Extra constructor logic. The constructor invariant is combined with

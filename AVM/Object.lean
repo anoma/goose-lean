@@ -92,6 +92,7 @@ def SomeObject.toResource
   { Val := ⟨Object.Resource.Value lab⟩,
     Label := ⟨Object.Resource.Label⟩,
     label := ⟨lab, lab.DynamicLabel.mkDynamicLabel obj.data.privateFields⟩,
+    logicRef := lab.logicRef,
     quantity := obj.data.quantity,
     value := ⟨obj.uid, obj.data.privateFields⟩,
     ephemeral := ephemeral,
@@ -108,6 +109,7 @@ def Object.fromResource
   : Option (Object lab) :=
   let try resLab : Object.Resource.Label := tryCast res.label
   check (resLab.classLabel == lab)
+  check (res.logicRef == lab.logicRef)
   let try value : Object.Resource.Value lab := tryCast res.value
   some {  uid := value.uid,
           data := ⟨res.quantity, value.privateFields⟩,

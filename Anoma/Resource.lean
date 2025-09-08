@@ -6,13 +6,16 @@ import Anoma.Identities
 
 namespace Anoma
 
-/-- Representation of Anoma Resource data, without the resource logic. In the
-    GOOSE model, the resource logic is determined by the `label` field (which
-    contains the unique label of the class). -/
+structure LogicRef where
+  ref : String
+  deriving BEq, Repr, Inhabited
+
+/-- Representation of Anoma Resource data. -/
 structure Resource.{u, v} : Type (max u v + 1) where
   Val : SomeType.{u}
   Label : SomeType.{v}
   label : Label.type
+  logicRef : LogicRef
   quantity : Nat
   value : Val.type
   ephemeral : Bool
@@ -21,6 +24,7 @@ structure Resource.{u, v} : Type (max u v + 1) where
 
 instance Resource.instBEq : BEq Resource where
   beq a b := a.label === b.label
+    && a.logicRef == b.logicRef
     && a.quantity == b.quantity
     && a.value === b.value
     && a.ephemeral === b.ephemeral
@@ -32,21 +36,6 @@ def Resource.isEphemeral (r : Resource) : Bool :=
 
 def Resource.isPersistent (r : Resource) : Bool :=
   not r.isEphemeral
-
-structure Logic.Args.{u, v, w} (Data : Type w) where
-  self : Resource.{u, v}
-  status : ConsumedCreated
-  consumed : List Resource.{u, v}
-  created : List Resource.{u, v}
-  /-- `data` is the action's appData for self -/
-  data : Data
-
-def Logic.Args.isConsumed {Data : Type u} (d : Logic.Args Data) := d.status.isConsumed
-
-/-- Corresponds to Anoma Resource (with resource logic). -/
-structure ResourceWithLogic (Data : Type u) where
-  val : Resource
-  logic : Logic.Args Data → Bool
 
 /-- A proof that `key` can nullify the resources `res` -/
 structure CanNullifyResource (key : NullifierKey) (res : Resource) : Prop where
