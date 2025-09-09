@@ -15,7 +15,7 @@ inductive Tasks (α : Type u) where
     unadjusted original object value and is supposed to adjust it by the
     modifications to that object that occurred from the start of the program up
     to the fetch. -/
-  | fetch (param : TypedObjectId) (rest : Object param.classLabel → Tasks α) : Tasks α
+  | fetch {classLabel : Class.Label} (objId : ObjectId) (rest : Object classLabel → Tasks α) : Tasks α
   | rand (rest : Nat → Tasks α) : Tasks α
   | result (value : α) : Tasks α
   deriving Inhabited

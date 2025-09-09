@@ -6,7 +6,7 @@ namespace AVM
   random values generated and the objects fetched inside the program. -/
 inductive Program.Parameters where
   | empty
-  | fetch (param : TypedObjectId) (rest : Object param.classLabel → Program.Parameters)
+  | fetch {classLabel : Class.Label} (objId : ObjectId) (rest : Object classLabel → Program.Parameters)
   | rand (rest : Nat → Program.Parameters)
 deriving Inhabited, Nonempty
 
@@ -31,8 +31,8 @@ def Program.Parameters.genId (rest : ObjectId → Program.Parameters) : Program.
 def Program.Parameters.Product (params : Program.Parameters) : Type u :=
   match params with
   | .empty => PUnit
-  | .fetch param rest =>
-    Σ (obj : Object param.classLabel), Program.Parameters.Product (rest obj)
+  | .fetch (classLabel := clab) _ rest =>
+    Σ (obj : Object clab), Program.Parameters.Product (rest obj)
   | .rand rest =>
     Σ (r : Nat), Program.Parameters.Product (rest r)
 
