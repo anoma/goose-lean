@@ -18,8 +18,10 @@ private def Constructor.Message.logicFun
   let newObjData := constr.body argsData |>.value vals
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  Logic.checkResourcesData [newObjData.toSomeObjectData] consumedResObjs
-    && Logic.checkResourcesData [newObjData.toSomeObjectData] createdResObjs
+  let! [newObjRes] := createdResObjs
+  let uid : ObjectId := newObjRes.nonce.value
+  Logic.checkResourceValues [newObjData.toObjectValue uid] consumedResObjs
+    && Logic.checkResourceValues [newObjData.toObjectValue uid] createdResObjs
     && Logic.checkResourcesEphemeral consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
     && constr.invariant argsData
@@ -38,7 +40,7 @@ private def Destructor.Message.logicFun
   let createdResObjs := Logic.selectObjectResources args.created
   let! [selfRes] := consumedResObjs
   let try selfObj : Object classId.label := Object.fromResource selfRes
-  Logic.checkResourcesData [selfObj.toSomeObjectData] createdResObjs
+  Logic.checkResourceValues [selfObj.toObjectValue] createdResObjs
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesEphemeral createdResObjs
     && destructor.invariant selfObj argsData
@@ -61,7 +63,7 @@ private def Method.Message.logicFun
   let body := method.body selfObj argsData
   let try vals : body.params.Product := tryCast msg.vals
   let createdObject : Object classId.label := body |>.value vals
-  Logic.checkResourcesData [createdObject.toSomeObjectData] createdResObjs
+  Logic.checkResourceValues [createdObject.toObjectValue] createdResObjs
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
 
@@ -111,5 +113,3 @@ def Method.Message.logic
 def logic {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) : Anoma.Logic :=
   { reference := classId.label.logicRef,
     function := logicFun cl }
-
-end AVM.Class

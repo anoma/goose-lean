@@ -16,17 +16,13 @@ instance ObjectData.inhabited (lab : Class.Label) : Inhabited (ObjectData lab) w
 instance ObjectData.hasTypeRep (lab : Class.Label) : TypeRep (ObjectData lab) where
   rep := Rep.composite "AVM.ObjectData" [Rep.atomic lab.name]
 
-structure SomeObjectData where
+structure ObjectValue where
   {label : Class.Label}
+  uid : ObjectId
   data : ObjectData label
 
-instance SomeObjectData.hasTypeRep : TypeRep SomeObjectData where
-  rep := Rep.atomic "AVM.SomeObjectData"
-
-instance SomeObjectData.hasBEq : BEq SomeObjectData where
-  beq a b := a.label === b.label && a.data === b.data
-
-def ObjectData.toSomeObjectData {lab : Class.Label} (data : ObjectData lab) : SomeObjectData := {data}
+def ObjectData.toObjectValue {lab : Class.Label} (uid : ObjectId) (data : ObjectData lab) : ObjectValue :=
+  ⟨uid, data⟩
 
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
@@ -52,9 +48,8 @@ instance SomeObject.hasBEq : BEq SomeObject where
 
 def Object.toSomeObject {lab : Class.Label} (object : Object lab) : SomeObject := ⟨object⟩
 
-def Object.toSomeObjectData {lab : Class.Label} (object : Object lab) : SomeObjectData := ⟨object.data⟩
-
-def SomeObject.toSomeObjectData (object : SomeObject) : SomeObjectData := ⟨object.object.data⟩
+def Object.toObjectValue {lab : Class.Label} (obj : Object lab) : ObjectValue :=
+  obj.data.toObjectValue obj.uid
 
 structure Object.Resource.Label where
   /-- The label of the class -/
