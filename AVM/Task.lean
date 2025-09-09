@@ -41,7 +41,7 @@ def Task.absorbGenId (task : ObjectId → Task) : Task :=
     (Program.Parameters.genId (fun _ => .empty))
     (fun ⟨newId, ()⟩ => task newId)
 
-def Task.absorbFetch (param : TypedObjectId) (task : Object param.classLabel → Task) : Task :=
+def Task.absorbFetch {classLabel : Class.Label} (objId : ObjectId) (task : Object classLabel → Task) : Task :=
   Task.absorbParams
-    (Program.Parameters.fetch param (fun _ => .empty))
+    (Program.Parameters.fetch objId (fun _ => .empty))
     (fun ⟨obj, ()⟩ => task obj)

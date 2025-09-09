@@ -58,13 +58,13 @@ private partial def Body.tasks'
         |>.map (fun res => ⟨res.value, res.adjust, ⟨newId, res.bodyParameterValues⟩⟩)
   | .destructor classId destrId selfId args next =>
     let destr := eco.classes classId |>.destructors destrId
-    Tasks.fetch ⟨classId.label, selfId⟩ fun self => Tasks.rand fun r =>
+    Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := destr.task' adjust eco r (adjust self) args
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next
   | .method classId methodId selfId args next =>
     let method := eco.classes classId |>.methods methodId
-    Tasks.fetch ⟨classId.label, selfId⟩ fun self => Tasks.rand fun r =>
+    Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := method.task' adjust eco r (adjust self) args
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next

@@ -32,8 +32,9 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (u + 
     : Program lab ReturnType
   | /-- Object fetch by object id. -/
     fetch
-    (objId : TypedObjectId)
-    (next : Object objId.classLabel → Program lab ReturnType)
+    {classLabel : Class.Label}
+    (objId : ObjectId)
+    (next : Object classLabel → Program lab ReturnType)
     : Program lab ReturnType
   | /-- Return value. -/
     return

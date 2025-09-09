@@ -58,7 +58,7 @@ def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program
   | .call cid methodId selfId args next =>
     .method cid methodId selfId args (toAVM next)
   | @fetch _ _ _ i objId next =>
-    .fetch ⟨i.classId.label, objId⟩ (fun obj => toAVM (next (i.fromObject obj.data)))
+    .fetch (classLabel := i.classId.label) objId (fun obj => toAVM (next (i.fromObject obj.data)))
   | .invoke p next =>
     .invoke (toAVM p) (fun x => toAVM (next x))
   | .return val =>
