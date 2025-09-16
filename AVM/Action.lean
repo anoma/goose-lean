@@ -59,15 +59,14 @@ def Action.create'
     mkCreatedComplianceWitness (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
       | (acc, g) =>
         let (r, g') := stdNext g
-        let (r', g'') := stdNext g'
-        let res := dummyResource ⟨r⟩
+        let res := dummyResource ⟨obj.rand⟩
         let nonce := res.nullifyUniversal.nullifier.toNonce
         let complianceWitness :=
             { consumedResource := res
               createdResource := obj.toResource
               nfKey := Anoma.NullifierKey.universal,
-              rcv := r'.repr }
-        (complianceWitness :: acc, g'')
+              rcv := r.repr }
+        (complianceWitness :: acc, g')
 
     mkConsumedMessageComplianceWitness (msg : SomeMessage) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
       | (acc, g) =>
