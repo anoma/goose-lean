@@ -116,7 +116,9 @@ def SomeObject.toResource
   let label := sobj.label
   let obj : Object classId := sobj.object
   { Label := ⟨Object.Resource.Label⟩,
-    label := { label
+    label :=
+      Resource.Label.object
+            { label
                classId
                dynamicLabel := clab.DynamicLabel.mkDynamicLabel obj.data.privateFields }
     logicRef := label.logicRef,
@@ -136,8 +138,9 @@ def Object.fromResource
   {c : lab.ClassId}
   (res : Anoma.Resource)
   : Option (Object c) :=
-  let try resLab : Object.Resource.Label := tryCast res.label
-  check (resLab.label == lab)
+  let try resLab : AVM.Resource.Label := tryCast res.label
+  let try objLab := Resource.Label.getObjectResourceLabel resLab
+  check (objLab.label == lab)
   check (res.logicRef == lab.logicRef)
   let try value : Object.Resource.Value c := tryCast res.value
   some {  uid := value.uid,
@@ -147,9 +150,10 @@ def Object.fromResource
 def SomeObject.fromResource.{u, v}
   (res : Anoma.Resource.{u, v})
   : Option SomeObject :=
-  let try resLab : Object.Resource.Label := tryCast res.label
-  let label : Ecosystem.Label := resLab.label
-  let classId := resLab.classId
+  let try resLab : AVM.Resource.Label := tryCast res.label
+  let try objLab := Resource.Label.getObjectResourceLabel resLab
+  let label : Ecosystem.Label := objLab.label
+  let classId := objLab.classId
   let try object := @Object.fromResource label classId res
   some { label
          classId

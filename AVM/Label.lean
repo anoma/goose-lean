@@ -1,5 +1,5 @@
 import AVM.Class.Label
-import AVM.Message
+import AVM.Message.Base
 
 namespace AVM
 
@@ -15,7 +15,7 @@ instance : TypeRep Object.Resource.Label where
 instance : BEq Object.Resource.Label where
   beq o1 o2 := o1.classLabel == o2.classLabel && o1.dynamicLabel === o2.dynamicLabel
 
-inductive Resource.Label where
+inductive Resource.Label : Type (u + 1) where
   | object : Object.Resource.Label → Label
   | message : SomeMessage → Label
   | intent : Label
@@ -29,3 +29,15 @@ instance : BEq Resource.Label where
     | .message m1, .message m2 => m1 == m2
     | .intent, .intent => true
     | _, _ => false
+
+namespace Resource.Label
+
+def getObjectResourceLabel : Resource.Label → Option Object.Resource.Label
+  | .object l => some l
+  | _ => none
+
+def getMessage : Resource.Label → Option SomeMessage
+  | .message m => some m
+  | _ => none
+
+end Resource.Label
