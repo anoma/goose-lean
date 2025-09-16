@@ -11,20 +11,21 @@ def filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resourc
   resources.filter (not ∘ Action.isDummyResource)
 
 /-- Checks that the number of objects and resources match, and that the
-    resources' quantity, value and labels match the objects' data and labels.
-    This check is used in the constructor and method message logics. Dummy resources
-    in the `resources` list are ignored. -/
-def checkResourcesData (objectData : List SomeObjectData) (resources : List Anoma.Resource) : Bool :=
+    quantity, value and labels of each resource match the corresponding object.
+    This check is used in the constructor, destructor and method message logics.
+    Dummy resources in the `resources` list are ignored. -/
+def checkResourceValues (objectValues : List ObjectValue) (resources : List Anoma.Resource) : Bool :=
   let resources' := Logic.filterOutDummy resources
-  objectData.length == resources'.length
-    && List.and (List.zipWith resourceDataEq objectData resources')
+  objectValues.length == resources'.length
+    && List.and (List.zipWith resourceValueEq objectValues resources')
   where
-    resourceDataEq (sdata : SomeObjectData) (res : Anoma.Resource) : Bool :=
+    resourceValueEq (sdata : ObjectValue) (res : Anoma.Resource) : Bool :=
       sdata.label === res.label &&
       sdata.label.logicRef == res.logicRef &&
       sdata.data.quantity == res.quantity &&
-        let try privateFields := tryCast sdata.data.privateFields
-        res.value == privateFields
+        let try resVal : Object.Resource.Value sdata.label := tryCast res.value
+        resVal.privateFields == sdata.data.privateFields &&
+        resVal.uid == sdata.uid
 
 def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
   Logic.filterOutDummy resources |>.all Anoma.Resource.isEphemeral

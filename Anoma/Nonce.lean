@@ -5,7 +5,7 @@ import Anoma.NullifierKey
 namespace Anoma
 
 structure Nonce where
- nat : Nat
+ value : Nat
  deriving BEq
 
 instance Nonce.hasTypeRep : TypeRep Nonce where
@@ -15,4 +15,4 @@ instance Nonce.instInhabited : Inhabited Nonce where
   default := ⟨0⟩
 
 def Nonce.todo : Nonce where
-  nat := 0
+  value := 0
