@@ -68,7 +68,7 @@ private def Method.Message.logicFun
     && Logic.checkResourcesPersistent createdResObjs
 
 /-- The class logic checks if all consumed messages in the action correspond to
-    class members, the single consumed object is the receiver, and there are is
+    class members, the single consumed object is the receiver, and there is
     at least one message. -/
 private def logicFun {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (args : Logic.Args) : Bool :=
   let try self : Object classId.label := Object.fromResource args.self
