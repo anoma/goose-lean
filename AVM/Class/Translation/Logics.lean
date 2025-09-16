@@ -67,8 +67,9 @@ private def Method.Message.logicFun
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
 
-/-- The class logic checks if all consumed messages in the action correspond
-  to class members and the single consumed object is the receiver. -/
+/-- The class logic checks if all consumed messages in the action correspond to
+    class members, the single consumed object is the receiver, and there are is
+    at least one message. -/
 private def logicFun {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class classId) (args : Logic.Args) : Bool :=
   let try self : Object classId.label := Object.fromResource args.self
   check cl.invariant self args
@@ -76,9 +77,13 @@ private def logicFun {lab : Ecosystem.Label} {classId : lab.ClassId} (cl : Class
   | Created => true
   | Consumed =>
     let consumedMessageResources : List Anoma.Resource := Logic.selectMessageResources args.consumed
+    let nMessages := consumedMessageResources.length
     let! [consumedObjectResource] : List Anoma.Resource := Logic.selectObjectResources args.consumed
     let try consumedObject : Object classId.label := Object.fromResource consumedObjectResource
-    consumedMessageResources.length + 1 == (Logic.filterOutDummy args.consumed).length
+    -- NOTE: consumedObject == self by definition of Logic.Args; we only check
+    -- that there are no other consumed objects
+    nMessages >= 1
+      && nMessages + 1 == (Logic.filterOutDummy args.consumed).length
       && consumedMessageResources.all fun res =>
         let try msg : Message classId.label := Message.fromResource res
         consumedObject.uid == msg.recipient
