@@ -19,9 +19,10 @@ instance DynamicLabel.instInhabited {A : Type} : Inhabited (DynamicLabel A) wher
   specification provided by a label consists of unique class name, private
   field types, constructor, destructor and method ids. -/
 structure Label : Type 1 where
-  /-- The name of the class uniquely identifying the class.
-      Assumption: lab1.name = lab2.name -> lab1 = lab2. -/
+  /-- The name of the class which together with the version uniquely identifies the class.
+      Assumption: lab1.name = lab2.name -> lab1.version = lab2.version -> lab1 = lab2. -/
   name : String
+  version : Nat := 0
 
   PrivateFields : SomeType
   [privateFieldsInhabited : Inhabited PrivateFields.type]
@@ -107,4 +108,5 @@ instance Label.hasTypeRep : TypeRep Label where
 instance Label.hasBEq : BEq Label where
   beq a b :=
     a.name == b.name
-    && a.PrivateFields == b.PrivateFields
+      && a.version == b.version
+      && a.PrivateFields == b.PrivateFields
