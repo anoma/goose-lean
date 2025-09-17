@@ -27,7 +27,7 @@ def Action.create'
   (ensureUnique : List Anoma.Nonce)
   (consumedMessages : List SomeMessage)
   (createdMessages : List SomeMessage)
-  : Anoma.Action.{u} × Anoma.DeltaWitness × StdGen :=
+  : Anoma.Action × Anoma.DeltaWitness × StdGen :=
   let (createdWitnesses, g') : List Anoma.ComplianceWitness × StdGen :=
     ([], g) |>
     createdObjects.foldr mkCreatedComplianceWitness |>

@@ -15,13 +15,13 @@ inductive DeletionCriterion where
   | DeleteImmediately
   | StoreForever
 
-structure LogicVerifierInput : Type (u + 1) where
+structure LogicVerifierInput : Type 1 where
   status : ConsumedCreated
-  Data : SomeType.{u}
+  Data : SomeType.{0}
   appData : Data.type
   logicVKOuter : LogicVKOuterHash := ""
   proof: String := ""
 
-structure Action : Type (u + 1) where
+structure Action : Type 1 where
   complianceUnits : List ComplianceUnit
-  logicVerifierInputs : Std.HashMap Tag LogicVerifierInput.{u}
+  logicVerifierInputs : Std.HashMap Tag LogicVerifierInput
