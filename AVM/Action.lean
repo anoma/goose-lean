@@ -58,10 +58,12 @@ def Action.create'
             rcv := r.repr }
         (witness :: acc, g')
 
-    mkCreatedResourceComplianceWitness (created : Anoma.Resource) (consumedNonce : Anoma.Nonce) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+    mkCreatedResourceComplianceWitness (mkCreated : Anoma.Nonce → Anoma.Resource) (consumedNonce : Anoma.Nonce) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
       | (acc, g) =>
         let (r, g') := stdNext g
         let consumed := dummyResource consumedNonce
+        let nonce := consumed.nullifyUniversal.nullifier.toNonce
+        let created := mkCreated nonce
         let complianceWitness :=
             { consumedResource := consumed
               createdResource := created
@@ -69,13 +71,11 @@ def Action.create'
               rcv := r.repr }
         (complianceWitness :: acc, g')
 
-    mkDummyComplianceWitness (nonce : Anoma.Nonce) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
-      | (acc, g) =>
-        let (r, g') := stdNext g
-        mkCreatedResourceComplianceWitness (dummyResource nonce) (Anoma.Nonce.mk r) (acc, g')
+    mkDummyComplianceWitness (nonce : Anoma.Nonce) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen :=
+        mkCreatedResourceComplianceWitness dummyResource nonce
 
     mkCreatedComplianceWitness (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen :=
-      mkCreatedResourceComplianceWitness obj.toResource (Anoma.Nonce.mk obj.rand)
+      mkCreatedResourceComplianceWitness (fun _ => obj.toResource) ⟨obj.rand⟩
 
     mkConsumedMessageComplianceWitness (msg : SomeMessage) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
       | (acc, g) =>
