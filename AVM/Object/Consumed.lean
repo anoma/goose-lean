@@ -33,8 +33,8 @@ def ConsumedObject.toConsumable {lab : Ecosystem.Label} {c : lab.ClassId} (o : C
 instance ConsumedObject.instBEq {lab : Ecosystem.Label} {c : lab.ClassId}: BEq (ConsumedObject c) where
   beq a b := BEq.beq a.toConsumable b.toConsumable
 
-instance ConsumedObject.hasTypeRep (lab : Class.Label) : TypeRep (ConsumedObject c) where
-  rep := Rep.composite "AVM.ConsumedObject" [Rep.atomic lab.name]
+instance ConsumedObject.hasTypeRep (lab : Ecosystem.Label) {c : lab.ClassId} : TypeRep (ConsumedObject c) where
+  rep := Rep.composite "AVM.ConsumedObject" [Rep.atomic lab.name, Rep.atomic c.label.name]
 
 structure SomeConsumedObject where
   {label : Ecosystem.Label}
@@ -44,8 +44,8 @@ structure SomeConsumedObject where
 instance SomeConsumedObject.hasBEq : BEq SomeConsumedObject where
   beq a b :=
     a.label === b.label
-    -- TODO check classId and cast to check consumed
-    -- && a.consumed === b.consumed
+    && a.classId.label == b.classId.label
+    && a.consumed === b.consumed
 
 instance SomeConsumedObject.hasTypeRep : TypeRep SomeConsumedObject where
   rep := Rep.atomic "AVM.SomeConsumedObject"
