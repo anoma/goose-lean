@@ -101,7 +101,7 @@ structure Object.Resource.Value {lab : Ecosystem.Label} (classId : lab.ClassId) 
   privateFields : classId.label.PrivateFields.type
 
 instance {lab : Ecosystem.Label} {classId : lab.ClassId} : TypeRep (Object.Resource.Value classId) where
-  rep := Rep.composite "Object.Resource.Value" [Rep.atomic lab.name]
+  rep := Rep.composite "Object.Resource.Value" [Rep.atomic lab.name, Rep.atomic classId.label.name]
 
 instance {lab : Ecosystem.Label} {classId : lab.ClassId} : BEq (Object.Resource.Value classId) where
   beq v1 v2 := v1.uid == v2.uid && v1.privateFields === v2.privateFields
