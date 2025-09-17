@@ -146,7 +146,6 @@ def MultiMethod.Message.logicFun
   method.invariant argsConsumedObjects fargs
    && let try vals : prog.params.Product := tryCast msg.vals
       let res : MultiMethodResult multiId := prog |>.value vals
--- AssembledOldUid assembled
       let consumedUid (arg : multiId.ObjectArgNames) : Anoma.ObjectId := argsConsumedObjects arg |>.uid
       let mkObjectValue {classId : lab.ClassId} (arg : multiId.ObjectArgNames) (d : ObjectData classId) : ObjectValue := ⟨consumedUid arg, d⟩
       let reassembled : List ObjectValue := res.assembled.withOldUidList.map (fun x => mkObjectValue x.arg x.objectData)
