@@ -93,7 +93,7 @@ instance : TypeRep Object.Resource.Label where
 instance : BEq Object.Resource.Label where
   beq o1 o2 :=
     o1.label == o2.label
-    && (o1.label.classesEnum.equiv o1.classId).val == (o2.label.classesEnum.equiv o2.classId).val
+    && o1.classId.label == o2.classId.label
     && o1.dynamicLabel === o2.dynamicLabel
 
 structure Object.Resource.Value {lab : Ecosystem.Label} (classId : lab.ClassId) where
