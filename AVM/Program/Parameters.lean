@@ -1,17 +1,20 @@
 import AVM.Object
+import AVM.Ecosystem.Label
 
 namespace AVM
 
 /-- Type describing the parameters of a program. Program parameters are the
   random values generated and the objects fetched inside the program. -/
-inductive Program.Parameters where
+inductive Program.Parameters : Type 1 where
   | empty
-  | fetch {classLabel : Class.Label} (objId : ObjectId) (rest : Object classLabel → Program.Parameters)
+  | fetch {label : Ecosystem.Label} {classId : label.ClassId} (objId : ObjectId) (rest : Object classId → Program.Parameters)
   | rand (rest : Nat → Program.Parameters)
-deriving Inhabited, Nonempty
+  deriving Inhabited, Nonempty
+
+namespace Program.Parameters
 
 /-- Generate a random unique ObjectId. -/
-def Program.Parameters.genId (rest : ObjectId → Program.Parameters) : Program.Parameters :=
+def genId (rest : ObjectId → Program.Parameters) : Program.Parameters :=
   .rand rest
 
 /-- Type of program parameter values. Program parameter values can be adjusted
@@ -28,15 +31,15 @@ def Program.Parameters.genId (rest : ObjectId → Program.Parameters) : Program.
       Program.return obj.count
   ```
 -/
-def Program.Parameters.Product (params : Program.Parameters) : Type u :=
+def Product (params : Program.Parameters) : Type :=
   match params with
   | .empty => PUnit
-  | .fetch (classLabel := clab) _ rest =>
-    Σ (obj : Object clab), Program.Parameters.Product (rest obj)
+  | .fetch (classId := c) _ rest =>
+    Σ (obj : Object c), Program.Parameters.Product (rest obj)
   | .rand rest =>
     Σ (r : Nat), Program.Parameters.Product (rest r)
 
-private def Program.Parameters.Product.defaultValue (params : Program.Parameters) : params.Product :=
+private def Product.defaultValue (params : Program.Parameters) : params.Product :=
   match params with
   | .empty => PUnit.unit
   | .fetch _ rest =>
@@ -50,9 +53,7 @@ instance {params : Program.Parameters} : Inhabited params.Product where
 instance {params : Program.Parameters} : TypeRep params.Product where
   rep := Rep.atomic "Program.Parameters.Product" -- TODO: this should depend on params
 
-namespace Program.Parameters
-
-def map (f : {lab : Class.Label} → Object lab → Object lab) (params : Program.Parameters) : Program.Parameters :=
+def map (f : {lab : Ecosystem.Label} → {c : lab.ClassId} →  Object c → Object c) (params : Program.Parameters) : Program.Parameters :=
   match params with
   | .empty => .empty
   | .fetch p rest =>

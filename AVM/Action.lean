@@ -12,8 +12,8 @@ import AVM.Message
 
 namespace AVM
 
-def CreatedObject.toObject (c : CreatedObject.{u}) : Object c.label :=
-  let res : Anoma.Resource.{u, u} := Action.dummyResource ⟨c.rand⟩
+def CreatedObject.toObject (c : CreatedObject) : Object c.classId :=
+  let res : Anoma.Resource := Action.dummyResource.{0, 0} ⟨c.rand⟩
   let nonce := res.nullifyUniversal.nullifier.toNonce
   {uid := c.uid, nonce, data := c.data}
 
@@ -24,12 +24,14 @@ def Action.create'
   (g : StdGen)
   (consumedObjects : List SomeConsumedObject)
   (createdObjects : List CreatedObject)
+  (ensureUnique : List Anoma.Nonce)
   (consumedMessages : List SomeMessage)
   (createdMessages : List SomeMessage)
   : Anoma.Action.{u} × Anoma.DeltaWitness × StdGen :=
   let (createdWitnesses, g') : List Anoma.ComplianceWitness × StdGen :=
     ([], g) |>
     createdObjects.foldr mkCreatedComplianceWitness |>
+    ensureUnique.foldr mkDummyComplianceWitness |>
     createdMessages.foldr mkCreatedMessageComplianceWitness
   let createdUnits : List Anoma.ComplianceUnit :=
     createdWitnesses.map Anoma.ComplianceUnit.create
@@ -56,17 +58,24 @@ def Action.create'
             rcv := r.repr }
         (witness :: acc, g')
 
-    mkCreatedComplianceWitness (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+    mkCreatedResourceComplianceWitness (created : Anoma.Resource) (consumedNonce : Anoma.Nonce) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
       | (acc, g) =>
         let (r, g') := stdNext g
-        let res := dummyResource ⟨obj.rand⟩
-        let nonce := res.nullifyUniversal.nullifier.toNonce
+        let consumed := dummyResource consumedNonce
         let complianceWitness :=
-            { consumedResource := res
-              createdResource := obj.toResource
+            { consumedResource := consumed
+              createdResource := created
               nfKey := Anoma.NullifierKey.universal,
               rcv := r.repr }
         (complianceWitness :: acc, g')
+
+    mkDummyComplianceWitness (nonce : Anoma.Nonce) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
+      | (acc, g) =>
+        let (r, g') := stdNext g
+        mkCreatedResourceComplianceWitness (dummyResource nonce) (Anoma.Nonce.mk r) (acc, g')
+
+    mkCreatedComplianceWitness (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen :=
+      mkCreatedResourceComplianceWitness obj.toResource (Anoma.Nonce.mk obj.rand)
 
     mkConsumedMessageComplianceWitness (msg : SomeMessage) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
       | (acc, g) =>
@@ -99,25 +108,27 @@ def Action.create'
 def Action.create
   (consumedObjects : List SomeConsumedObject)
   (createdObjects : List CreatedObject)
+  (ensureUnique : List Anoma.Nonce)
   (consumedMessages : List SomeMessage)
   (createdMessages : List SomeMessage)
   : Rand (Anoma.Action × Anoma.DeltaWitness) := do
   let g ← get
-  let (action, witness, g') := Action.create' g.down consumedObjects createdObjects consumedMessages createdMessages
+  let (action, witness, g') := Action.create' g.down consumedObjects createdObjects ensureUnique consumedMessages createdMessages
   set (ULift.up g')
   return (action, witness)
 
 /-- Used to balance a consumed object that's meant to be destroyed -/
-def SomeConsumedObject.balanceDestroyed (rand : Nat) (destroyed : SomeConsumedObject) : CreatedObject where
-  uid := destroyed.consumed.object.uid
-  data := destroyed.consumed.object.data
+def SomeConsumableObject.balanceDestroyed (rand : Nat) (destroyed : SomeConsumableObject) : CreatedObject where
+  uid := destroyed.consumable.object.uid
+  data := destroyed.consumable.object.data
   ephemeral := true
   rand
 
 /-- Used to balance a constructed object -/
-def SomeObject.balanceConstructed (constructed : SomeObject) : SomeConsumedObject where
-  consumed :=
-  let obj : Object constructed.label := constructed.object
-  { object := obj,
-    can_nullify := Anoma.Resource.nullifyUniversal (obj.toResource true)
-    ephemeral := true }
+def SomeObject.balanceConstructed (constructed : SomeObject) : SomeConsumableObject where
+  label := constructed.label
+  classId := constructed.classId
+  consumable :=
+    let obj : Object constructed.classId := constructed.object
+    { object := obj,
+      ephemeral := true }

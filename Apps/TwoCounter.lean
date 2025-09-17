@@ -42,13 +42,6 @@ def lab : Class.Label where
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
 
-def toObject (c : Counter) : ObjectData lab where
-  quantity := 1
-  privateFields := c.count
-
-def fromObject (o : ObjectData lab) : Counter :=
-  Counter.mk o.privateFields
-
 def new : Counter where
   count := 0
 
@@ -87,13 +80,6 @@ def new (c1 c2 : Reference Counter) : TwoCounter where
   c1
   c2
 
-def toObject (c : TwoCounter) : ObjectData lab where
-  quantity := 1
-  privateFields := ⟨c.c1, c.c2⟩
-
-def fromObject (o : ObjectData lab) : TwoCounter :=
-  TwoCounter.mk o.privateFields.1 o.privateFields.2
-
 end TwoCounter
 
 namespace Eco
@@ -103,27 +89,35 @@ inductive Classes where
   | TwoCounter
   deriving BEq, DecidableEq, Repr, FinEnum
 
-def lab : Ecosystem.Label where
+def label : Ecosystem.Label where
   name := "Two Counter Ecosystem"
   ClassId := Classes
   classLabel := fun
     | .Counter => Counter.lab
     | .TwoCounter => TwoCounter.lab
+  MultiMethodObjectArgClass {f : Empty} := f.elim
 
 end Eco
 
 namespace Counter
 
+def toObject (c : Counter) : @ObjectData Eco.label .Counter where
+  quantity := 1
+  privateFields := c.count
+
+def fromObject (o : @ObjectData Eco.label .Counter) : Counter :=
+  Counter.mk o.privateFields
+
 instance instIsObject : IsObject Counter where
-  label := Eco.lab
+  label := Eco.label
   classId := Eco.Classes.Counter
   toObject := Counter.toObject
   fromObject := Counter.fromObject
 
-def constructor : @Class.Constructor Eco.lab Eco.Classes.Counter Constructors.Zero := defConstructor
+def constructor : @Class.Constructor Eco.label Eco.Classes.Counter Constructors.Zero := defConstructor
   (body := fun (_noArgs : Unit) => ⟪return Counter.new⟫)
 
-def incr : @Class.Method Eco.lab Eco.Classes.Counter Methods.Incr := defMethod
+def incr : @Class.Method Eco.label Eco.Classes.Counter Methods.Incr := defMethod
   (body := fun (self : Counter) (step : Nat) =>
     ⟪return self.incrementBy step⟫)
 
@@ -131,13 +125,20 @@ end Counter
 
 namespace TwoCounter
 
+def toObject (c : TwoCounter) : @ObjectData Eco.label .TwoCounter where
+  quantity := 1
+  privateFields := ⟨c.c1, c.c2⟩
+
+def fromObject (o : @ObjectData Eco.label .TwoCounter) : TwoCounter :=
+  TwoCounter.mk o.privateFields.1 o.privateFields.2
+
 instance instIsObject : IsObject TwoCounter where
-  label := Eco.lab
+  label := Eco.label
   classId := Eco.Classes.TwoCounter
   toObject
   fromObject
 
-def constructor : @Class.Constructor Eco.lab Eco.Classes.TwoCounter Constructors.Zero := defConstructor
+def constructor : @Class.Constructor Eco.label Eco.Classes.TwoCounter Constructors.Zero := defConstructor
   (body := fun (args : Reference Counter × Reference Counter) => ⟪
     return
       { c1 := args.1
@@ -145,7 +146,7 @@ def constructor : @Class.Constructor Eco.lab Eco.Classes.TwoCounter Constructors
         : TwoCounter }
   ⟫)
 
-def incrementBoth : @Class.Method Eco.lab Eco.Classes.TwoCounter Methods.IncrementBoth := defMethod
+def incrementBoth : @Class.Method Eco.label Eco.Classes.TwoCounter Methods.IncrementBoth := defMethod
   (body := fun (self : TwoCounter) (n : Nat) => ⟪
     c1 := fetch self.c1
     c2 := fetch self.c2
@@ -158,21 +159,22 @@ end TwoCounter
 
 namespace Eco
 
-def counterClass : @Class lab .Counter where
+def counterClass : @Class label .Counter where
   constructors := fun
     | Counter.Constructors.Zero => Counter.constructor
   methods := fun
     | Counter.Methods.Incr => Counter.incr
   destructors := noDestructors
 
-def twoCounterClass : @Class lab .TwoCounter where
+def twoCounterClass : @Class label .TwoCounter where
   constructors := fun
     | TwoCounter.Constructors.Zero => TwoCounter.constructor
   methods := fun
     | TwoCounter.Methods.IncrementBoth => TwoCounter.incrementBoth
   destructors := noDestructors
 
-def ecosystem : Ecosystem lab where
+def ecosystem : Ecosystem label where
   classes := fun
     | .Counter => counterClass
     | .TwoCounter => twoCounterClass
+  multiMethods (f : Empty) := f.elim

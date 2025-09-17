@@ -2,11 +2,12 @@ import AVM.Object
 import AVM.Class.Label
 import AVM.Ecosystem.Label
 import AVM.Program.Parameters
+import AVM.Ecosystem.AppData
 
 namespace AVM
 
 /-- Representation of AVM programs. These are compiled to Anoma programs. -/
-inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (u + 1) where
+inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (max u 1) where
   | /-- Constructor call. -/
     constructor
     (cid : lab.ClassId)
@@ -30,19 +31,42 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (u + 
     (args : methodId.Args.type)
     (next : Program lab ReturnType)
     : Program lab ReturnType
+  | /-- MultiMethod call. -/
+    multiMethod
+    (mid : lab.MultiMethodId)
+    (selvesIds : mid.SelvesIds)
+    (args : mid.Args.type)
+    (next : Program lab ReturnType)
+    : Program lab ReturnType
   | /-- Object fetch by object id. -/
     fetch
-    {classLabel : Class.Label}
+    {label : Ecosystem.Label}
+    {classId : label.ClassId}
     (objId : ObjectId)
-    (next : Object classLabel → Program lab ReturnType)
+    (next : Object classId → Program lab ReturnType)
     : Program lab ReturnType
   | /-- Return value. -/
     return
     (val : ReturnType)
     : Program lab ReturnType
 
+namespace Program
+
+def lift.{v, u}
+  {lab}
+  {α : Type u}
+  (prog : Program lab α)
+  : Program.{max u v} lab (ULift α) :=
+  match prog with
+  | .constructor cid constr args next => .constructor cid constr args (fun a => (next a).lift)
+  | .destructor cid destrId selfId args next => .destructor cid destrId selfId args next.lift
+  | .method cid methodId selfId args next => .method cid methodId selfId args next.lift
+  | .multiMethod mid selvesIds args next => .multiMethod mid selvesIds args next.lift
+  | .fetch objId next => .fetch objId (fun a => (next a).lift)
+  | .return val => .return (ULift.up val)
+
 /-- Program composition: invoke a program and then continue with another program. -/
-def Program.invoke
+def invoke
     {α β : Type u}
     {lab : Ecosystem.Label}
     (prog : Program lab α)
@@ -55,6 +79,8 @@ def Program.invoke
     .destructor cid destrId selfId args (Program.invoke cont next)
   | .method cid methodId selfId args cont =>
     .method cid methodId selfId args (Program.invoke cont next)
+  | .multiMethod mid selvesId args cont =>
+    .multiMethod mid selvesId args (Program.invoke cont next)
   | .fetch objId cont =>
     .fetch objId (fun obj => Program.invoke (cont obj) next)
   | .return val =>
@@ -65,17 +91,19 @@ def Program.invoke
   methods, constructors, destructors). In general, values of type
   `prog.params.Product` are assumed to be adjusted (see
   `Program.Parameters.Product`). -/
-def Program.params {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) : Parameters :=
+def params {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) : Parameters :=
   match prog with
   | .constructor _ _ _ next => .genId (fun newId => next newId |>.params)
   | .destructor _ _ _ _ next => next.params
   | .method _ _ _ _ next => next.params
-  | .fetch objId next => .fetch objId (fun obj => next obj |>.params)
+  | .multiMethod _ _ _ next => next.params
+  | .fetch objId next =>
+    .fetch objId (fun obj => next obj |>.params)
   | .return _ => .empty
 
 /-- The return value of a program. The `vals` provided need to be adjusted (see
   `Program.Parameters.Product`). -/
-def Program.value {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) (vals : prog.params.Product) : α :=
+def value {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) (vals : prog.params.Product) : α :=
   match prog with
   | .constructor _ _ _ next =>
     let ⟨newId, vals'⟩ := vals
@@ -83,6 +111,8 @@ def Program.value {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) 
   | .destructor _ _ _ _ next =>
     next.value vals
   | .method _ _ _ _ next =>
+    next.value vals
+  | .multiMethod _ _ _ next =>
     next.value vals
   | .fetch _ next =>
     let ⟨obj, vals'⟩ := vals

@@ -6,9 +6,9 @@ namespace Applib
 
 open AVM
 
-inductive Program (lab : Ecosystem.Label) : (ReturnType : Type) → Type 2 where
+inductive Program (lab : Ecosystem.Label) : (ReturnType : Type u) → Type (u + 1) where
   | create
-    {ReturnType : Type}
+    {ReturnType : Type u}
     (C : Type)
     (cid : lab.ClassId)
     (constrId : cid.label.ConstructorId)
@@ -16,7 +16,7 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type) → Type 2 where
     (next : ObjectId → Program lab ReturnType)
     : Program lab ReturnType
   | destroy
-    {ReturnType : Type}
+    {ReturnType : Type u}
     (cid : lab.ClassId)
     (destrId : cid.label.DestructorId)
     (selfId : ObjectId)
@@ -24,7 +24,7 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type) → Type 2 where
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | call
-    {ReturnType : Type}
+    {ReturnType : Type u}
     (cid : lab.ClassId)
     (methodId : cid.label.MethodId)
     (selfId : ObjectId)
@@ -32,20 +32,20 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type) → Type 2 where
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | fetch
-    {ReturnType : Type}
+    {ReturnType : Type u}
     (C : Type)
     [i : IsObject C]
     (objId : ObjectId)
     (next : C → Program lab ReturnType)
     : Program lab ReturnType
   | invoke
-    {ReturnType : Type}
-    {α : Type}
+    {ReturnType : Type u}
+    {α : Type u}
     (prog : Program lab α)
     (next : α → Program lab ReturnType)
     : Program lab ReturnType
   | return
-    {ReturnType : Type}
+    {ReturnType : Type u}
     (val : ReturnType)
     : Program lab ReturnType
 
@@ -58,7 +58,7 @@ def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program
   | .call cid methodId selfId args next =>
     .method cid methodId selfId args (toAVM next)
   | @fetch _ _ _ i objId next =>
-    .fetch (classLabel := i.classId.label) objId (fun obj => toAVM (next (i.fromObject obj.data)))
+    .fetch (classId := i.classId) objId (fun obj => toAVM (next (i.fromObject obj.data)))
   | .invoke p next =>
     .invoke (toAVM p) (fun x => toAVM (next x))
   | .return val =>

@@ -6,7 +6,7 @@ import AVM.Program.Parameters
 
 namespace AVM
 
-structure Task.Actions where
+structure Task.Actions : Type (u + 1) where
   actions : List Anoma.Action
   deltaWitness : Anoma.DeltaWitness
 
@@ -15,7 +15,7 @@ structure Task.Actions where
   step. Tasks enable modularity of the translation – they are at the right
   level of abstraction to compose translations of different message sends,
   enabling nested method calls and subobjects. -/
-structure Task.{u} : Type (u + 1) where
+structure Task : Type 1 where
   /-- Task parameters - objects to fetch from the Anoma system and random values
     to generate. In general, values in `task.params.Product` are assumed to be
     unadjusted (see `Program.Parameters.Product`). -/
@@ -25,9 +25,9 @@ structure Task.{u} : Type (u + 1) where
   /-- Task actions - actions to perform parameterised by fetched objects and new
     object ids. -/
   actions : params.Product → Rand (Option Task.Actions)
-deriving Inhabited
+  deriving Inhabited
 
-def Task.absorbParams.{u} (params : Program.Parameters) (task : params.Product → Task.{u}) : Task.{u} :=
+def Task.absorbParams (params : Program.Parameters) (task : params.Product → Task) : Task :=
   { params := params.append (fun vals => (task vals).params),
     message := fun vals =>
       let ⟨vals1, vals2⟩ := vals.split
@@ -41,7 +41,7 @@ def Task.absorbGenId (task : ObjectId → Task) : Task :=
     (Program.Parameters.genId (fun _ => .empty))
     (fun ⟨newId, ()⟩ => task newId)
 
-def Task.absorbFetch {classLabel : Class.Label} (objId : ObjectId) (task : Object classLabel → Task) : Task :=
+def Task.absorbFetch {label : Ecosystem.Label} {c : label.ClassId} (objId : ObjectId) (task : Object c → Task) : Task :=
   Task.absorbParams
     (Program.Parameters.fetch objId (fun _ => .empty))
     (fun ⟨obj, ()⟩ => task obj)

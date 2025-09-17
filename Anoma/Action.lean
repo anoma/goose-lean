@@ -16,8 +16,8 @@ inductive DeletionCriterion where
   | StoreForever
 
 structure LogicVerifierInput : Type (u + 1) where
-  Data : SomeType.{u}
   status : ConsumedCreated
+  Data : SomeType.{u}
   appData : Data.type
   logicVKOuter : LogicVKOuterHash := ""
   proof: String := ""

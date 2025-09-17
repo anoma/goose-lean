@@ -7,8 +7,8 @@ open AVM
 class IsObject (S : Type) where
   label : Ecosystem.Label
   classId : label.ClassId
-  toObject : S → ObjectData classId.label
-  fromObject : ObjectData classId.label → S
+  toObject : S → ObjectData classId
+  fromObject : ObjectData classId → S
   left_inverse : fromObject ∘ toObject = id := by rfl
 
 lemma IsObject.left_inverse' {S : Type} [i : IsObject S] (s : S)
