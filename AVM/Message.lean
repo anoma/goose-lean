@@ -1,6 +1,6 @@
 import AVM.Class.Label
 import AVM.Ecosystem.Label
-import AVM.Ecosystem.AppData
+import AVM.Ecosystem.Data
 
 namespace AVM
 

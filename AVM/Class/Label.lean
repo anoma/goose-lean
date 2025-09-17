@@ -23,7 +23,7 @@ structure Label : Type 1 where
       Assumption: lab1.name = lab2.name -> lab1 = lab2. -/
   name : String
 
-  PrivateFields : SomeType.{0}
+  PrivateFields : SomeType
   [privateFieldsInhabited : Inhabited PrivateFields.type]
 
   /-- The dynamic label is used to put dynamic data into the Resource label -/
