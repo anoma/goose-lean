@@ -1,6 +1,7 @@
 class HBEq (α β : Type u) where
   hbeq : α → β → Bool
 
+/-- Heterogeneous boolean equality. -/
 infix:50 " ≍? " => HBEq.hbeq
 
 instance BEq.instHBEq (α : Type u) [BEq α] : HBEq α α where
