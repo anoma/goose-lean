@@ -18,6 +18,7 @@ inductive DeletionCriterion where
 structure LogicVerifierInput : Type 1 where
   status : ConsumedCreated
   Data : SomeType.{0}
+  /-- appData is currently unused -/
   appData : Data.type
   logicVKOuter : LogicVKOuterHash := ""
   proof: String := ""
