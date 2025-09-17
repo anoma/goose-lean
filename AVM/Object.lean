@@ -14,7 +14,7 @@ instance ObjectData.inhabited {lab : Ecosystem.Label} (c : lab.ClassId) : Inhabi
   default := {quantity := 0, privateFields := c.label.privateFieldsInhabited.default}
 
 instance ObjectData.hasTypeRep {lab : Ecosystem.Label} (c : lab.ClassId) : TypeRep (ObjectData c) where
-  rep := Rep.composite "AVM.ObjectData" [Rep.atomic lab.name]
+  rep := Rep.composite "AVM.ObjectData" [Rep.atomic lab.name, Rep.atomic c.label.name]
 
 structure SomeObjectData : Type 1 where
   {label : Ecosystem.Label}
