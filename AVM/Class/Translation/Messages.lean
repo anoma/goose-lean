@@ -68,10 +68,9 @@ def MultiMethod.message
   (args : multiId.Args.type)
   (body : Program lab (MultiMethodResult multiId))
   (vals : body.params.Product)
-  : Option (Message lab) :=
+  : Message lab :=
   let res : MultiMethodResult multiId := body.value vals
   let data := res.computeMultiMethodData
-  some
   { id := .multiMethodId multiId
     logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
     data
