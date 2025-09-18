@@ -110,6 +110,9 @@ private partial def Body.task'
     let res := tasks.value (Tasks.coerce vals)
     let actionData := mkActionData res.value
     let adjust' : AdjustFun := fun obj =>
+      -- NOTE: This doesn't take into account objects that are destroyed. If an
+      -- object is fetched after being destroyed, the program behaviour is
+      -- undefined.
       let try createdObj := actionData.created.find? (fun o => o.uid == obj.uid)
           failwith obj
       let try obj' := tryCast createdObj.toObject
