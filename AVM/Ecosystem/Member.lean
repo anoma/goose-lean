@@ -10,7 +10,7 @@ inductive DeconstructionKind : Type where
   | Destroyed
   /-- Will be consumed. It is the responsibility of the user to balance disassembled objects with assembled objects -/
   | Disassembled
-  deriving BEq, DecidableEq
+  deriving BEq, DecidableEq, Inhabited
 
 structure Assembled
   {label : Ecosystem.Label}
@@ -22,6 +22,7 @@ structure Assembled
       spawned objects has the uid of the original --/
   withOldUid : (arg : multiId.ObjectArgNames) → argDeconstruction arg = .Disassembled → Option (ObjectData arg.classId)
   withNewUid : List SomeObjectData
+  deriving Inhabited
 
 structure AssembledOldUid
   {label : Ecosystem.Label}
@@ -72,6 +73,7 @@ structure MultiMethodResult {lab : Ecosystem.Label} (multiId : lab.MultiMethodId
   destroyed : List SomeConsumableObject := []
   /-- List of constructed objects. Constructed objects will be balanced with automatically generated ephemeral resources -/
   constructed : List ObjectValue := []
+  deriving Inhabited
 
 namespace MultiMethodResult
 
