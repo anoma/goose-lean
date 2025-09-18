@@ -12,14 +12,14 @@ inductive DeconstructionKind : Type where
   | Disassembled
   deriving BEq, DecidableEq
 
--- Question: Should it be allowed that there exists a disassembled object D such
--- that there is no assembled object A such that D.uid = A.uid? Yes, I think this
--- should be allowed
 structure Assembled
   {label : Ecosystem.Label}
   {multiId : label.MultiMethodId}
   (argDeconstruction : multiId.ObjectArgNames → DeconstructionKind)
   : Type 1 where
+  /-- It is possible that a disassembled Object's uid is not in any of the created objects. Consider
+      the situation when you want to split an object into two and it is desirable that none of the
+      spawned objects has the uid of the original --/
   withOldUid : (arg : multiId.ObjectArgNames) → argDeconstruction arg = .Disassembled → Option (ObjectData arg.classId)
   withNewUid : List SomeObjectData
 
