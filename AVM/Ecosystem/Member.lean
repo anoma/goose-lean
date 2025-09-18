@@ -84,7 +84,7 @@ instance instInhabited {lab : Ecosystem.Label} {multiId : lab.MultiMethodId} : I
       destroyed := []
       constructed := [] }
 
-def computeMultiMethodData
+def data
   {lab : Ecosystem.Label}
   {multiId : lab.MultiMethodId}
   (res : MultiMethodResult multiId)

@@ -33,7 +33,7 @@ private structure TasksResult (params : Program.Parameters) (α : Type u) : Type
 
 private structure MultiTasksResult {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) where
   res : MultiMethodResult multiId
-  rands : MultiMethodRandoms res.computeMultiMethodData
+  rands : MultiMethodRandoms res.data
   deriving Inhabited
 
 private def mkReturn {α} (val : α) (adjust : AdjustFun) : Tasks (TasksResult .empty α) :=
@@ -217,7 +217,7 @@ partial def Ecosystem.Label.MultiMethodId.task'
   let body := method.body selves args
 
   let mkResult (res : MultiMethodResult multiId) (adjust : AdjustFun) : Tasks (TasksResult .empty (MultiTasksResult multiId)) :=
-    Tasks.genMultiMethodRandoms (res.computeMultiMethodData) fun rands =>
+    Tasks.genMultiMethodRandoms res.data fun rands =>
       mkReturn ⟨res, rands⟩ adjust
 
   let mkActionData
