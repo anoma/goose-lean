@@ -247,18 +247,20 @@ def label : AVM.Ecosystem.Label where
 instance Auction.instIsObject : IsObject Auction where
   label := label
   classId := Classes.Auction
-  toObject := fun (c : Auction) =>
-   { quantity := 1
-     privateFields := c }
-  fromObject := fun (o : @ObjectData label Classes.Auction) => o.privateFields
+  isObjectOf :=
+    { toObject := fun (c : Auction) =>
+       { quantity := 1
+         privateFields := c }
+      fromObject := fun (o : @ObjectData label Classes.Auction) => o.privateFields }
 
 instance Check.instIsObject : IsObject Check where
   label := label
   classId := Classes.Check
-  toObject := fun (c : Check) =>
-   { quantity := 1
-     privateFields := c }
-  fromObject := fun (o : @ObjectData label Classes.Check) => o.privateFields
+  isObjectOf :=
+    { toObject := fun (c : Check) =>
+       { quantity := 1
+         privateFields := c }
+      fromObject := fun (o : @ObjectData label Classes.Check) => o.privateFields }
 
 namespace KudosBank
 
@@ -272,8 +274,9 @@ def fromObject (o : @ObjectData label .Bank) : KudosBank :=
 instance instIsObject : IsObject KudosBank where
   label := label
   classId := Classes.Bank
-  toObject := KudosBank.toObject
-  fromObject := KudosBank.fromObject
+  isObjectOf :=
+    { toObject := KudosBank.toObject
+      fromObject := KudosBank.fromObject }
 
 end KudosBank
 

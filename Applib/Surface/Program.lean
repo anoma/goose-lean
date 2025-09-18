@@ -122,5 +122,16 @@ def Program.call'
   : Program i.label ReturnType :=
   Program.call i.classId methodId r.objId args next
 
+def Program.multiCall'
+  {α}
+  {lab : Ecosystem.Label}
+  (multiId : lab.MultiMethodId)
+  (selves : multiId.SelvesReferences)
+  (args : multiId.Args.type)
+  (next : Program lab α)
+  : Program lab α :=
+  let selves' : multiId.SelvesIds := fun x => selves x |>.ref.objId
+  multiCall multiId selves' args next
+
 def Program.fetch' {ReturnType} {lab : Ecosystem.Label} {C : Type} (r : Reference C) [i : IsObject C] (next : C → Program lab ReturnType) : Program lab ReturnType :=
   Program.fetch C r.objId next

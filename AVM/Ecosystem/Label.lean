@@ -3,8 +3,10 @@ import AVM.Object
 
 namespace AVM.Ecosystem.Label.MultiMethodId
 
-abbrev Selves {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type :=
-  (argName : multiId.ObjectArgNames) → Object (lab.MultiMethodObjectArgClass argName)
+abbrev Selves' {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) (f : lab.ClassId → Type u) : Type u :=
+  (argName : multiId.ObjectArgNames) → f (lab.MultiMethodObjectArgClass argName)
+
+abbrev Selves {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type := Selves' multiId Object
 
 def ConsumedToSelves
   {lab : Ecosystem.Label}
@@ -48,7 +50,7 @@ abbrev SelvesIds
   {lab : Ecosystem.Label}
   (multiId : lab.MultiMethodId)
   : Type :=
-  (argName : lab.MultiMethodObjectArgNames multiId) → ObjectId
+  Selves' multiId (fun _ => ObjectId)
 
 def SelvesIdsToVector
   {lab : Ecosystem.Label}

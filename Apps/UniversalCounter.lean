@@ -21,12 +21,12 @@ inductive Constructors where
   deriving DecidableEq, Fintype, Repr
 
 inductive MultiMethods where
-  | Mutual : MultiMethods
+  | Merge : MultiMethods
   deriving Repr, DecidableEq, FinEnum
 
 namespace MultiMethods
 
-namespace Mutual
+namespace Merge
 
 inductive ArgNames where
   | Counter1
@@ -35,7 +35,7 @@ inductive ArgNames where
 
 export ArgNames (Counter1 Counter2)
 
-end Mutual
+end Merge
 
 namespace Absorb
 
@@ -72,7 +72,7 @@ def label : Ecosystem.Label where
   MultiMethodId := MultiMethods
   MultiMethodObjectArgClass _ := .unit
   MultiMethodObjectArgNames := fun
-    | MultiMethods.Mutual => Mutual.ArgNames
+    | MultiMethods.Merge => Merge.ArgNames
 
 def toObject (c : Counter) : @ObjectData label .unit where
   quantity := 1
@@ -81,11 +81,14 @@ def toObject (c : Counter) : @ObjectData label .unit where
 def fromObject (o : @ObjectData label .unit) : Counter :=
   Counter.mk o.privateFields
 
-instance instIsObject : @IsObject Counter where
-  label := label
-  classId := Unit.unit
+instance instIsObjectOf : @IsObjectOf label .unit Counter where
   toObject := Counter.toObject
   fromObject := Counter.fromObject
+
+instance instIsObject : IsObject Counter where
+  label := label
+  classId := Unit.unit
+  isObjectOf := inferInstance
 
 def newCounter : Counter where
   count := 0
@@ -106,7 +109,7 @@ def counterClass : @Class label .unit where
     | Methods.Incr => counterIncr
   destructors := noDestructors
 
-def mutualMethod : @Ecosystem.MultiMethod label .Mutual where
+def mergeMethod : @Ecosystem.MultiMethod label .Merge where
   invariant _ _ := true
   body selves (_args : Unit) :=
     let prog : _ := ⟪
@@ -121,11 +124,28 @@ def mutualMethod : @Ecosystem.MultiMethod label .Mutual where
            argDeconstruction := fun
              | .Counter1 => .Disassembled
              | .Counter2 => .Disassembled
-            : @MultiMethodResult label .Mutual
+            : @MultiMethodResult label .Merge
          }⟫.toAVM
     prog
 
 def counterEcosystem : Ecosystem label where
   classes _ := counterClass
   multiMethods := fun
-    | .Mutual => mutualMethod
+    | .Merge => mergeMethod
+
+example (rx ry : Reference Counter) : Applib.Program label Unit := ⟪
+  let selves :
+      @Ecosystem.Label.MultiMethodId.SelvesReferences label
+      Counter.MultiMethods.Merge := fun
+        | .Counter1 => { type := Counter
+                         isObjectOf := by
+                           unfold label
+                           infer_instance
+                         ref := rx }
+        | .Counter2 => { type := Counter
+                         isObjectOf := by
+                           unfold label
+                           infer_instance
+                         ref := ry }
+  multiCall Counter.MultiMethods.Merge selves .unit
+⟫

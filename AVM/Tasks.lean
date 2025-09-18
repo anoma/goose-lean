@@ -69,7 +69,8 @@ def fetchSelves
         simp at h
         refine (Eq.mp ?_ h)
         congr 1
-        unfold Ecosystem.Label.MultiMethodObjectArgNames  Ecosystem.Label.MultiMethodId.argsClassesVec Ecosystem.Label.MultiMethodId.objectArgNamesVec
+        unfold Ecosystem.Label.MultiMethodId.argsClassesVec
+               Ecosystem.Label.MultiMethodId.objectArgNamesVec
         simp
         unfold Function.comp FinEnum.toVector
         simp

@@ -96,8 +96,9 @@ def fromObject (o : @ObjectData label .unit) : Kudos :=
 instance hasIsObject : IsObject Kudos where
   label := label
   classId := .unit
-  toObject := Kudos.toObject
-  fromObject := Kudos.fromObject
+  isObjectOf :=
+    { toObject := Kudos.toObject
+      fromObject := Kudos.fromObject }
 
 def kudosMint : @Class.Constructor label .unit Constructors.Mint := defConstructor
   (body := fun (args : MintArgs) => ⟪

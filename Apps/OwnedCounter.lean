@@ -54,8 +54,9 @@ def fromObject (o : @ObjectData label .unit) : OwnedCounter :=
 instance instIsObject : IsObject OwnedCounter where
   label := label
   classId := .unit
-  toObject := OwnedCounter.toObject
-  fromObject := OwnedCounter.fromObject
+  isObjectOf :=
+    { toObject := OwnedCounter.toObject
+      fromObject := OwnedCounter.fromObject }
 
 def newCounter (owner : PublicKey) : OwnedCounter where
   count := 0

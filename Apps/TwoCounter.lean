@@ -111,8 +111,9 @@ def fromObject (o : @ObjectData Eco.label .Counter) : Counter :=
 instance instIsObject : IsObject Counter where
   label := Eco.label
   classId := Eco.Classes.Counter
-  toObject := Counter.toObject
-  fromObject := Counter.fromObject
+  isObjectOf :=
+    { toObject := Counter.toObject
+      fromObject := Counter.fromObject }
 
 def constructor : @Class.Constructor Eco.label Eco.Classes.Counter Constructors.Zero := defConstructor
   (body := fun (_noArgs : Unit) => ⟪return Counter.new⟫)
@@ -135,8 +136,9 @@ def fromObject (o : @ObjectData Eco.label .TwoCounter) : TwoCounter :=
 instance instIsObject : IsObject TwoCounter where
   label := Eco.label
   classId := Eco.Classes.TwoCounter
-  toObject
-  fromObject
+  isObjectOf :=
+    { toObject
+      fromObject }
 
 def constructor : @Class.Constructor Eco.label Eco.Classes.TwoCounter Constructors.Zero := defConstructor
   (body := fun (args : Reference Counter × Reference Counter) => ⟪
