@@ -170,10 +170,10 @@ def MultiMethod.Message.logicFun
         && Logic.checkResourcesPersistent argsConsumedSelves.toList
         && Logic.checkResourcesPersistent argsDestroyed.toList
         && Logic.checkResourcesPersistent argsCreated.toList
+        && Logic.checkResourcesPersistent argsConstructed.toList
         && Logic.checkResourcesEphemeral argsConstructedEph.toList
         && Logic.checkResourcesEphemeral argsDestroyedEph.toList
         && Logic.checkResourcesEphemeral argsSelvesDestroyedEph.toList
-        && Logic.checkResourcesEphemeral argsConstructedEph.toList
 
 def MultiMethod.Message.logic
   {lab : Ecosystem.Label}
