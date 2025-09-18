@@ -263,7 +263,7 @@ partial def Ecosystem.Label.MultiMethodId.task'
 
   let body : Program.{1} lab _ := method.body selves args
   let mkMessage (vals : body.params.Product) : SomeMessage :=
-    let try msg : Message lab := (eco.multiMethods multiId).message ⟨body.params.Product⟩ vals selves args
+    let try msg : Message lab := (eco.multiMethods multiId).message selves args vals
     ⟨msg⟩
 
   Body.task' adjust eco body mkActionData mkMessage

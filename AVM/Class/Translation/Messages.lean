@@ -64,19 +64,18 @@ def MultiMethod.message
   {lab : Ecosystem.Label}
   {multiId : lab.MultiMethodId}
   (method : MultiMethod multiId)
-  (Vals : SomeType)
-  (vals : Vals.type)
   (selves : multiId.Selves)
   (args : multiId.Args.type)
+  (vals : (method.body selves args).params.Product)
   : Option (Message lab) :=
   let prog : Program lab (MultiMethodResult multiId) := method.body selves args
-  let try vals' : prog.params.Product := SomeType.cast (B := ⟨prog.params.Product⟩) vals
-  let res : MultiMethodResult multiId := prog.value vals'
+  let res : MultiMethodResult multiId := prog.value vals
   let data := res.computeMultiMethodData
   some
   { id := .multiMethodId multiId
     logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
     data
+    Vals := ⟨(method.body selves args).params.Product⟩
     vals
     args
     recipients := Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) }
