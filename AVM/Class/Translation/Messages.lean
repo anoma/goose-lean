@@ -66,16 +66,16 @@ def MultiMethod.message
   (method : MultiMethod multiId)
   (selves : multiId.Selves)
   (args : multiId.Args.type)
-  (vals : (method.body selves args).params.Product)
+  (body : Program lab (MultiMethodResult multiId))
+  (vals : body.params.Product)
   : Option (Message lab) :=
-  let prog : Program lab (MultiMethodResult multiId) := method.body selves args
-  let res : MultiMethodResult multiId := prog.value vals
+  let res : MultiMethodResult multiId := body.value vals
   let data := res.computeMultiMethodData
   some
   { id := .multiMethodId multiId
     logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
     data
-    Vals := ⟨(method.body selves args).params.Product⟩
+    Vals := ⟨body.params.Product⟩
     vals
     args
     recipients := Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) }
