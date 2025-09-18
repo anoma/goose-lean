@@ -34,7 +34,7 @@ def checkResourcesPersistent (resources : List Anoma.Resource) : Bool :=
   Logic.filterOutDummy resources |>.all Anoma.Resource.isPersistent
 
 def selectObjectResources.{u, v} (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
-  resources.filter Resource.isSomeObject.{u, v, v}
+  resources.filter Resource.isSomeObject.{u, v}
 
 def selectMessageResources.{u, v} (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
   resources.filter Resource.isSomeMessage

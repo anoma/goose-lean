@@ -106,13 +106,13 @@ def Object.fromResource
           data := ⟨res.quantity, value.privateFields⟩,
           nonce := res.nonce }
 
-def SomeObject.fromResource
-  (res : Anoma.Resource)
-  : Option SomeObject :=
+def SomeObject.fromResource.{u, v}
+  (res : Anoma.Resource.{u, v})
+  : Option SomeObject.{max u v + 1} :=
   let try resLab : Object.Resource.Label := tryCast res.label
   let lab : Class.Label := resLab.classLabel
   let try obj := @Object.fromResource lab res
   some {label := lab, object := obj}
 
-def Resource.isSomeObject.{u, v, w} (res : Anoma.Resource.{u, v}) : Bool :=
-  Option.isSome (SomeObject.fromResource.{u, v, w} res)
+def Resource.isSomeObject.{u, v} (res : Anoma.Resource.{u, v}) : Bool :=
+  Option.isSome (SomeObject.fromResource.{u, v} res)
