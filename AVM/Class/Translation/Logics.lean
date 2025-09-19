@@ -198,9 +198,11 @@ private def logicFun
     | .classMember (classId := cl) _ => AVM.Class.logicFun (eco.classes cl) args
     | .multiMethodId multiId =>
       let consumedMessageResources : List Anoma.Resource := Logic.selectMessageResources args.consumed
+      let nMessages := consumedMessageResources.length
       let consumedObjectResources : List Anoma.Resource := Logic.selectObjectResources args.consumed
       let try selves : multiId.Selves := multiId.ConsumedToSelves consumedObjectResources
-      consumedMessageResources.length + multiId.numObjectArgs == (Logic.filterOutDummy args.consumed).length
+      nMessages > 0
+        && consumedMessageResources.length + multiId.numObjectArgs == (Logic.filterOutDummy args.consumed).length
         && consumedMessageResources.all fun res =>
           let try msg : Message lab := Message.fromResource res
           Label.MultiMethodId.SelvesToVector selves (fun o => o.uid) ≍? msg.recipients
