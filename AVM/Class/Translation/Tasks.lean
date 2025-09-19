@@ -144,7 +144,7 @@ private partial def Class.Constructor.task'
     let consumedObj := newObj.toConsumable (ephemeral := true)
     let createdObjects : List CreatedObject :=
       [CreatedObject.fromSomeObject newObj (ephemeral := false) (rand := r)]
-    { consumable := [consumedObj]
+    { consumed := [consumedObj]
       created := createdObjects }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     constr.message ⟨body.params.Product⟩ vals newId args
@@ -170,7 +170,7 @@ private partial def Class.Destructor.task'
          data := self.data,
          ephemeral := true,
          rand := r }]
-    { consumable := [consumedObj]
+    { consumed := [consumedObj]
       created := createdObjects }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     destructor.message ⟨body.params.Product⟩ vals self.uid args
@@ -197,7 +197,7 @@ private partial def Class.Method.task'
          data := obj.data,
          ephemeral := false,
          rand := r }
-    { consumable := [consumedObj]
+    { consumed := [consumedObj]
       created := [createdObject] }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     method.message ⟨body.params.Product⟩ vals self.uid args
@@ -260,7 +260,7 @@ partial def Ecosystem.Label.MultiMethodId.task'
                       some (fun r => consumable.balanceDestroyed (rand := r))
                     | .Disassembled => none)
           |>.zipWith rands.selvesDestroyedEphRands.toList (f := fun mk r => mk r)
-      { consumable := consumedSelves ++ constructedEph ++ destroyed
+      { consumed := consumedSelves ++ constructedEph ++ destroyed
         created := reassembled ++ constructed ++ destroyedEph ++ selvesDestroyedEph
         ensureUnique := rands.reassembledNewUidNonces.toList }
 

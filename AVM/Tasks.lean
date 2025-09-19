@@ -21,7 +21,7 @@ inductive Tasks (α : Type u) : Type (max u 1) where
   deriving Inhabited
 
 structure ActionData : Type 1 where
-  consumable : List SomeConsumableObject
+  consumed : List SomeConsumableObject
   created : List CreatedObject
   ensureUnique : List Anoma.Nonce := []
 
@@ -208,7 +208,7 @@ def composeWithMessage
   let mkAction (vals : tasks.params.Product) (a : α)
     : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
     let actionData := mkActionData a
-    let try consumedObjects := actionData.consumable.map (·.consume) |>.getSome
+    let try consumedObjects := actionData.consumed.map (·.consume) |>.getSome
     let createdMessages := composeMessages tasks vals
     Action.create consumedObjects actionData.created actionData.ensureUnique [msg a] createdMessages
   Tasks.composeWithAction (tasks.map' mkAction) (fun vals => some (msg (tasks.value (coerce vals))))
