@@ -75,6 +75,7 @@ private def logicFun
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   (cl : Class classId)
+  (consumedMessageResources consumedObjectResources : List Anoma.Resource)
   (args : Logic.Args)
   : Bool :=
   let try self : Object classId := Object.fromResource args.self
@@ -82,14 +83,12 @@ private def logicFun
   match args.status with
   | Created => true
   | Consumed =>
-    let consumedMessageResources : List Anoma.Resource := Logic.selectMessageResources args.consumed
     let nMessages := consumedMessageResources.length
-    let! [consumedObjectResource] : List Anoma.Resource := Logic.selectObjectResources args.consumed
+    let! [consumedObjectResource] : List Anoma.Resource := consumedObjectResources
     let try consumedObject : Object classId := Object.fromResource consumedObjectResource
     -- NOTE: consumedObject == self by definition of Logic.Args; we only check
     -- that there are no other consumed objects
-    nMessages >= 1
-      && nMessages + 1 == (Logic.filterOutDummy args.consumed).length
+    nMessages + 1 == (Logic.filterOutDummy args.consumed).length
       && consumedMessageResources.all fun res =>
         let try msg : Message lab := Message.fromResource res
         let! [recipient] := msg.recipients.toList
@@ -185,32 +184,31 @@ def MultiMethod.Message.logic
     function args := MultiMethod.Message.logicFun method args data }
 
 /-- The multiMethod logic checks that all consumed messages in the action correspond
-  to multiMethods and the consumed objects are the receivers. -/
+  to members in the ecosystem and the consumed objects are the receivers. -/
 private def logicFun
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
-  (memberId : lab.MemberId)
   (args : Logic.Args)
   : Bool :=
   match args.status with
   | Created => true
-  | Consumed => match memberId with
-    | .classMember (classId := cl) _ => AVM.Class.logicFun (eco.classes cl) args
-    | .multiMethodId multiId =>
+  | Consumed =>
       let consumedMessageResources : List Anoma.Resource := Logic.selectMessageResources args.consumed
       let nMessages := consumedMessageResources.length
       let consumedObjectResources : List Anoma.Resource := Logic.selectObjectResources args.consumed
-      let try selves : multiId.Selves := multiId.ConsumedToSelves consumedObjectResources
-      nMessages > 0
-        && nMessages + multiId.numObjectArgs == (Logic.filterOutDummy args.consumed).length
+      nMessages >= 1
         && consumedMessageResources.all fun res =>
           let try msg : Message lab := Message.fromResource res
-          Label.MultiMethodId.SelvesToVector selves (fun o => o.uid) ≍? msg.recipients
+          match msg.id with
+          | .classMember (classId := cl) _ => AVM.Class.logicFun (eco.classes cl) consumedMessageResources consumedObjectResources args
+          | .multiMethodId multiId =>
+            let try selves : multiId.Selves := multiId.ConsumedToSelves consumedObjectResources
+            nMessages + multiId.numObjectArgs == (Logic.filterOutDummy args.consumed).length
+              && Label.MultiMethodId.SelvesToVector selves (fun o => o.uid) ≍? msg.recipients
 
 def logic
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
-  (memberId : lab.MemberId)
   : Anoma.Logic :=
   { reference := lab.logicRef,
-    function := logicFun eco memberId }
+    function := logicFun eco }
