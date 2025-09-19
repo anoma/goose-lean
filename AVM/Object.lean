@@ -146,7 +146,7 @@ def Object.fromResource
 
 def SomeObject.fromResource.{u, v}
   (res : Anoma.Resource.{u, v})
-  : Option SomeObject.{max u v + 1} :=
+  : Option SomeObject :=
   let try resLab : Object.Resource.Label := tryCast res.label
   let label : Ecosystem.Label := resLab.label
   let classId := resLab.classId
