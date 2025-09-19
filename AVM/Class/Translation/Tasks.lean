@@ -31,6 +31,14 @@ private structure TasksResult (params : Program.Parameters) (α : Type u) : Type
   bodyParameterValues : params.Product
   deriving Inhabited
 
+private structure MultiTasksResult {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) where
+  res : MultiMethodResult multiId
+  rands : MultiMethodRandoms res.data
+  deriving Inhabited
+
+private def mkReturn {α} (val : α) (adjust : AdjustFun) : Tasks (TasksResult .empty α) :=
+  .result ⟨val, adjust, ⟨⟩⟩
+
 mutual
 
 /-- Creates `Tasks` for a given `body` program. The `adjust` argument adjusts
@@ -43,69 +51,63 @@ mutual
     `body.params.Product`). -/
 private partial def Body.tasks'
   (adjust : AdjustFun)
-  {α : Type 1}
-  [Inhabited α]
+  {α β : Type 1}
+  [Inhabited β]
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   (body : Program lab α)
-  : Tasks (TasksResult body.params α) :=
+  (cont : α → AdjustFun → Tasks (TasksResult .empty β))
+  : Tasks (TasksResult body.params β) :=
   match body with
   | .constructor classId constrId args next =>
     let constr := eco.classes classId |>.constructors constrId
     Tasks.rand fun newId => Tasks.rand fun r =>
       let task := constr.task' adjust eco newId r args
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) eco (next newId)
+        Body.tasks' (task.adjust vals) eco (next newId) cont
         |>.map (fun res => ⟨res.value, res.adjust, ⟨newId, res.bodyParameterValues⟩⟩)
   | .destructor classId destrId selfId args next =>
     let destr := eco.classes classId |>.destructors destrId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := destr.task' adjust eco r (adjust self) args
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) eco next
+        Body.tasks' (task.adjust vals) eco next cont
   | .method classId methodId selfId args next =>
     let method := eco.classes classId |>.methods methodId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := method.task' adjust eco r (adjust self) args
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) eco next
+        Body.tasks' (task.adjust vals) eco next cont
   | .multiMethod multiId selvesIds args next =>
-    -- TODO: Currently `data` is only an upper bound to the number of needed random numbers.
-    let data : MultiMethodData :=
-          { numConstructed := 999
-            numDestroyed := 999
-            numSelvesDestroyed := multiId.numObjectArgs
-            numReassembledNewUid := 999
-            numReassembledOldUid := multiId.numObjectArgs }
-    Tasks.genMultiMethodRandoms data fun rands =>
     Tasks.fetchSelves selvesIds fun selves =>
-      let task := multiId.task' adjust eco rands (fun x => adjust (selves x)) args
+      let task := multiId.task' adjust eco (fun x => adjust (selves x)) args
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) eco next
+        Body.tasks' (task.adjust vals) eco next cont
   | .fetch objId next =>
     Tasks.fetch objId fun obj =>
-      Body.tasks' adjust eco (next (adjust obj))
+      Body.tasks' adjust eco (next (adjust obj)) cont
       |>.map (fun res => ⟨res.value, res.adjust, ⟨adjust obj, res.bodyParameterValues⟩⟩)
   | .return val =>
-    Tasks.result ⟨val, adjust, ()⟩
+    cont val adjust
 
 private partial def Body.task'
-  {α : Type 1}
-  [i : Inhabited α]
+  {α β : Type 1}
+  [i : Inhabited β]
   (adjust : AdjustFun)
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   (body : Program lab α)
-  (mkActionData : α → ActionData)
+  (cont : α → AdjustFun → Tasks (TasksResult .empty β))
+  (mkActionData : β → ActionData)
   (mkMessage : body.params.Product → SomeMessage)
   : Task' :=
-  let tasks : Tasks (TasksResult body.params α) :=
-    Body.tasks' adjust eco body
+  let tasks : Tasks (TasksResult body.params β) :=
+    Body.tasks' adjust eco body cont
   let task :=
     Tasks.composeWithMessage
       tasks
       (fun res => mkMessage res.bodyParameterValues)
-      (mkActionData ∘ TasksResult.value)
+      (fun res => mkActionData res.value)
   let mkAdjust (vals : task.params.Product) : AdjustFun :=
     let res := tasks.value (Tasks.coerce vals)
     let actionData := mkActionData res.value
@@ -148,7 +150,7 @@ private partial def Class.Constructor.task'
       created := createdObjects }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     constr.message ⟨body.params.Product⟩ vals newId args
-  Body.task' adjust eco body mkActionData mkMessage
+  Body.task' adjust eco body mkReturn mkActionData mkMessage
 
 /-- Creates a Task for a given object destructor. -/
 private partial def Class.Destructor.task'
@@ -174,7 +176,7 @@ private partial def Class.Destructor.task'
       created := createdObjects }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     destructor.message ⟨body.params.Product⟩ vals self.uid args
-  Body.task' adjust eco body mkActionData mkMessage
+  Body.task' adjust eco body mkReturn mkActionData mkMessage
 
 /-- Creates a Task for a given method. -/
 private partial def Class.Method.task'
@@ -201,22 +203,28 @@ private partial def Class.Method.task'
       created := [createdObject] }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     method.message ⟨body.params.Product⟩ vals self.uid args
-  Body.task' adjust eco body mkActionData mkMessage
+  Body.task' adjust eco body mkReturn mkActionData mkMessage
 
 partial def Ecosystem.Label.MultiMethodId.task'
   (adjust : AdjustFun)
   {lab : Ecosystem.Label}
-  {data : MultiMethodData}
   (eco : Ecosystem lab)
   {multiId : lab.MultiMethodId}
-  (rands : MultiMethodRandoms data)
   (selves : multiId.Selves)
   (args : multiId.Args.type)
   : Task' :=
   let method := eco.multiMethods multiId
+  let body := method.body selves args
+
+  let mkResult (res : MultiMethodResult multiId) (adjust : AdjustFun) : Tasks (TasksResult .empty (MultiTasksResult multiId)) :=
+    Tasks.genMultiMethodRandoms res.data fun rands =>
+      mkReturn ⟨res, rands⟩ adjust
+
   let mkActionData
-      (res : MultiMethodResult multiId)
+      (tasksRes : MultiTasksResult multiId)
       : ActionData :=
+      let res := tasksRes.res
+      let rands := tasksRes.rands
       let consumedSelves := Ecosystem.Label.MultiMethodId.SelvesToVector selves (fun x => x.toSomeObject.toConsumable (ephemeral := false)) |>.toList
       let destroyed := res.destroyed
       let destroyedEph := destroyed.zipWith rands.destroyedEphRands.toList (f := fun c r => c.balanceDestroyed (rand := r))
@@ -264,12 +272,10 @@ partial def Ecosystem.Label.MultiMethodId.task'
         created := reassembled ++ constructed ++ destroyedEph ++ selvesDestroyedEph
         ensureUnique := rands.reassembledNewUidNonces.toList }
 
-  let body : Program.{1} lab _ := method.body selves args
   let mkMessage (vals : body.params.Product) : SomeMessage :=
-    let msg : Message lab := (eco.multiMethods multiId).message selves args body vals
-    ⟨msg⟩
+    ⟨(eco.multiMethods multiId).message selves args body vals⟩
 
-  Body.task' adjust eco body mkActionData mkMessage
+  Body.task' adjust eco body mkResult mkActionData mkMessage
 
 end -- mutual
 
@@ -281,4 +287,4 @@ def Member.Body.tasks
   (eco : Ecosystem lab)
   (prog : Program lab α)
   : Tasks α :=
-  Body.tasks' id eco prog |>.map TasksResult.value
+  Body.tasks' id eco prog mkReturn |>.map TasksResult.value

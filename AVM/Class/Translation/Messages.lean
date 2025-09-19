@@ -70,7 +70,7 @@ def MultiMethod.message
   (vals : body.params.Product)
   : Message lab :=
   let res : MultiMethodResult multiId := body.value vals
-  let data := res.computeMultiMethodData
+  let data := res.data
   { id := .multiMethodId multiId
     logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
     data
