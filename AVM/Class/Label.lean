@@ -23,6 +23,7 @@ structure Label : Type 1 where
       Assumption: lab1.name = lab2.name -> lab1.version = lab2.version -> lab1 = lab2. -/
   name : String
   version : Nat := 0
+  upgradeable : Bool := false
 
   PrivateFields : SomeType
   [privateFieldsInhabited : Inhabited PrivateFields.type]
@@ -72,6 +73,7 @@ inductive Label.MemberId (lab : Class.Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
+  | upgradeId : MemberId lab
 
 instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId lab) where
   beq a b :=
@@ -83,6 +85,9 @@ instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId l
     | destructorId _, _ => false
     | _, destructorId _ => false
     | methodId m1, methodId m2 => lab.methodsBEq.beq m1 m2
+    | methodId _, _ => false
+    | _, methodId _ => false
+    | upgradeId, upgradeId => true
 
 instance Label.MemberId.hasTypeRep (lab : Class.Label) : TypeRep (Class.Label.MemberId lab) where
   rep := Rep.composite "AVM.Class.Label.MemberId" [Rep.atomic lab.name]
@@ -101,6 +106,7 @@ def Label.MemberId.Args {lab : Class.Label} (memberId : MemberId lab) : SomeType
   | constructorId c => lab.ConstructorArgs c
   | destructorId c => lab.DestructorArgs c
   | methodId c => lab.MethodArgs c
+  | upgradeId => ⟨PUnit⟩
 
 instance Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"
