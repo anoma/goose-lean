@@ -231,7 +231,7 @@ private partial def Class.Upgrade.task'
       created := [createdObject] }
   let mkMessage (_ : PUnit) : SomeMessage :=
     Class.Upgrade.message classId self.uid
-  Body.task' adjust eco (.return PUnit.unit) mkActionData mkMessage
+  Body.task' adjust eco (.return PUnit.unit) mkReturn mkActionData mkMessage
 
 partial def Ecosystem.Label.MultiMethodId.task'
   (adjust : AdjustFun)
