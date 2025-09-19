@@ -68,6 +68,23 @@ private def Method.Message.logicFun
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
 
+private def Upgrade.Message.logicFun
+  {lab : Ecosystem.Label}
+  (classId : lab.ClassId)
+  (args : Logic.Args)
+  : Bool :=
+  let! [selfRes] := Logic.selectObjectResources args.consumed
+  let! [upgradedRes] := Logic.selectObjectResources args.created
+  let try selfObj : Object classId := Object.fromResource selfRes
+  let try upgradedObj : SomeObject := SomeObject.fromResource upgradedRes
+  selfObj.uid == upgradedObj.object.uid
+    && classId.label.isUpgradeable
+    && upgradedObj.label == lab
+    && upgradedObj.classId.label.name == classId.label.name
+    && upgradedObj.classId.label.version > classId.label.version
+    && selfRes.isPersistent
+    && upgradedRes.isPersistent
+
 /-- The class logic checks if all consumed messages in the action correspond to
     class members, the single consumed object is the receiver, and there is
     at least one message. -/
@@ -120,6 +137,13 @@ def Method.Message.logic
   : Anoma.Logic :=
   { reference := ⟨s!"AVM.Class.{classId.label.name}.Method.{@repr _ classId.label.methodsRepr methodId}"⟩,
     function := Method.Message.logicFun method }
+
+def Upgrade.Message.logic
+  {lab : Ecosystem.Label}
+  (classId : lab.ClassId)
+  : Anoma.Logic :=
+  { reference := ⟨s!"AVM.Class.{classId.label.name}.Upgrade"⟩,
+    function := Upgrade.Message.logicFun classId }
 
 end AVM.Class
 

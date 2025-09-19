@@ -23,7 +23,7 @@ structure Label : Type 1 where
       Assumption: lab1.name = lab2.name -> lab1.version = lab2.version -> lab1 = lab2. -/
   name : String
   version : Nat := 0
-  upgradeable : Bool := false
+  isUpgradeable : Bool := false
 
   PrivateFields : SomeType
   [privateFieldsInhabited : Inhabited PrivateFields.type]

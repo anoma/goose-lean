@@ -56,6 +56,19 @@ def Method.message
     args
     recipients := List.Vector.singleton selfId }
 
+def Upgrade.message
+  {lab : Ecosystem.Label}
+  (classId : lab.ClassId)
+  (selfId : ObjectId)
+  : Message lab :=
+  { id := .classMember (classId := classId) .upgradeId
+    data := .unit
+    logicRef := Upgrade.Message.logic.{0, 0} classId |>.reference
+    Vals := ⟨PUnit⟩
+    vals := PUnit.unit
+    args := .unit
+    recipients := List.Vector.singleton selfId }
+
 end AVM.Class
 
 namespace AVM.Ecosystem

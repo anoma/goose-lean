@@ -83,12 +83,12 @@ private partial def Body.tasks'
       let task := multiId.task' adjust eco (fun x => adjust (selves x)) args
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next cont
-  | .upgrade _classId _selfId _obj next =>
-  -- TODO
---    Tasks.fetch selfId fun self =>
---      let upgradedObj := { obj.object with data := obj.object.data } -- Here you can modify the object data as needed
---      let adjust' : AdjustFun := fun o => if o.uid == self.uid then upgradedObj else adjust o
-      Body.tasks' adjust eco next cont
+  | .upgrade classId selfId obj next =>
+    Tasks.fetch selfId fun self => Tasks.rand fun r =>
+      let obj' := {obj with object := adjust obj.object}
+      let task := Class.Upgrade.task' (classId := classId) adjust eco r (adjust self) obj'
+      Tasks.task task.task fun vals =>
+        Body.tasks' (task.adjust vals) eco next cont
   | .fetch objId next =>
     Tasks.fetch objId fun obj =>
       Body.tasks' adjust eco (next (adjust obj)) cont
@@ -210,6 +210,28 @@ private partial def Class.Method.task'
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     method.message ⟨body.params.Product⟩ vals self.uid args
   Body.task' adjust eco body mkReturn mkActionData mkMessage
+
+private partial def Class.Upgrade.task'
+  (adjust : AdjustFun)
+  {lab : Ecosystem.Label}
+  (eco : Ecosystem lab)
+  {classId : lab.ClassId}
+  (r : Nat)
+  (self : Object classId)
+  (obj : SomeObject)
+  : Task' :=
+  let mkActionData (_ : PUnit) : ActionData :=
+    let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
+    let createdObject : CreatedObject :=
+      { uid := obj.object.uid,
+         data := obj.object.data,
+         ephemeral := false,
+         rand := r }
+    { consumed := [consumedObj]
+      created := [createdObject] }
+  let mkMessage (_ : PUnit) : SomeMessage :=
+    Class.Upgrade.message classId self.uid
+  Body.task' adjust eco (.return PUnit.unit) mkActionData mkMessage
 
 partial def Ecosystem.Label.MultiMethodId.task'
   (adjust : AdjustFun)
