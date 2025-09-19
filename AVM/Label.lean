@@ -23,7 +23,6 @@ instance : BEq Object.Resource.Label where
 inductive Resource.Label : Type 1 where
   | object : Object.Resource.Label → Label
   | message : SomeMessage → Label
-  | intent : Label
 
 instance : TypeRep Resource.Label where
   rep := Rep.atomic "AVM.Resource.Label"
@@ -32,7 +31,6 @@ instance : BEq Resource.Label where
   beq
     | .object l1, .object l2 => l1 == l2
     | .message m1, .message m2 => m1 == m2
-    | .intent, .intent => true
     | _, _ => false
 
 namespace Resource.Label
