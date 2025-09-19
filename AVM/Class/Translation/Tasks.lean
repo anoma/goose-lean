@@ -83,6 +83,12 @@ private partial def Body.tasks'
       let task := multiId.task' adjust eco (fun x => adjust (selves x)) args
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next cont
+  | .upgrade _classId _selfId _obj next =>
+  -- TODO
+--    Tasks.fetch selfId fun self =>
+--      let upgradedObj := { obj.object with data := obj.object.data } -- Here you can modify the object data as needed
+--      let adjust' : AdjustFun := fun o => if o.uid == self.uid then upgradedObj else adjust o
+      Body.tasks' adjust eco next cont
   | .fetch objId next =>
     Tasks.fetch objId fun obj =>
       Body.tasks' adjust eco (next (adjust obj)) cont

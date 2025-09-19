@@ -68,6 +68,7 @@ def lift.{v, u}
   | .destructor cid destrId selfId args next => .destructor cid destrId selfId args next.lift
   | .method cid methodId selfId args next => .method cid methodId selfId args next.lift
   | .multiMethod mid selvesIds args next => .multiMethod mid selvesIds args next.lift
+  | .upgrade cid selfId obj next => .upgrade cid selfId obj next.lift
   | .fetch objId next => .fetch objId (fun a => (next a).lift)
   | .return val => .return (ULift.up val)
 

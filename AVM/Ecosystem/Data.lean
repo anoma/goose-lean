@@ -1,4 +1,4 @@
-import AVM.Ecosystem.Label
+import AVM.Ecosystem.Label.Base
 
 namespace AVM
 

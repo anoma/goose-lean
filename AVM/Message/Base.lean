@@ -1,4 +1,4 @@
-import AVM.Ecosystem.Label
+import AVM.Ecosystem.Data
 
 namespace AVM
 
@@ -22,18 +22,18 @@ structure Message (lab : Ecosystem.Label) : Type 1 where
   /-- The recipients of the message. -/
   recipients : List.Vector ObjectId id.numObjectArgs
 
-instance Message.hasTypeRep (lab : Class.Label) : TypeRep (Message lab) where
+instance Message.hasTypeRep (lab : Ecosystem.Label) : TypeRep (Message lab) where
   rep := Rep.composite "AVM.Message" [Rep.atomic lab.name]
 
-instance Message.hasBEq {lab : Class.Label} : BEq (Message lab) where
+instance Message.hasBEq {lab : Ecosystem.Label} : BEq (Message lab) where
   beq a b :=
     a.id == b.id
     && a.vals === b.vals
     && a.args === b.args
-    && a.recipient == b.recipient
+    && a.recipients ≍? b.recipients
 
-structure SomeMessage where
-  {label : Class.Label}
+structure SomeMessage : Type 1 where
+  {label : Ecosystem.Label}
   message : Message label
 
 instance SomeMessage.hasTypeRep : TypeRep SomeMessage where
@@ -43,10 +43,18 @@ instance SomeMessage.hasBEq : BEq SomeMessage where
   beq a b := a.label == b.label && a.message === b.message
 
 instance : Inhabited SomeMessage where
-  default := { label := Class.Label.dummy, message := { Vals := ⟨PUnit⟩, vals := PUnit.unit, logicRef := default, id := .constructorId PUnit.unit, args := PUnit.unit, recipient := 0 } }
+  default := { label := Ecosystem.Label.dummy
+               message :=
+                { Vals := ⟨PUnit⟩
+                  vals := PUnit.unit
+                  data := .unit
+                  logicRef := default
+                  id := .classMember (classId := .unit) (.constructorId PUnit.unit),
+                  args := PUnit.unit
+                  recipients := List.Vector.singleton 0 }}
 
-def Message.toSomeMessage {lab : Class.Label} (msg : Message lab) : SomeMessage :=
+def Message.toSomeMessage {lab : Ecosystem.Label} (msg : Message lab) : SomeMessage :=
   { label := lab, message := msg }
 
-instance Message.coeToSomeMessage {lab : Class.Label} : CoeHead (Message lab) SomeMessage where
+instance Message.coeToSomeMessage {lab : Ecosystem.Label} : CoeHead (Message lab) SomeMessage where
   coe := toSomeMessage

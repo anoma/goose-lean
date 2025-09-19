@@ -4,18 +4,23 @@ import AVM.Message.Base
 namespace AVM
 
 structure Object.Resource.Label where
-  /-- The label of the class -/
-  classLabel : Class.Label
+  /-- The label of the ecosystem -/
+  label : Ecosystem.Label
+  /-- The id of the class -/
+  classId : label.ClassId
   /-- The dynamic label is used to put dynamic data into the Resource label -/
-  dynamicLabel : classLabel.DynamicLabel.Label.type
+  dynamicLabel : classId.label.DynamicLabel.Label.type
 
 instance : TypeRep Object.Resource.Label where
   rep := Rep.atomic "Object.Resource.Label"
 
 instance : BEq Object.Resource.Label where
-  beq o1 o2 := o1.classLabel == o2.classLabel && o1.dynamicLabel === o2.dynamicLabel
+  beq o1 o2 :=
+    o1.label == o2.label
+    && o1.classId.label == o2.classId.label
+    && o1.dynamicLabel === o2.dynamicLabel
 
-inductive Resource.Label : Type (u + 1) where
+inductive Resource.Label : Type 1 where
   | object : Object.Resource.Label → Label
   | message : SomeMessage → Label
   | intent : Label

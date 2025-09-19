@@ -5,8 +5,8 @@ namespace AVM
 
 def SomeMessage.toResource (msg : SomeMessage) (nonce : Anoma.Nonce) : Anoma.Resource :=
   { Val := ⟨PUnit⟩,
-    Label := ⟨Resource.Label⟩,
-    label := Resource.Label.message msg,
+    Label := ⟨SomeMessage⟩,
+    label := msg,
     logicRef := msg.message.logicRef,
     value := PUnit.unit,
     quantity := 1,
@@ -15,8 +15,7 @@ def SomeMessage.toResource (msg : SomeMessage) (nonce : Anoma.Nonce) : Anoma.Res
     nonce }
 
 def SomeMessage.fromResource (res : Anoma.Resource.{u, v}) : Option SomeMessage :=
-  let try resLab : AVM.Resource.Label := tryCast res.label
-  let try msg : SomeMessage := Resource.Label.getMessage resLab
+  let try msg : SomeMessage := tryCast res.label
   check (msg.message.logicRef == res.logicRef)
   some msg
 
@@ -28,4 +27,6 @@ def Message.fromResource {lab : Ecosystem.Label} (res : Anoma.Resource) : Option
   tryCast smsg.message
 
 def Resource.isSomeMessage (res : Anoma.Resource) : Bool :=
-  Option.isSome (SomeMessage.fromResource res)
+  match SomeMessage.fromResource res with
+  | some _ => true
+  | none => false

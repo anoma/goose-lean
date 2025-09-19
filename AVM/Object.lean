@@ -1,5 +1,7 @@
 import Anoma.Resource
 import AVM.Ecosystem.Label.Base
+import AVM.Ecosystem.Data
+import AVM.Label
 
 namespace AVM
 
@@ -79,23 +81,6 @@ def SomeObject.toObjectValue (object : SomeObject) : ObjectValue where
   data := object.object.data
   uid := object.object.uid
 
-structure Object.Resource.Label where
-  /-- The label of the ecosystem -/
-  label : Ecosystem.Label
-  /-- The id of the class -/
-  classId : label.ClassId
-  /-- The dynamic label is used to put dynamic data into the Resource label -/
-  dynamicLabel : classId.label.DynamicLabel.Label.type
-
-instance : TypeRep Object.Resource.Label where
-  rep := Rep.atomic "Object.Resource.Label"
-
-instance : BEq Object.Resource.Label where
-  beq o1 o2 :=
-    o1.label == o2.label
-    && o1.classId.label == o2.classId.label
-    && o1.dynamicLabel === o2.dynamicLabel
-
 structure Object.Resource.Value {lab : Ecosystem.Label} (classId : lab.ClassId) where
   uid : Anoma.ObjectId
   privateFields : classId.label.PrivateFields.type
@@ -115,12 +100,12 @@ def SomeObject.toResource
   let clab := classId.label
   let label := sobj.label
   let obj : Object classId := sobj.object
-  { Label := ⟨Object.Resource.Label⟩,
+  { Label := ⟨AVM.Resource.Label⟩,
     label :=
       Resource.Label.object
             { label
-               classId
-               dynamicLabel := clab.DynamicLabel.mkDynamicLabel obj.data.privateFields }
+              classId
+              dynamicLabel := clab.DynamicLabel.mkDynamicLabel obj.data.privateFields }
     logicRef := label.logicRef,
     quantity := obj.data.quantity,
     Val := ⟨Object.Resource.Value classId⟩,
