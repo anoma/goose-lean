@@ -14,12 +14,13 @@ def Constructor.message
   (vals : Vals.type)
   (newId : ObjectId)
   (args : constrId.Args.type)
-  : Message classId.label :=
-  { id := Label.MemberId.constructorId constrId,
-    logicRef := Constructor.Message.logic.{0, 0, 0} constr |>.reference
+  : Message lab :=
+  { id := .classMember (.constructorId constrId),
+    data := .unit
+    logicRef := Constructor.Message.logic.{0, 0} constr |>.reference
     vals,
     args,
-    recipient := newId }
+    recipients := List.Vector.singleton newId }
 
 def Destructor.message
   {lab : Ecosystem.Label}
@@ -30,12 +31,13 @@ def Destructor.message
   (vals : Vals.type)
   (selfId : ObjectId)
   (args : destrId.Args.type)
-  : Message classId.label :=
-  { id := Label.MemberId.destructorId destrId,
-    logicRef := Destructor.Message.logic.{0, 0, 0} destr |>.reference
-    vals,
-    args,
-    recipient := selfId }
+  : Message lab :=
+  { id := .classMember (.destructorId destrId)
+    data := .unit
+    logicRef := Destructor.Message.logic.{0, 0} destr |>.reference
+    vals
+    args
+    recipients := List.Vector.singleton selfId }
 
 def Method.message
   {lab : Ecosystem.Label}
@@ -46,9 +48,33 @@ def Method.message
   (vals : Vals.type)
   (selfId : ObjectId)
   (args : methodId.Args.type)
-  : Message classId.label :=
-  { id := Label.MemberId.methodId methodId,
-    logicRef := Method.Message.logic.{0, 0, 0} method |>.reference
-    vals,
-    args,
-    recipient := selfId }
+  : Message lab :=
+  { id := .classMember (.methodId methodId)
+    data := .unit
+    logicRef := Method.Message.logic.{0, 0} method |>.reference
+    vals
+    args
+    recipients := List.Vector.singleton selfId }
+
+end AVM.Class
+
+namespace AVM.Ecosystem
+
+def MultiMethod.message
+  {lab : Ecosystem.Label}
+  {multiId : lab.MultiMethodId}
+  (method : MultiMethod multiId)
+  (selves : multiId.Selves)
+  (args : multiId.Args.type)
+  (body : Program lab (MultiMethodResult multiId))
+  (vals : body.params.Product)
+  : Message lab :=
+  let res : MultiMethodResult multiId := body.value vals
+  let data := res.computeMultiMethodData
+  { id := .multiMethodId multiId
+    logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
+    data
+    Vals := ⟨body.params.Product⟩
+    vals
+    args
+    recipients := Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) }

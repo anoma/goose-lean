@@ -242,37 +242,41 @@ def label : AVM.Ecosystem.Label where
     | Classes.Bank => BankLabel
     | Classes.Check => Check.Label
     | Classes.Auction => Auction.Label
+  MultiMethodObjectArgClass {f : Empty} := f.elim
 
 instance Auction.instIsObject : IsObject Auction where
   label := label
   classId := Classes.Auction
-  toObject := fun (c : Auction) =>
-   { quantity := 1
-     privateFields := c }
-  fromObject := fun (o : ObjectData Auction.Label) => o.privateFields
+  isObjectOf :=
+    { toObject := fun (c : Auction) =>
+       { quantity := 1
+         privateFields := c }
+      fromObject := fun (o : @ObjectData label Classes.Auction) => o.privateFields }
 
 instance Check.instIsObject : IsObject Check where
   label := label
   classId := Classes.Check
-  toObject := fun (c : Check) =>
-   { quantity := 1
-     privateFields := c }
-  fromObject := fun (o : ObjectData Check.Label) => o.privateFields
+  isObjectOf :=
+    { toObject := fun (c : Check) =>
+       { quantity := 1
+         privateFields := c }
+      fromObject := fun (o : @ObjectData label Classes.Check) => o.privateFields }
 
 namespace KudosBank
 
-def toObject (c : KudosBank) : ObjectData BankLabel where
+def toObject (c : KudosBank) : @ObjectData label .Bank where
   quantity := 1
   privateFields := c
 
-def fromObject (o : ObjectData BankLabel) : KudosBank :=
+def fromObject (o : @ObjectData label .Bank) : KudosBank :=
   o.privateFields
 
 instance instIsObject : IsObject KudosBank where
   label := label
   classId := Classes.Bank
-  toObject := KudosBank.toObject
-  fromObject := KudosBank.fromObject
+  isObjectOf :=
+    { toObject := KudosBank.toObject
+      fromObject := KudosBank.fromObject }
 
 end KudosBank
 

@@ -38,6 +38,8 @@ def getSome (l : List.{u} (Option.{u} A)) : Option.{u} (List.{u} A) :=
 def Product (tys : List (Type u)) : Type u :=
   List.TProd id tys
 
+def toVector (l : List A) : Vector A l.length := Vector.ofFn (fun n => l.get n)
+
 def toSizedVector {n : Nat} (l : List A) : Option (Vector A n) :=
   let a : Array A := l.toArray
   if h : a.size = n

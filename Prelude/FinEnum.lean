@@ -1,4 +1,6 @@
 import Mathlib.Data.FinEnum
+import Mathlib.Data.Vector.Basic
+import Prelude.List
 
 namespace FinEnum
 
@@ -64,3 +66,15 @@ def decImageOption' {A : Type u} [enum : FinEnum A] {B : (a : A) → Type v}
         have c := (p a).down
         rw [p1] at c
         contradiction
+
+def toVector {A : Type u} [enum : FinEnum A] : List.Vector A enum.card :=
+  List.Vector.ofFn (fun ix => enum.equiv.invFun ix)
+
+theorem length_to_list {A : Type u} [enum : FinEnum A] :
+  (enum.toList).length = enum.card := by
+  cases enum
+  case mk card equiv _ => unfold FinEnum.toList; simp
+
+theorem get_toVector {A : Type u} {a : A} [enum : FinEnum A]
+  : enum.toVector.get (enum.equiv.toFun a) = a
+  := by unfold toVector; simp

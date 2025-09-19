@@ -13,10 +13,10 @@ def defMethod (cl : Type) [i : IsObject cl] {methodId : i.classId.label.MethodId
  (body : (self : cl) → methodId.Args.type → Program i.label cl)
  (invariant : (self : cl) → methodId.Args.type → Bool := fun _ _ => true)
  : Class.Method i.classId methodId where
-    invariant (self : Object i.classId.label) (args : methodId.Args.type) :=
+    invariant (self : Object i.classId) (args : methodId.Args.type) :=
       let self' : cl := i.fromObject self.data
       invariant self' args
-    body (self : Object i.classId.label) (args : methodId.Args.type) :=
+    body (self : Object i.classId) (args : methodId.Args.type) :=
       let self' := i.fromObject self.data
       let prog := body self' args
       prog.map (fun obj => {self with data := i.toObject obj})
@@ -33,8 +33,8 @@ def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.classId.label.
  (body : (self : cl) → destructorId.Args.type → Program i.label PUnit := fun _ _ => Program.return ())
  (invariant : (self : cl) -> destructorId.Args.type → Bool := fun _ _ => true)
  : Class.Destructor i.classId destructorId where
-    invariant (self : Object i.classId.label) (args : destructorId.Args.type) :=
+    invariant (self : Object i.classId) (args : destructorId.Args.type) :=
       let self' := i.fromObject self.data
       invariant self' args
-    body (self : Object i.classId.label) (args : destructorId.Args.type) :=
+    body (self : Object i.classId) (args : destructorId.Args.type) :=
       body (i.fromObject self.data) args |>.toAVM

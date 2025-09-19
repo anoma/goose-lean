@@ -3,12 +3,13 @@ import Anoma
 import AVM.Tasks
 import AVM.Ecosystem
 import AVM.Class.Translation.Messages
+import AVM.Action
 
-namespace AVM.Class
+namespace AVM
 
 /-- Type of functions which adjust object values by modifications that occurred
   in the program up to a certain point. -/
-abbrev AdjustFun := {clab : Class.Label} → Object clab → Object clab
+abbrev AdjustFun := {lab : Ecosystem.Label} → {c : lab.ClassId} → Object c → Object c
 
 private structure Task' where
   task : Task
@@ -19,7 +20,7 @@ private structure Task' where
   deriving Inhabited
 
 /-- A helper type for data at the end of `Tasks` execution. -/
-private structure TasksResult (params : Program.Parameters) (α : Type u) where
+private structure TasksResult (params : Program.Parameters) (α : Type u) : Type (max 2 u) where
   /-- The return value of the tasks. -/
   value : α
   /-- Function which adjusts object values by modifications that occurred in the
@@ -42,7 +43,7 @@ mutual
     `body.params.Product`). -/
 private partial def Body.tasks'
   (adjust : AdjustFun)
-  {α}
+  {α : Type 1}
   [Inhabited α]
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
@@ -68,6 +69,19 @@ private partial def Body.tasks'
       let task := method.task' adjust eco r (adjust self) args
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next
+  | .multiMethod multiId selvesIds args next =>
+    -- TODO: Currently `data` is only an upper bound to the number of needed random numbers.
+    let data : MultiMethodData :=
+          { numConstructed := 999
+            numDestroyed := 999
+            numSelvesDestroyed := multiId.numObjectArgs
+            numReassembledNewUid := 999
+            numReassembledOldUid := multiId.numObjectArgs }
+    Tasks.genMultiMethodRandoms data fun rands =>
+    Tasks.fetchSelves selvesIds fun selves =>
+      let task := multiId.task' adjust eco rands (fun x => adjust (selves x)) args
+      Tasks.task task.task fun vals =>
+        Body.tasks' (task.adjust vals) eco next
   | .fetch objId next =>
     Tasks.fetch objId fun obj =>
       Body.tasks' adjust eco (next (adjust obj))
@@ -75,14 +89,14 @@ private partial def Body.tasks'
   | .return val =>
     Tasks.result ⟨val, adjust, ()⟩
 
-private partial def Member.task'
-  {α}
-  [Inhabited α]
+private partial def Body.task'
+  {α : Type 1}
+  [i : Inhabited α]
   (adjust : AdjustFun)
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   (body : Program lab α)
-  (mkActionData : α → List SomeConsumableObject × List CreatedObject)
+  (mkActionData : α → ActionData)
   (mkMessage : body.params.Product → SomeMessage)
   : Task' :=
   let tasks : Tasks (TasksResult body.params α) :=
@@ -94,9 +108,12 @@ private partial def Member.task'
       (mkActionData ∘ TasksResult.value)
   let mkAdjust (vals : task.params.Product) : AdjustFun :=
     let res := tasks.value (Tasks.coerce vals)
-    let (_, createdObjects) := mkActionData res.value
+    let actionData := mkActionData res.value
     let adjust' : AdjustFun := fun obj =>
-      let try createdObj := createdObjects.find? (fun o => o.uid == obj.uid)
+      -- NOTE: This doesn't take into account objects that are destroyed. If an
+      -- object is fetched after being destroyed, the program behaviour is
+      -- undefined.
+      let try createdObj := actionData.created.find? (fun o => o.uid == obj.uid)
           failwith obj
       let try obj' := tryCast createdObj.toObject
           failwith obj
@@ -105,7 +122,7 @@ private partial def Member.task'
   ⟨task, mkAdjust⟩
 
 /-- Creates a Task for a given object constructor. -/
-private partial def Constructor.task'
+private partial def Class.Constructor.task'
   (adjust : AdjustFun)
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
@@ -116,24 +133,25 @@ private partial def Constructor.task'
   (r : Nat)
   (args : constrId.Args.type)
   : Task' :=
-  let body : Program lab (ObjectData classId.label) := constr.body args
-  let mkActionData (newObjectData : ObjectData classId.label) : List SomeConsumableObject × List CreatedObject :=
+  let body : Program.{1} lab (ULift (ObjectData classId)) := constr.body args |>.lift
+  let mkActionData (newObjectData : ULift (ObjectData classId)) : ActionData :=
     let newObj : SomeObject :=
-      let obj : Object classId.label :=
+      let obj : Object classId :=
         { uid := newId,
           nonce := ⟨newId⟩,
-          data := newObjectData }
+          data := newObjectData.down }
       obj.toSomeObject
     let consumedObj := newObj.toConsumable (ephemeral := true)
     let createdObjects : List CreatedObject :=
       [CreatedObject.fromSomeObject newObj (ephemeral := false) (rand := r)]
-    ([consumedObj], createdObjects)
+    { consumed := [consumedObj]
+      created := createdObjects }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     constr.message ⟨body.params.Product⟩ vals newId args
-  Member.task' adjust eco body mkActionData mkMessage
+  Body.task' adjust eco body mkActionData mkMessage
 
 /-- Creates a Task for a given object destructor. -/
-private partial def Destructor.task'
+private partial def Class.Destructor.task'
   (adjust : AdjustFun)
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
@@ -141,24 +159,25 @@ private partial def Destructor.task'
   {destructorId : classId.label.DestructorId}
   (destructor : Class.Destructor classId destructorId)
   (r : Nat)
-  (self : Object classId.label)
+  (self : Object classId)
   (args : destructorId.Args.type)
   : Task' :=
-  let body : Program lab Unit := destructor.body self args
-  let mkActionData (_ : Unit) : List SomeConsumableObject × List CreatedObject :=
+  let body : Program.{1} lab (ULift Unit) := destructor.body self args |>.lift
+  let mkActionData (_ : ULift Unit) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let createdObjects : List CreatedObject :=
       [{ uid := self.uid,
          data := self.data,
          ephemeral := true,
          rand := r }]
-    ([consumedObj], createdObjects)
+    { consumed := [consumedObj]
+      created := createdObjects }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     destructor.message ⟨body.params.Product⟩ vals self.uid args
-  Member.task' adjust eco body mkActionData mkMessage
+  Body.task' adjust eco body mkActionData mkMessage
 
 /-- Creates a Task for a given method. -/
-private partial def Method.task'
+private partial def Class.Method.task'
   (adjust : AdjustFun)
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
@@ -166,27 +185,97 @@ private partial def Method.task'
   {methodId : classId.label.MethodId}
   (method : Class.Method classId methodId)
   (r : Nat)
-  (self : Object classId.label)
+  (self : Object classId)
   (args : methodId.Args.type)
   : Task' :=
-  let body : Program lab (Object classId.label) := method.body self args
-  let mkActionData (obj : Object classId.label) : List SomeConsumableObject × List CreatedObject :=
+  let body : Program.{1} lab (ULift (Object classId)) := method.body self args |>.lift
+  let mkActionData (lobj : ULift (Object classId)) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
-    let createdObjects : List CreatedObject :=
-      [{ uid := obj.uid,
+    let obj : Object classId := lobj.down
+    let createdObject : CreatedObject :=
+      { uid := obj.uid,
          data := obj.data,
          ephemeral := false,
-         rand := r }]
-    ([consumedObj], createdObjects)
+         rand := r }
+    { consumed := [consumedObj]
+      created := [createdObject] }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     method.message ⟨body.params.Product⟩ vals self.uid args
-  Member.task' adjust eco body mkActionData mkMessage
+  Body.task' adjust eco body mkActionData mkMessage
+
+partial def Ecosystem.Label.MultiMethodId.task'
+  (adjust : AdjustFun)
+  {lab : Ecosystem.Label}
+  {data : MultiMethodData}
+  (eco : Ecosystem lab)
+  {multiId : lab.MultiMethodId}
+  (rands : MultiMethodRandoms data)
+  (selves : multiId.Selves)
+  (args : multiId.Args.type)
+  : Task' :=
+  let method := eco.multiMethods multiId
+  let mkActionData
+      (res : MultiMethodResult multiId)
+      : ActionData :=
+      let consumedSelves := Ecosystem.Label.MultiMethodId.SelvesToVector selves (fun x => x.toSomeObject.toConsumable (ephemeral := false)) |>.toList
+      let destroyed := res.destroyed
+      let destroyedEph := destroyed.zipWith rands.destroyedEphRands.toList (f := fun c r => c.balanceDestroyed (rand := r))
+      let reassembled := res.assembled.withNewUid.zipWith3 rands.reassembledNewUidRands.toList rands.reassembledNewUidNonces.toList (f := fun (obj : SomeObjectData) r nonce =>
+            { label := obj.label
+              classId := obj.classId
+              data := obj.data
+              ephemeral := false
+              uid := nonce.value
+              rand := r
+              : CreatedObject })
+              ++ res.assembled.withOldUidList.zipWith rands.reassembledNewUidRands.toList (f := fun obj r =>
+            { label := lab
+              classId := obj.arg.classId
+              data := obj.objectData
+              ephemeral := false
+              uid := selves obj.arg |>.uid
+              rand := r
+              : CreatedObject })
+      let constructedSomeObjects := res.constructed.zipWith rands.constructedNonces.toList (f := fun c n =>
+            { label := c.label
+              classId := c.classId
+              object :=
+                { uid := n.value
+                  nonce := n
+                  data := c.data }
+                  : SomeObject })
+      let constructed := constructedSomeObjects.zipWith rands.constructedRands.toList (f := fun c r =>
+            { label := c.label
+              classId := c.classId
+              uid := c.object.uid
+              data := c.object.data
+              ephemeral := false
+              rand := r
+              : CreatedObject })
+      let constructedEph := constructedSomeObjects.map fun c => c.balanceConstructed
+      let selvesDestroyedEph := multiId.objectArgNamesVec.toList.filterMap
+          (fun a => match res.argDeconstruction a with
+                    | .Destroyed =>
+                      let consumable : SomeConsumableObject := ⟨(selves a).toConsumable (ephemeral := false)⟩
+                      some (fun r => consumable.balanceDestroyed (rand := r))
+                    | .Disassembled => none)
+          |>.zipWith rands.selvesDestroyedEphRands.toList (f := fun mk r => mk r)
+      { consumed := consumedSelves ++ constructedEph ++ destroyed
+        created := reassembled ++ constructed ++ destroyedEph ++ selvesDestroyedEph
+        ensureUnique := rands.reassembledNewUidNonces.toList }
+
+  let body : Program.{1} lab _ := method.body selves args
+  let mkMessage (vals : body.params.Product) : SomeMessage :=
+    let msg : Message lab := (eco.multiMethods multiId).message selves args body vals
+    ⟨msg⟩
+
+  Body.task' adjust eco body mkActionData mkMessage
 
 end -- mutual
 
 /-- Creates Tasks for a given class member body program. -/
 def Member.Body.tasks
-  {α}
+  {α : Type 1}
   [Inhabited α]
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)

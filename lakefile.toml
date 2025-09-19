@@ -9,6 +9,7 @@ rev = "v4.22.0"
 
 [leanOptions]
 relaxedAutoImplicit = false
+pp.universes = false
 
 [[lean_lib]]
 name = "Prelude"

@@ -6,9 +6,9 @@ namespace Applib
 
 open AVM
 
-inductive Program (lab : Ecosystem.Label) : (ReturnType : Type) → Type 2 where
+inductive Program (lab : Ecosystem.Label) : (ReturnType : Type u) → Type (u + 1) where
   | create
-    {ReturnType : Type}
+    {ReturnType : Type u}
     (C : Type)
     (cid : lab.ClassId)
     (constrId : cid.label.ConstructorId)
@@ -16,7 +16,7 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type) → Type 2 where
     (next : ObjectId → Program lab ReturnType)
     : Program lab ReturnType
   | destroy
-    {ReturnType : Type}
+    {ReturnType : Type u}
     (cid : lab.ClassId)
     (destrId : cid.label.DestructorId)
     (selfId : ObjectId)
@@ -24,28 +24,35 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type) → Type 2 where
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | call
-    {ReturnType : Type}
+    {ReturnType : Type u}
     (cid : lab.ClassId)
     (methodId : cid.label.MethodId)
     (selfId : ObjectId)
     (args : methodId.Args.type)
     (next : Program lab ReturnType)
     : Program lab ReturnType
+  | multiCall
+    {ReturnType : Type u}
+    (multiId : lab.MultiMethodId)
+    (selves : multiId.SelvesIds)
+    (args : multiId.Args.type)
+    (next : Program lab ReturnType)
+    : Program lab ReturnType
   | fetch
-    {ReturnType : Type}
+    {ReturnType : Type u}
     (C : Type)
     [i : IsObject C]
     (objId : ObjectId)
     (next : C → Program lab ReturnType)
     : Program lab ReturnType
   | invoke
-    {ReturnType : Type}
-    {α : Type}
+    {ReturnType : Type u}
+    {α : Type u}
     (prog : Program lab α)
     (next : α → Program lab ReturnType)
     : Program lab ReturnType
   | return
-    {ReturnType : Type}
+    {ReturnType : Type u}
     (val : ReturnType)
     : Program lab ReturnType
 
@@ -57,8 +64,10 @@ def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program
     .destructor cid destrId selfId args (toAVM next)
   | .call cid methodId selfId args next =>
     .method cid methodId selfId args (toAVM next)
+  | .multiCall multiId selves args next =>
+    .multiMethod multiId selves args (toAVM next)
   | @fetch _ _ _ i objId next =>
-    .fetch (classLabel := i.classId.label) objId (fun obj => toAVM (next (i.fromObject obj.data)))
+    .fetch (classId := i.classId) objId (fun obj => toAVM (next (i.fromObject obj.data)))
   | .invoke p next =>
     .invoke (toAVM p) (fun x => toAVM (next x))
   | .return val =>
@@ -72,6 +81,8 @@ def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Progr
     .destroy cid destrId selfId args (map f next)
   | .call cid methodId selfId args next =>
     .call cid methodId selfId args (map f next)
+  | .multiCall multiId selvesIds args next =>
+    .multiCall multiId selvesIds args (map f next)
   | @fetch _ _ C _ objId next =>
     .fetch C objId (fun x => map f (next x))
   | .invoke p next =>
@@ -110,6 +121,17 @@ def Program.call'
   (next : Program i.label ReturnType)
   : Program i.label ReturnType :=
   Program.call i.classId methodId r.objId args next
+
+def Program.multiCall'
+  {α}
+  {lab : Ecosystem.Label}
+  (multiId : lab.MultiMethodId)
+  (selves : multiId.SelvesReferences)
+  (args : multiId.Args.type)
+  (next : Program lab α)
+  : Program lab α :=
+  let selves' : multiId.SelvesIds := fun x => selves x |>.ref.objId
+  multiCall multiId selves' args next
 
 def Program.fetch' {ReturnType} {lab : Ecosystem.Label} {C : Type} (r : Reference C) [i : IsObject C] (next : C → Program lab ReturnType) : Program lab ReturnType :=
   Program.fetch C r.objId next

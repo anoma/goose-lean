@@ -6,7 +6,7 @@ namespace TwoCounterApp
 
 open Applib
 
-example (rx ry : Reference Counter) : Program Eco.lab Counter := ⟪
+example (rx ry : Reference Counter) : Program Eco.label Counter := ⟪
   x := fetch rx
   y := fetch ry
   call Counter.Methods.Incr rx (x.count * 2 + y.count)
@@ -14,7 +14,7 @@ example (rx ry : Reference Counter) : Program Eco.lab Counter := ⟪
   return {x with count := x.count + y.count}
 ⟫
 
-def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Eco.lab Unit := ⟪
+def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Eco.label Unit := ⟪
   x := fetch rx
   y := fetch ry
   call Counter.Methods.Incr rx (x.count * n + y.count)
@@ -22,13 +22,13 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Eco.lab Unit
   return ()
 ⟫
 
-def createCounter : Program Eco.lab (Reference Counter) := ⟪
+def createCounter : Program Eco.label (Reference Counter) := ⟪
   r := create Counter Counter.Constructors.Zero ()
   call Counter.Methods.Incr r (7 : Nat)
   return r
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -40,7 +40,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
   return self
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -55,7 +55,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
   return self
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -67,7 +67,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
   return self
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -78,7 +78,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
     return c2
 ⟫
 
-example : Program Eco.lab (Reference TwoCounter) := ⟪
+example : Program Eco.label (Reference TwoCounter) := ⟪
   rx := create Counter Counter.Constructors.Zero ()
   ry := create Counter Counter.Constructors.Zero ()
   call Counter.Methods.Incr rx (2 : Nat)
@@ -87,7 +87,7 @@ example : Program Eco.lab (Reference TwoCounter) := ⟪
   return tc
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
   c1 := fetch self.c1
   c2 := fetch self.c2
   call Counter.Methods.Incr self.c1 (c2.count * n + c1.count)
@@ -95,7 +95,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab TwoCounter := ⟪
   return self
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   cRef := invoke createCounter
@@ -114,7 +114,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
       return c2
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab Unit := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label Unit := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -131,7 +131,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab Unit := ⟪
   call Counter.Methods.Incr self.c2 n
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -150,7 +150,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
         return c1
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -171,7 +171,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
     ⟫
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -191,7 +191,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
         return c1
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.lab Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1

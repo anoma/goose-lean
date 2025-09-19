@@ -12,7 +12,7 @@ def toTransaction (task : Task) (vals : task.params.Product) : Rand (Option Anom
       { actions := actions.actions,
         deltaProof := Anoma.Transaction.generateDeltaProof actions.deltaWitness actions.actions }
   | some msg =>
-    let (action, witness) ← Action.create [] [] [] [msg]
+    let (action, witness) ← Action.create [] [] [] [] [msg]
     let try actions : Task.Actions ← task.actions vals
     let witness' : Anoma.DeltaWitness :=
       Anoma.DeltaWitness.compose witness actions.deltaWitness
@@ -24,10 +24,10 @@ def toTransaction (task : Task) (vals : task.params.Product) : Rand (Option Anom
 private def resolveParameters (params : Program.Parameters) (cont : params.Product → Anoma.Program) : Anoma.Program :=
   match params with
   | .empty => cont PUnit.unit
-  | .fetch (classLabel := clab) p ps =>
+  | .fetch (classId := classId) p ps =>
     Anoma.Program.queryResource (Anoma.Program.ResourceQuery.queryByObjectId p) (fun res =>
-      let try obj : Object clab := Object.fromResource res
-          failwith Anoma.Program.raise <| Anoma.Program.Error.typeError ("expected object of class " ++ clab.name)
+      let try obj : Object classId := Object.fromResource res
+          failwith Anoma.Program.raise <| Anoma.Program.Error.typeError ("expected object of class " ++ classId.label.name)
       resolveParameters (ps obj) (fun vals => cont ⟨obj, vals⟩))
   | .genId ps =>
     Anoma.Program.genObjectId (fun objId =>

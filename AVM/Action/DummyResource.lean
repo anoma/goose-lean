@@ -17,10 +17,10 @@ def isDummyResource (res : Anoma.Resource.{u, v}) : Bool :=
   res.quantity == 0
 
 /-- The resource logic of any dummy resource. -/
-private def dummyResourceLogic : Anoma.Logic.{u, v, w} :=
+private def dummyResourceLogic : Anoma.Logic.{u, v} :=
   { reference := dummyResourceLogicRef,
     function :=
-      fun (args : Anoma.Logic.Args.{u, v, w}) =>
+      fun (args : Anoma.Logic.Args.{u, v}) =>
         let res : Anoma.Resource.{u, v} := args.self
         isDummyResource res
   }
@@ -30,7 +30,7 @@ def dummyResource.{u, v} (nonce : Anoma.Nonce) : Anoma.Resource.{u, v} :=
   { Val := ⟨PUnit.{u + 1}⟩,
     Label := ⟨ULift.{v} String⟩,
     label := dummyResourceLabel.{v},
-    logicRef := dummyResourceLogic.{u, v, 0}.reference,
+    logicRef := dummyResourceLogic.{u, v}.reference,
     quantity := 0,
     value := PUnit.unit,
     ephemeral := true,

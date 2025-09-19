@@ -3,7 +3,7 @@ import AVM.Class.Member
 
 namespace AVM
 
-abbrev Logic.Args.{u, v} := Anoma.Logic.Args.{u, v, 0}
+abbrev Logic.Args.{u, v} := Anoma.Logic.Args.{u, v}
 
 /-- Syntax-level object description (fields + constructors + methods) should
     desugar to the `Class` structure. -/
@@ -15,4 +15,4 @@ structure Class {lab : Ecosystem.Label} (classId : lab.ClassId) : Type (u + 1) w
   /-- The methods of the class. -/
   methods : (m : classId.label.MethodId) → Class.Method classId m
   /-- Extra class-specific logic for the resource logic of the object resource. -/
-  invariant : (self : Object classId.label) → Logic.Args → Bool := fun _ _ => true
+  invariant : (self : Object classId) → Logic.Args → Bool := fun _ _ => true

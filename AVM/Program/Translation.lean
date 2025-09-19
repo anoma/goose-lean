@@ -1,8 +1,13 @@
 import AVM.Program
-import AVM.Class.Translation
+import AVM.Ecosystem
+import AVM.Tasks
 import AVM.Task.Translation
+import AVM.Class.Translation.Tasks
 
 namespace AVM
 
 def Program.compile {lab : Ecosystem.Label} (eco : Ecosystem lab) (prog : Program lab Unit) : Anoma.Program :=
-  Class.Member.Body.tasks eco prog |> Tasks.compose |>.toProgram
+  Member.Body.tasks eco prog.lift
+    |>.void
+    |>.compose
+    |>.toProgram
