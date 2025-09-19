@@ -41,7 +41,7 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (max 
     upgrade
     (cid : lab.ClassId)
     (selfId : ObjectId)
-    (obj : SomeObject)
+    (objData : SomeObjectData)
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | /-- Object fetch by object id. -/

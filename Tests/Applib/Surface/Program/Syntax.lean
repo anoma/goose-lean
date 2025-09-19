@@ -205,6 +205,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
         invoke mutualIncrement self.c1 self.c2 n'
       else
         invoke mutualIncrement self.c2 self.c1 n'
+    upgrade self.c1 to c2
     return c1
 ⟫
 

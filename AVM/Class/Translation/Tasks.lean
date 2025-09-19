@@ -83,10 +83,9 @@ private partial def Body.tasks'
       let task := multiId.task' adjust eco (fun x => adjust (selves x)) args
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next cont
-  | .upgrade classId selfId obj next =>
+  | .upgrade classId selfId objData next =>
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
-      let obj' := {obj with object := adjust obj.object}
-      let task := Class.Upgrade.task' (classId := classId) adjust eco r (adjust self) obj'
+      let task := Class.Upgrade.task' (classId := classId) adjust eco r (adjust self) objData
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next cont
   | .fetch objId next =>
@@ -218,13 +217,13 @@ private partial def Class.Upgrade.task'
   {classId : lab.ClassId}
   (r : Nat)
   (self : Object classId)
-  (obj : SomeObject)
+  (objData : SomeObjectData)
   : Task' :=
   let mkActionData (_ : PUnit) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let createdObject : CreatedObject :=
-      { uid := obj.object.uid,
-         data := obj.object.data,
+      { uid := self.uid,
+         data := objData.data,
          ephemeral := false,
          rand := r }
     { consumed := [consumedObj]
