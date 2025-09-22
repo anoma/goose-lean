@@ -1,4 +1,5 @@
 import AVM.Class.Label
+import AVM.Authorization
 
 namespace AVM.Ecosystem
 
@@ -10,6 +11,7 @@ structure Label : Type 1 where
   [classesEnum : FinEnum ClassId]
   [classesRepr : Repr ClassId]
   [classesBEq : BEq ClassId]
+  [classesDecidableEq : DecidableEq ClassId]
 
   MultiMethodId : Type := Empty
   /-- Type of multiMethod arguments excluding `self` arguments. -/
@@ -23,6 +25,7 @@ structure Label : Type 1 where
   [multiMethodsFinite : FinEnum MultiMethodId]
   [multiMethodsRepr : Repr MultiMethodId]
   [multiMethodsBEq : BEq MultiMethodId]
+  [multiMethodsLawfulBEq : LawfulBEq MultiMethodId]
 
 instance Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Ecosystem.Label"
@@ -96,6 +99,9 @@ namespace MultiMethodId
 def Args {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : SomeType :=
   lab.MultiMethodArgs multiId
 
+def Signatures {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) (_args : multiId.Args.type) : Type :=
+  Unit
+
 def ObjectArgNames {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type :=
   lab.MultiMethodObjectArgNames multiId
 
@@ -120,24 +126,67 @@ def argsClassesVec {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : List.
 
 end MultiMethodId
 
-inductive MemberId (lab : Ecosystem.Label) where
+inductive MemberId (lab : Ecosystem.Label) : Type where
   | multiMethodId (funId : lab.MultiMethodId)
   | classMember {classId : lab.ClassId} (memId : classId.MemberId)
 
 namespace MemberId
 
-def Args {lab : Ecosystem.Label} (memberId : MemberId lab) : SomeType :=
+instance instBEq {lab : Ecosystem.Label} : BEq (MemberId lab) where
+  beq a b :=
+  have := lab.classesDecidableEq
+  match a, b with
+  | .multiMethodId m1, .multiMethodId m2 =>
+    have := lab.multiMethodsBEq
+    m1 == m2
+  | .multiMethodId _ , _ => false
+  | _, .multiMethodId _ => false
+  | .classMember (classId := c1) m1, classMember (classId := c2) m2 =>
+    if h : c1 = c2
+    then m1 == h ▸ m2
+    else false
+
+instance instReflBEq {lab : Ecosystem.Label} : ReflBEq (MemberId lab) where
+  rfl := by
+    have := lab.multiMethodsLawfulBEq
+    intro a; cases a
+    unfold BEq.beq instBEq; simp
+    case classMember classId classMem =>
+    unfold BEq.beq instBEq;
+    have i : ReflBEq classId.MemberId := @Class.Label.MemberId.instReflBEq classId.label
+    simp
+
+-- TODO simplify
+instance instLawfulBEq {lab : Ecosystem.Label} : LawfulBEq lab.MemberId where
+  eq_of_beq := by
+    intro a b e
+    have i := lab.multiMethodsLawfulBEq
+    unfold BEq.beq instBEq at e; simp at e; split at e; simp
+    apply i.eq_of_beq
+    assumption
+    contradiction
+    contradiction
+    split at e
+    case h_4.isTrue _ _ _ _ h =>
+      subst h;
+      have x := Class.Label.MemberId.instLawfulBEq.eq_of_beq e
+      subst x; simp
+    contradiction
+
+abbrev SignatureId (lab : Ecosystem.Label) : MemberId lab → Type
+  | .classMember m => m.SignatureId
+  | _ => Empty
+
+abbrev Args {lab : Ecosystem.Label} (memberId : MemberId lab) : SomeType.{0} :=
   match memberId with
   | multiMethodId f => lab.MultiMethodArgs f
   | classMember m => Class.Label.MemberId.Args m
 
-instance hasBEq {lab : Ecosystem.Label} : BEq (Ecosystem.Label.MemberId lab) where
-  beq a b :=
-    match a, b with
-    | multiMethodId c1, multiMethodId c2 => lab.multiMethodsBEq.beq c1 c2
-    | multiMethodId _, _ => false
-    | _, multiMethodId _ => false
-    | classMember c1, classMember c2 => c1 === c2
+abbrev Signatures {lab : Ecosystem.Label} (mem : MemberId lab) (args : mem.Args.type)
+  : Type :=
+  match mem with
+  | .classMember m => m.Signatures args
+  | .multiMethodId m => m.Signatures args
 
 def numObjectArgs {lab : Ecosystem.Label} (memberId : MemberId lab) : Nat :=
   match memberId with

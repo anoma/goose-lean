@@ -14,8 +14,8 @@ private def Constructor.Message.logicFun
   (args : Logic.Args)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
-  let try argsData := SomeType.cast msg.args
-  let try vals : (constr.body argsData).params.Product := tryCast msg.vals
+  let try argsData := SomeType.cast msg.contents.args
+  let try vals : (constr.body argsData).params.Product := tryCast msg.contents.vals
   let newObjData := constr.body argsData |>.value vals
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
@@ -36,17 +36,24 @@ private def Destructor.Message.logicFun
   (args : Logic.Args)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
-  let try argsData := SomeType.cast msg.args
-  let consumedResObjs := Logic.selectObjectResources args.consumed
-  let createdResObjs := Logic.selectObjectResources args.created
-  let! [selfRes] := consumedResObjs
-  let try selfObj : Object classId := Object.fromResource selfRes
-  Logic.checkResourceValues [selfObj.toObjectValue] createdResObjs
-    && Logic.checkResourcesPersistent consumedResObjs
-    && Logic.checkResourcesEphemeral createdResObjs
-    && destructor.invariant selfObj argsData
+  match msg with
+  | {id := id, contents := contents} =>
+  -- TODO check syntax
+  if h : id == .classMember (Label.MemberId.destructorId destructorId)
+  then
+    let contents : MessageContents lab (.classMember (Label.MemberId.destructorId destructorId)) := eq_of_beq h ▸ contents
+    let argsData := contents.args
+    let signatures : destructorId.Signatures argsData := contents.signatures
+    let consumedResObjs := Logic.selectObjectResources args.consumed
+    let createdResObjs := Logic.selectObjectResources args.created
+    let! [selfRes] := consumedResObjs
+    let try selfObj : Object classId := Object.fromResource selfRes
+    Logic.checkResourceValues [selfObj.toObjectValue] createdResObjs
+      && Logic.checkResourcesPersistent consumedResObjs
+      && Logic.checkResourcesEphemeral createdResObjs
+      && destructor.invariant selfObj argsData signatures
+  else false
 
-/-- Creates a message logic function for a given method. -/
 private def Method.Message.logicFun
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
@@ -55,18 +62,25 @@ private def Method.Message.logicFun
   (args : Logic.Args)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
-  let try argsData := SomeType.cast msg.args
-  let consumedResObjs := Logic.selectObjectResources args.consumed
-  let createdResObjs := Logic.selectObjectResources args.created
-  let! [selfRes] := consumedResObjs
-  let try selfObj : Object classId := Object.fromResource selfRes
-  check method.invariant selfObj argsData
-  let body := method.body selfObj argsData
-  let try vals : body.params.Product := tryCast msg.vals
-  let createdObject : Object classId := body |>.value vals
-  Logic.checkResourceValues [createdObject.toObjectValue] createdResObjs
-    && Logic.checkResourcesPersistent consumedResObjs
-    && Logic.checkResourcesPersistent createdResObjs
+  match msg with
+  | {id := id, contents := contents} =>
+  if h : id == .classMember (Label.MemberId.methodId methodId)
+  then
+    let contents : MessageContents lab (.classMember (Label.MemberId.methodId methodId)) := eq_of_beq h ▸ contents
+    let argsData : methodId.Args.type := contents.args
+    let consumedResObjs := Logic.selectObjectResources args.consumed
+    let createdResObjs := Logic.selectObjectResources args.created
+    let! [selfRes] := consumedResObjs
+    let try selfObj : Object classId := Object.fromResource selfRes
+    let body := method.body selfObj argsData
+    let try vals : body.params.Product := tryCast contents.vals
+    let signatures : methodId.Signatures argsData := contents.signatures
+    check method.invariant selfObj argsData signatures
+    let createdObject : Object classId := body |>.value vals
+    Logic.checkResourceValues [createdObject.toObjectValue] createdResObjs
+      && Logic.checkResourcesPersistent consumedResObjs
+      && Logic.checkResourcesPersistent createdResObjs
+  else false
 
 private def Upgrade.Message.logicFun
   {lab : Ecosystem.Label}
@@ -108,7 +122,7 @@ private def logicFun
     nMessages + 1 == (Logic.filterOutDummy args.consumed).length
       && consumedMessageResources.all fun res =>
         let try msg : Message lab := Message.fromResource res
-        let! [recipient] := msg.recipients.toList
+        let! [recipient] := msg.contents.recipients.toList
         consumedObject.uid == recipient
 
 def Constructor.Message.logic
@@ -157,7 +171,7 @@ def MultiMethod.Message.logicFun
   (data : MultiMethodData)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
-  let try fargs : multiId.Args.type := SomeType.cast msg.args
+  let try fargs : multiId.Args.type := SomeType.cast msg.contents.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
   let try (argsConsumedSelves, argsConstructedEph, argsDestroyed, .unit) :=
@@ -167,7 +181,7 @@ def MultiMethod.Message.logicFun
   let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves.toList
   let prog := method.body argsConsumedObjects fargs
   method.invariant argsConsumedObjects fargs
-   && let try vals : prog.params.Product := tryCast msg.vals
+   && let try vals : prog.params.Product := tryCast msg.contents.vals
       let res : MultiMethodResult multiId := prog |>.value vals
       let consumedUid (arg : multiId.ObjectArgNames) : Anoma.ObjectId := argsConsumedObjects arg |>.uid
       let mkObjectValue {classId : lab.ClassId} (arg : multiId.ObjectArgNames) (d : ObjectData classId) : ObjectValue := ⟨consumedUid arg, d⟩
@@ -228,7 +242,7 @@ private def logicFun
           | .multiMethodId multiId =>
             let try selves : multiId.Selves := multiId.ConsumedToSelves consumedObjectResources
             nMessages + multiId.numObjectArgs == (Logic.filterOutDummy args.consumed).length
-              && Label.MultiMethodId.SelvesToVector selves (fun o => o.uid) ≍? msg.recipients
+              && Label.MultiMethodId.SelvesToVector selves (fun o => o.uid) ≍? msg.contents.recipients
 
 def logic
   {lab : Ecosystem.Label}

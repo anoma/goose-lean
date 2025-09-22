@@ -13,6 +13,7 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type u) → Type (u + 
     (cid : lab.ClassId)
     (constrId : cid.label.ConstructorId)
     (args : constrId.Args.type)
+    (signatures : constrId.Signatures args)
     (next : ObjectId → Program lab ReturnType)
     : Program lab ReturnType
   | destroy
@@ -21,6 +22,7 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type u) → Type (u + 
     (destrId : cid.label.DestructorId)
     (selfId : ObjectId)
     (args : destrId.Args.type)
+    (signatures : destrId.Signatures args)
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | call
@@ -29,6 +31,7 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type u) → Type (u + 
     (methodId : cid.label.MethodId)
     (selfId : ObjectId)
     (args : methodId.Args.type)
+    (signatures : methodId.Signatures args)
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | multiCall
@@ -65,12 +68,12 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type u) → Type (u + 
 
 def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program lab ReturnType :=
   match prog with
-  | .create _ cid constrId args next =>
-    .constructor cid constrId args (fun objId => toAVM (next objId))
-  | .destroy cid destrId selfId args next =>
-    .destructor cid destrId selfId args (toAVM next)
-  | .call cid methodId selfId args next =>
-    .method cid methodId selfId args (toAVM next)
+  | .create _ cid constrId args signatures next =>
+    .constructor cid constrId args signatures (fun objId => toAVM (next objId))
+  | .destroy cid destrId selfId args signatures next =>
+    .destructor cid destrId selfId args signatures (toAVM next)
+  | .call cid methodId selfId args signatures next =>
+    .method cid methodId selfId args signatures (toAVM next)
   | .multiCall multiId selves args next =>
     .multiMethod multiId selves args (toAVM next)
   | .upgrade classId selfId obj next =>
@@ -84,12 +87,12 @@ def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program
 
 def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Program lab A) : Program lab B :=
   match prog with
-  | .create C cid constrId args next =>
-    .create C cid constrId args (fun x => map f (next x))
-  | .destroy cid destrId selfId args next =>
-    .destroy cid destrId selfId args (map f next)
-  | .call cid methodId selfId args next =>
-    .call cid methodId selfId args (map f next)
+  | .create C cid constrId args signatures next =>
+    .create C cid constrId args signatures (fun x => map f (next x))
+  | .destroy cid destrId selfId args signatures next =>
+    .destroy cid destrId selfId args signatures (map f next)
+  | .call cid methodId selfId args signatures next =>
+    .call cid methodId selfId args signatures (map f next)
   | .multiCall multiId selvesIds args next =>
     .multiCall multiId selvesIds args (map f next)
   | .upgrade classId selfId obj next =>
@@ -107,9 +110,10 @@ def Program.create'
   [i : IsObject C]
   (constrId : i.classId.label.ConstructorId)
   (args : constrId.Args.type)
+  (signatures : constrId.Signatures args)
   (next : Reference C → Program i.label ReturnType)
   : Program i.label ReturnType :=
-  Program.create C i.classId constrId args (fun objId => next ⟨objId⟩)
+  Program.create C i.classId constrId args signatures (fun objId => next ⟨objId⟩)
 
 def Program.destroy'
   {ReturnType}
@@ -118,9 +122,10 @@ def Program.destroy'
   [i : IsObject C]
   (destrId : i.classId.label.DestructorId)
   (args : destrId.Args.type)
+  (signatures : destrId.Signatures args)
   (next : Program i.label ReturnType)
   : Program i.label ReturnType :=
-  Program.destroy i.classId destrId r.objId args next
+  Program.destroy i.classId destrId r.objId args signatures next
 
 def Program.call'
   {ReturnType}
@@ -129,9 +134,10 @@ def Program.call'
   [i : IsObject C]
   (methodId : i.classId.label.MethodId)
   (args : methodId.Args.type)
+  (signatures : methodId.Signatures args)
   (next : Program i.label ReturnType)
   : Program i.label ReturnType :=
-  Program.call i.classId methodId r.objId args next
+  Program.call i.classId methodId r.objId args signatures next
 
 def Program.upgrade'
   {ReturnType}

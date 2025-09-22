@@ -5,6 +5,9 @@ import AVM.Ecosystem
 import AVM.Class.Translation.Messages
 import AVM.Action
 
+-- TODO needed?
+import AVM.Class.Label
+
 namespace AVM
 
 /-- Type of functions which adjust object values by modifications that occurred
@@ -59,23 +62,23 @@ private partial def Body.tasks'
   (cont : α → AdjustFun → Tasks (TasksResult .empty β))
   : Tasks (TasksResult body.params β) :=
   match body with
-  | .constructor classId constrId args next =>
+  | .constructor classId constrId args signatures next =>
     let constr := eco.classes classId |>.constructors constrId
     Tasks.rand fun newId => Tasks.rand fun r =>
-      let task := constr.task' adjust eco newId r args
+      let task := constr.task' adjust eco newId r args signatures
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco (next newId) cont
         |>.map (fun res => ⟨res.value, res.adjust, ⟨newId, res.bodyParameterValues⟩⟩)
-  | .destructor classId destrId selfId args next =>
+  | .destructor classId destrId selfId args signatures next =>
     let destr := eco.classes classId |>.destructors destrId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
-      let task := destr.task' adjust eco r (adjust self) args
+      let task := destr.task' adjust eco r (adjust self) args signatures
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next cont
-  | .method classId methodId selfId args next =>
+  | .method classId methodId selfId args signatures next =>
     let method := eco.classes classId |>.methods methodId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
-      let task := method.task' adjust eco r (adjust self) args
+      let task := method.task' adjust eco r (adjust self) args signatures
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next cont
   | .multiMethod multiId selvesIds args next =>
@@ -139,6 +142,7 @@ private partial def Class.Constructor.task'
   (newId : ObjectId)
   (r : Nat)
   (args : constrId.Args.type)
+  (signatures : constrId.Signatures args)
   : Task' :=
   let body : Program.{1} lab (ULift (ObjectData classId)) := constr.body args |>.lift
   let mkActionData (newObjectData : ULift (ObjectData classId)) : ActionData :=
@@ -154,7 +158,7 @@ private partial def Class.Constructor.task'
     { consumed := [consumedObj]
       created := createdObjects }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
-    constr.message ⟨body.params.Product⟩ vals newId args
+    constr.message ⟨body.params.Product⟩ vals newId args signatures
   Body.task' adjust eco body mkReturn mkActionData mkMessage
 
 /-- Creates a Task for a given object destructor. -/
@@ -168,6 +172,7 @@ private partial def Class.Destructor.task'
   (r : Nat)
   (self : Object classId)
   (args : destructorId.Args.type)
+  (signatures : destructorId.Signatures args)
   : Task' :=
   let body : Program.{1} lab (ULift Unit) := destructor.body self args |>.lift
   let mkActionData (_ : ULift Unit) : ActionData :=
@@ -180,7 +185,7 @@ private partial def Class.Destructor.task'
     { consumed := [consumedObj]
       created := createdObjects }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
-    destructor.message ⟨body.params.Product⟩ vals self.uid args
+    destructor.message ⟨body.params.Product⟩ vals self.uid args signatures
   Body.task' adjust eco body mkReturn mkActionData mkMessage
 
 /-- Creates a Task for a given method. -/
@@ -194,6 +199,7 @@ private partial def Class.Method.task'
   (r : Nat)
   (self : Object classId)
   (args : methodId.Args.type)
+  (signatures : methodId.Signatures args)
   : Task' :=
   let body : Program.{1} lab (ULift (Object classId)) := method.body self args |>.lift
   let mkActionData (lobj : ULift (Object classId)) : ActionData :=
@@ -207,7 +213,7 @@ private partial def Class.Method.task'
     { consumed := [consumedObj]
       created := [createdObject] }
   let mkMessage (vals : body.params.Product) : SomeMessage :=
-    method.message ⟨body.params.Product⟩ vals self.uid args
+    method.message ⟨body.params.Product⟩ vals self.uid args signatures
   Body.task' adjust eco body mkReturn mkActionData mkMessage
 
 private partial def Class.Upgrade.task'
@@ -300,7 +306,7 @@ partial def Ecosystem.Label.MultiMethodId.task'
         ensureUnique := rands.reassembledNewUidNonces.toList }
 
   let mkMessage (vals : body.params.Product) : SomeMessage :=
-    ⟨(eco.multiMethods multiId).message selves args body vals⟩
+    ⟨(eco.multiMethods multiId).message selves args vals⟩
 
   Body.task' adjust eco body mkResult mkActionData mkMessage
 

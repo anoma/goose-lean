@@ -13,14 +13,14 @@ structure Destructor {lab : Ecosystem.Label} (cid : lab.ClassId) (destructorId :
   /-- Destructor call body. -/
   body : (self : Object cid) → destructorId.Args.type → Program.{0} lab PUnit
   /-- Extra destructor logic. -/
-  invariant : (self : Object cid) → destructorId.Args.type → Bool
+  invariant : (self : Object cid) → (args : destructorId.Args.type) → destructorId.Signatures args → Bool
 
 structure Method {lab : Ecosystem.Label} (cid : lab.ClassId) (methodId : cid.label.MethodId) : Type 1 where
   /-- Method call body. -/
   body : (self : Object cid) → methodId.Args.type → Program lab (Object cid)
   /-- Extra method logic. The method invariant is combined with auto-generated
       method body constraints to create the method logic. -/
-  invariant : (self : Object cid) → methodId.Args.type → Bool
+  invariant : (self : Object cid) → (args : methodId.Args.type) → methodId.Signatures args → Bool
 
 /-- A class member is a constructor, a destructor or a method. -/
 inductive Member {lab : Ecosystem.Label} (cid : lab.ClassId) where

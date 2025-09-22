@@ -56,20 +56,20 @@ macro_rules
     `(if $cond then ⟪$thenProg⟫ else Program.return ())
   | `(⟪if $cond:term then $thenProg:program ; $p:program⟫) =>
     `(let next := fun () => ⟪$p⟫; if $cond then Program.invoke ⟪$thenProg⟫ next else next ())
-  | `(⟪create $c:ident $m:ident $e:term⟫) =>
-    `(Program.create' $c $m $e Program.return)
-  | `(⟪create $c:ident $m:ident $e:term ; $p:program⟫) =>
-    `(Program.create' $c $m $e (fun _ => ⟪$p⟫))
-  | `(⟪$x:ident := create $c:ident $m:ident $e:term ; $p:program⟫) =>
-    `(Program.create' $c $m $e (fun $x => ⟪$p⟫))
-  | `(⟪destroy $m:ident $e:term $args:term⟫) =>
-    `(Program.destroy' $e $m $args (Program.return ()))
-  | `(⟪destroy $m:ident $e:term $args:term ; $p:program⟫) =>
-    `(Program.destroy' $e $m $args (⟪$p⟫))
-  | `(⟪call $m:ident $e:term $args:term⟫) =>
-    `(Program.call' $e $m $args (Program.return ()))
-  | `(⟪call $m:ident $e:term $args:term ; $p:program⟫) =>
-    `(Program.call' $e $m $args (⟪$p⟫))
+  | `(⟪create $c:ident $m:ident $e:term $signatures:term⟫) =>
+    `(Program.create' $c $m $e $signatures Program.return)
+  | `(⟪create $c:ident $m:ident $e:term $signatures:term; $p:program⟫) =>
+    `(Program.create' $c $m $e $signatures (fun _ => ⟪$p⟫))
+  | `(⟪$x:ident := create $c:ident $m:ident $e:term $signatures:term; $p:program⟫) =>
+    `(Program.create' $c $m $e $signatures (fun $x => ⟪$p⟫))
+  | `(⟪destroy $m:ident $e:term $args:term $signatures:term⟫) =>
+    `(Program.destroy' $e $m $args $signatures (Program.return ()))
+  | `(⟪destroy $m:ident $e:term $args:term $signatures:term; $p:program⟫) =>
+    `(Program.destroy' $e $m $args $signatures (⟪$p⟫))
+  | `(⟪call $m:ident $e:term $args:term $signatures:term⟫) =>
+    `(Program.call' $e $m $args $signatures (Program.return ()))
+  | `(⟪call $m:ident $e:term $args:term $signatures:term; $p:program⟫) =>
+    `(Program.call' $e $m $args $signatures (⟪$p⟫))
   | `(⟪multiCall $m:ident $selves:term $args:term⟫) =>
     `(Program.multiCall' $m $selves $args (Program.return ()))
   | `(⟪multiCall $m:ident $selves:term $args:term ; $p:program⟫) =>

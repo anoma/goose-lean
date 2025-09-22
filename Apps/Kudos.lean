@@ -30,6 +30,16 @@ inductive Methods where
   | Transfer : Methods
   deriving DecidableEq, Fintype, Repr
 
+namespace Methods
+
+inductive Transfer.SignatureId : Type where
+  | owner
+
+def SignatureId : Methods → Type
+ | .Transfer => Transfer.SignatureId
+
+end Methods
+
 inductive Constructors where
   | Mint : Constructors
   deriving DecidableEq, Fintype, Repr
@@ -37,6 +47,16 @@ inductive Constructors where
 inductive Destructors where
   | Burn : Destructors
   deriving DecidableEq, Fintype, Repr
+
+namespace Destructors
+
+inductive Burn.SignatureId : Type where
+  | owner
+
+def SignatureId : Destructors → Type
+ | .Burn => Burn.SignatureId
+
+end Destructors
 
 inductive Classes where
   | Kudos : Classes
@@ -73,6 +93,7 @@ def clab : Class.Label where
   MethodId := Methods
   MethodArgs := fun
     | Methods.Transfer => ⟨TransferArgs⟩
+  MethodSignatureId := Methods.SignatureId
 
   ConstructorId := Constructors
   ConstructorArgs := fun
@@ -81,6 +102,7 @@ def clab : Class.Label where
   DestructorId := Destructors
   DestructorArgs := fun
     | Destructors.Burn => ⟨PUnit⟩
+  DestructorSignatureId := Destructors.SignatureId
 
 def label : Ecosystem.Label := Ecosystem.Label.singleton clab
 
@@ -112,9 +134,13 @@ def kudosMint : @Class.Constructor label .unit Constructors.Mint := defConstruct
 def kudosTransfer : @Class.Method label .unit Methods.Transfer := defMethod Kudos
   (body := fun (self : Kudos) (args : TransferArgs) =>
     ⟪return {self with owner := args.newOwner : Kudos}⟫)
+  (invariant := fun (self : Kudos) (_args : TransferArgs) signatures =>
+    checkSignature (signatures .owner) self.owner)
 
 def kudosBurn : @Class.Destructor label .unit Destructors.Burn := defDestructor
-  (invariant := fun (self : Kudos) (_args : PUnit) => self.originator == self.owner)
+  (invariant := fun (self : Kudos) (_args : PUnit) signatures =>
+    checkSignature (signatures .owner) self.owner
+    && self.originator == self.owner)
 
 def kudosClass : @Class label .unit where
   constructors := fun

@@ -2,8 +2,7 @@ import AVM.Ecosystem.Data
 
 namespace AVM
 
-/-- A message is a communication sent from one object to another in the AVM. -/
-structure Message (lab : Ecosystem.Label) : Type 1 where
+structure MessageContents (lab : Ecosystem.Label) (id : lab.MemberId) : Type 1 where
   {Vals : SomeType.{0}}
   /-- Message parameter values. The message parameters are object resources and
     generated random values that are used in the body of the call associated with
@@ -13,24 +12,36 @@ structure Message (lab : Ecosystem.Label) : Type 1 where
   vals : Vals.type
   /-- Resource logic reference for the message logic. -/
   logicRef : Anoma.LogicRef
-  /-- The message ID. -/
-  id : lab.MemberId
   /-- The arguments of the message. -/
   args : id.Args.type
+  /-- The signature of the arguments -/
+  signatures : id.Signatures args
   /-- Extra data. -/
   data : id.Data
   /-- The recipients of the message. -/
   recipients : List.Vector ObjectId id.numObjectArgs
+
+/-- A message is a communication sent from one object to another in the AVM. -/
+structure Message (lab : Ecosystem.Label) : Type 1 where
+  /-- The message ID. -/
+  id : lab.MemberId
+  /-- The data that the message carries. -/
+  contents : MessageContents lab id
+
+instance MessageContents.hasBEq {lab : Ecosystem.Label} {id : lab.MemberId} : BEq (MessageContents lab id) where
+  beq a b :=
+    a.vals === b.vals
+    && a.args == b.args
+    && a.recipients == b.recipients
 
 instance Message.hasTypeRep (lab : Ecosystem.Label) : TypeRep (Message lab) where
   rep := Rep.composite "AVM.Message" [Rep.atomic lab.name]
 
 instance Message.hasBEq {lab : Ecosystem.Label} : BEq (Message lab) where
   beq a b :=
-    a.id == b.id
-    && a.vals === b.vals
-    && a.args === b.args
-    && a.recipients ≍? b.recipients
+    if h : a.id == b.id
+    then a.contents == eq_of_beq h ▸ b.contents
+    else false
 
 structure SomeMessage : Type 1 where
   {label : Ecosystem.Label}
@@ -45,13 +56,15 @@ instance SomeMessage.hasBEq : BEq SomeMessage where
 instance : Inhabited SomeMessage where
   default := { label := Ecosystem.Label.dummy
                message :=
-                { Vals := ⟨PUnit⟩
-                  vals := PUnit.unit
-                  data := .unit
-                  logicRef := default
-                  id := .classMember (classId := .unit) (.constructorId PUnit.unit),
-                  args := PUnit.unit
-                  recipients := List.Vector.singleton 0 }}
+                { id := .classMember (classId := .unit) (.constructorId PUnit.unit),
+                  contents :=
+                    { Vals := ⟨PUnit⟩
+                      vals := PUnit.unit
+                      data := .unit
+                      logicRef := default
+                      args := PUnit.unit
+                      signatures f := nomatch f
+                      recipients := List.Vector.singleton 0 }}}
 
 def Message.toSomeMessage {lab : Ecosystem.Label} (msg : Message lab) : SomeMessage :=
   { label := lab, message := msg }

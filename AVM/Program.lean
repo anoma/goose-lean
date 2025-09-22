@@ -12,6 +12,7 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (max 
     (cid : lab.ClassId)
     (constrId : cid.label.ConstructorId)
     (args : constrId.Args.type)
+    (signatures : constrId.Signatures args)
     (next : ObjectId → Program lab ReturnType)
     : Program lab ReturnType
   | /-- Destructor call. -/
@@ -20,6 +21,7 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (max 
     (destrId : cid.label.DestructorId)
     (selfId : ObjectId)
     (args : destrId.Args.type)
+    (signatures : destrId.Signatures args)
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | /-- Method call. -/
@@ -28,6 +30,7 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (max 
     (methodId : cid.label.MethodId)
     (selfId : ObjectId)
     (args : methodId.Args.type)
+    (signatures : methodId.Signatures args)
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | /-- MultiMethod call. -/
@@ -64,9 +67,9 @@ def lift.{v, u}
   (prog : Program lab α)
   : Program.{max u v} lab (ULift α) :=
   match prog with
-  | .constructor cid constr args next => .constructor cid constr args (fun a => (next a).lift)
-  | .destructor cid destrId selfId args next => .destructor cid destrId selfId args next.lift
-  | .method cid methodId selfId args next => .method cid methodId selfId args next.lift
+  | .constructor cid constr args signatures next => .constructor cid constr args signatures (fun a => (next a).lift)
+  | .destructor cid destrId selfId args signatures next => .destructor cid destrId selfId args signatures next.lift
+  | .method cid methodId selfId args signatures next => .method cid methodId selfId args signatures next.lift
   | .multiMethod mid selvesIds args next => .multiMethod mid selvesIds args next.lift
   | .upgrade cid selfId obj next => .upgrade cid selfId obj next.lift
   | .fetch objId next => .fetch objId (fun a => (next a).lift)
@@ -80,12 +83,12 @@ def invoke
     (next : α → Program lab β)
     : Program lab β :=
   match prog with
-  | .constructor cid constrId args cont =>
-    .constructor cid constrId args (fun objId => Program.invoke (cont objId) next)
-  | .destructor cid destrId selfId args cont =>
-    .destructor cid destrId selfId args (Program.invoke cont next)
-  | .method cid methodId selfId args cont =>
-    .method cid methodId selfId args (Program.invoke cont next)
+  | .constructor cid constrId args signatures cont =>
+    .constructor cid constrId args signatures (fun objId => Program.invoke (cont objId) next)
+  | .destructor cid destrId selfId args signatures cont =>
+    .destructor cid destrId selfId args signatures (Program.invoke cont next)
+  | .method cid methodId selfId args signatures cont =>
+    .method cid methodId selfId args signatures (Program.invoke cont next)
   | .multiMethod mid selvesId args cont =>
     .multiMethod mid selvesId args (Program.invoke cont next)
   | .upgrade cid selfId obj cont =>
@@ -102,9 +105,9 @@ def invoke
   `Program.Parameters.Product`). -/
 def params {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) : Parameters :=
   match prog with
-  | .constructor _ _ _ next => .genId (fun newId => next newId |>.params)
-  | .destructor _ _ _ _ next => next.params
-  | .method _ _ _ _ next => next.params
+  | .constructor _ _ _ _ next => .genId (fun newId => next newId |>.params)
+  | .destructor _ _ _ _ _ next => next.params
+  | .method _ _ _ _ _ next => next.params
   | .multiMethod _ _ _ next => next.params
   | .upgrade _ _ _ next => next.params
   | .fetch objId next => .fetch objId (fun obj => next obj |>.params)
@@ -114,12 +117,12 @@ def params {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) : Param
   `Program.Parameters.Product`). -/
 def value {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) (vals : prog.params.Product) : α :=
   match prog with
-  | .constructor _ _ _ next =>
+  | .constructor _ _ _ _ next =>
     let ⟨newId, vals'⟩ := vals
     next newId |>.value vals'
-  | .destructor _ _ _ _ next =>
+  | .destructor _ _ _ _ _ next =>
     next.value vals
-  | .method _ _ _ _ next =>
+  | .method _ _ _ _ _ next =>
     next.value vals
   | .multiMethod _ _ _ next =>
     next.value vals

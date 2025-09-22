@@ -1,4 +1,5 @@
 import Applib.Surface.Program
+import AVM.Authorization
 
 namespace Applib
 
