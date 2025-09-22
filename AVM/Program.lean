@@ -37,6 +37,13 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (max 
     (args : mid.Args.type)
     (next : Program lab ReturnType)
     : Program lab ReturnType
+  | /-- Object upgrade -/
+    upgrade
+    (cid : lab.ClassId)
+    (selfId : ObjectId)
+    (objData : SomeObjectData)
+    (next : Program lab ReturnType)
+    : Program lab ReturnType
   | /-- Object fetch by object id. -/
     fetch
     {label : Ecosystem.Label}
@@ -61,6 +68,7 @@ def lift.{v, u}
   | .destructor cid destrId selfId args next => .destructor cid destrId selfId args next.lift
   | .method cid methodId selfId args next => .method cid methodId selfId args next.lift
   | .multiMethod mid selvesIds args next => .multiMethod mid selvesIds args next.lift
+  | .upgrade cid selfId obj next => .upgrade cid selfId obj next.lift
   | .fetch objId next => .fetch objId (fun a => (next a).lift)
   | .return val => .return (ULift.up val)
 
@@ -80,6 +88,8 @@ def invoke
     .method cid methodId selfId args (Program.invoke cont next)
   | .multiMethod mid selvesId args cont =>
     .multiMethod mid selvesId args (Program.invoke cont next)
+  | .upgrade cid selfId obj cont =>
+    .upgrade cid selfId obj (Program.invoke cont next)
   | .fetch objId cont =>
     .fetch objId (fun obj => Program.invoke (cont obj) next)
   | .return val =>
@@ -96,8 +106,8 @@ def params {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) : Param
   | .destructor _ _ _ _ next => next.params
   | .method _ _ _ _ next => next.params
   | .multiMethod _ _ _ next => next.params
-  | .fetch objId next =>
-    .fetch objId (fun obj => next obj |>.params)
+  | .upgrade _ _ _ next => next.params
+  | .fetch objId next => .fetch objId (fun obj => next obj |>.params)
   | .return _ => .empty
 
 /-- The return value of a program. The `vals` provided need to be adjusted (see
@@ -112,6 +122,8 @@ def value {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) (vals : 
   | .method _ _ _ _ next =>
     next.value vals
   | .multiMethod _ _ _ next =>
+    next.value vals
+  | .upgrade _ _ _ next =>
     next.value vals
   | .fetch _ next =>
     let ⟨obj, vals'⟩ := vals

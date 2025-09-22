@@ -1,5 +1,7 @@
 import Anoma.Resource
 import AVM.Ecosystem.Label.Base
+import AVM.Ecosystem.Data
+import AVM.Label
 
 namespace AVM
 
@@ -79,23 +81,6 @@ def SomeObject.toObjectValue (object : SomeObject) : ObjectValue where
   data := object.object.data
   uid := object.object.uid
 
-structure Object.Resource.Label where
-  /-- The label of the ecosystem -/
-  label : Ecosystem.Label
-  /-- The id of the class -/
-  classId : label.ClassId
-  /-- The dynamic label is used to put dynamic data into the Resource label -/
-  dynamicLabel : classId.label.DynamicLabel.Label.type
-
-instance : TypeRep Object.Resource.Label where
-  rep := Rep.atomic "Object.Resource.Label"
-
-instance : BEq Object.Resource.Label where
-  beq o1 o2 :=
-    o1.label == o2.label
-    && o1.classId.label == o2.classId.label
-    && o1.dynamicLabel === o2.dynamicLabel
-
 structure Object.Resource.Value {lab : Ecosystem.Label} (classId : lab.ClassId) where
   uid : Anoma.ObjectId
   privateFields : classId.label.PrivateFields.type
@@ -115,10 +100,12 @@ def SomeObject.toResource
   let clab := classId.label
   let label := sobj.label
   let obj : Object classId := sobj.object
-  { Label := ⟨Object.Resource.Label⟩,
-    label := { label
-               classId
-               dynamicLabel := clab.DynamicLabel.mkDynamicLabel obj.data.privateFields }
+  { Label := ⟨AVM.Resource.Label⟩,
+    label :=
+      Resource.Label.object
+            { label
+              classId
+              dynamicLabel := clab.DynamicLabel.mkDynamicLabel obj.data.privateFields }
     logicRef := label.logicRef,
     quantity := obj.data.quantity,
     Val := ⟨Object.Resource.Value classId⟩,
@@ -136,8 +123,9 @@ def Object.fromResource
   {c : lab.ClassId}
   (res : Anoma.Resource)
   : Option (Object c) :=
-  let try resLab : Object.Resource.Label := tryCast res.label
-  check (resLab.label == lab)
+  let try resLab : AVM.Resource.Label := tryCast res.label
+  let try objLab := Resource.Label.getObjectResourceLabel resLab
+  check (objLab.label == lab)
   check (res.logicRef == lab.logicRef)
   let try value : Object.Resource.Value c := tryCast res.value
   some {  uid := value.uid,
@@ -147,9 +135,10 @@ def Object.fromResource
 def SomeObject.fromResource.{u, v}
   (res : Anoma.Resource.{u, v})
   : Option SomeObject :=
-  let try resLab : Object.Resource.Label := tryCast res.label
-  let label : Ecosystem.Label := resLab.label
-  let classId := resLab.classId
+  let try resLab : AVM.Resource.Label := tryCast res.label
+  let try objLab := Resource.Label.getObjectResourceLabel resLab
+  let label : Ecosystem.Label := objLab.label
+  let classId := objLab.classId
   let try object := @Object.fromResource label classId res
   some { label
          classId

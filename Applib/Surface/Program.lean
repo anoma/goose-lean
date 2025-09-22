@@ -38,6 +38,13 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type u) → Type (u + 
     (args : multiId.Args.type)
     (next : Program lab ReturnType)
     : Program lab ReturnType
+  | upgrade
+    {ReturnType : Type u}
+    (classId : lab.ClassId)
+    (selfId : ObjectId)
+    (objData : SomeObjectData)
+    (next : Program lab ReturnType)
+    : Program lab ReturnType
   | fetch
     {ReturnType : Type u}
     (C : Type)
@@ -66,6 +73,8 @@ def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program
     .method cid methodId selfId args (toAVM next)
   | .multiCall multiId selves args next =>
     .multiMethod multiId selves args (toAVM next)
+  | .upgrade classId selfId obj next =>
+    .upgrade classId selfId obj (toAVM next)
   | @fetch _ _ _ i objId next =>
     .fetch (classId := i.classId) objId (fun obj => toAVM (next (i.fromObject obj.data)))
   | .invoke p next =>
@@ -83,6 +92,8 @@ def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Progr
     .call cid methodId selfId args (map f next)
   | .multiCall multiId selvesIds args next =>
     .multiCall multiId selvesIds args (map f next)
+  | .upgrade classId selfId obj next =>
+    .upgrade classId selfId obj (map f next)
   | @fetch _ _ C _ objId next =>
     .fetch C objId (fun x => map f (next x))
   | .invoke p next =>
@@ -121,6 +132,17 @@ def Program.call'
   (next : Program i.label ReturnType)
   : Program i.label ReturnType :=
   Program.call i.classId methodId r.objId args next
+
+def Program.upgrade'
+  {ReturnType}
+  {C C' : Type}
+  (r : Reference C)
+  [i : IsObject C]
+  [i' : IsObject C']
+  (c' : C')
+  (next : Program i.label ReturnType)
+  : Program i.label ReturnType :=
+  Program.upgrade i.classId r.objId (i'.toObject c' |>.toSomeObjectData) next
 
 def Program.multiCall'
   {α}

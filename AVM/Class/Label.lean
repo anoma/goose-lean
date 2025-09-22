@@ -19,9 +19,11 @@ instance DynamicLabel.instInhabited {A : Type} : Inhabited (DynamicLabel A) wher
   specification provided by a label consists of unique class name, private
   field types, constructor, destructor and method ids. -/
 structure Label : Type 1 where
-  /-- The name of the class uniquely identifying the class.
-      Assumption: lab1.name = lab2.name -> lab1 = lab2. -/
+  /-- The name of the class which together with the version uniquely identifies the class.
+      Assumption: lab1.name = lab2.name -> lab1.version = lab2.version -> lab1 = lab2. -/
   name : String
+  version : Nat := 0
+  isUpgradeable : Bool := false
 
   PrivateFields : SomeType
   [privateFieldsInhabited : Inhabited PrivateFields.type]
@@ -71,6 +73,7 @@ inductive Label.MemberId (lab : Class.Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
+  | upgradeId : MemberId lab
 
 instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId lab) where
   beq a b :=
@@ -82,6 +85,9 @@ instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId l
     | destructorId _, _ => false
     | _, destructorId _ => false
     | methodId m1, methodId m2 => lab.methodsBEq.beq m1 m2
+    | methodId _, _ => false
+    | _, methodId _ => false
+    | upgradeId, upgradeId => true
 
 instance Label.MemberId.hasTypeRep (lab : Class.Label) : TypeRep (Class.Label.MemberId lab) where
   rep := Rep.composite "AVM.Class.Label.MemberId" [Rep.atomic lab.name]
@@ -100,6 +106,7 @@ def Label.MemberId.Args {lab : Class.Label} (memberId : MemberId lab) : SomeType
   | constructorId c => lab.ConstructorArgs c
   | destructorId c => lab.DestructorArgs c
   | methodId c => lab.MethodArgs c
+  | upgradeId => ⟨PUnit⟩
 
 instance Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"
@@ -107,4 +114,5 @@ instance Label.hasTypeRep : TypeRep Label where
 instance Label.hasBEq : BEq Label where
   beq a b :=
     a.name == b.name
-    && a.PrivateFields == b.PrivateFields
+      && a.version == b.version
+      && a.PrivateFields == b.PrivateFields

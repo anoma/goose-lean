@@ -83,6 +83,11 @@ private partial def Body.tasks'
       let task := multiId.task' adjust eco (fun x => adjust (selves x)) args
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next cont
+  | .upgrade classId selfId objData next =>
+    Tasks.fetch selfId fun self => Tasks.rand fun r =>
+      let task := Class.Upgrade.task' (classId := classId) adjust eco r (adjust self) objData
+      Tasks.task task.task fun vals =>
+        Body.tasks' (task.adjust vals) eco next cont
   | .fetch objId next =>
     Tasks.fetch objId fun obj =>
       Body.tasks' adjust eco (next (adjust obj)) cont
@@ -204,6 +209,28 @@ private partial def Class.Method.task'
   let mkMessage (vals : body.params.Product) : SomeMessage :=
     method.message ⟨body.params.Product⟩ vals self.uid args
   Body.task' adjust eco body mkReturn mkActionData mkMessage
+
+private partial def Class.Upgrade.task'
+  (adjust : AdjustFun)
+  {lab : Ecosystem.Label}
+  (eco : Ecosystem lab)
+  {classId : lab.ClassId}
+  (r : Nat)
+  (self : Object classId)
+  (objData : SomeObjectData)
+  : Task' :=
+  let mkActionData (_ : PUnit) : ActionData :=
+    let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
+    let createdObject : CreatedObject :=
+      { uid := self.uid,
+         data := objData.data,
+         ephemeral := false,
+         rand := r }
+    { consumed := [consumedObj]
+      created := [createdObject] }
+  let mkMessage (_ : PUnit) : SomeMessage :=
+    Class.Upgrade.message classId self.uid
+  Body.task' adjust eco (.return PUnit.unit) mkReturn mkActionData mkMessage
 
 partial def Ecosystem.Label.MultiMethodId.task'
   (adjust : AdjustFun)
