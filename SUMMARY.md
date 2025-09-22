@@ -1,19 +1,21 @@
-# GOOSE v0.2.1 Summary
-A high-level summary description of GOOSE v0.2.1. The description intentionally simplifies some data structures in comparison to the actual Lean implementation. The aim is to provide a high-level overview of the essential features of the model and its translation to the Anoma Resource Machine.
+# GOOSE v0.3.0 Summary
+A high-level summary description of GOOSE v0.3.0. The description intentionally simplifies some data structures in comparison to the actual Lean implementation. The aim is to provide a high-level overview of the essential features of the model and its translation to the Anoma Resource Machine.
 
-- [GOOSE v0.2.1 Summary](#goose-v021-summary)
+- [GOOSE v0.3.0 Summary](#goose-v030-summary)
 	- [Overview](#overview)
+	- [Anoma Programs](#anoma-programs)
+	- [AVM Programs](#avm-programs)
 	- [AVM data structures](#avm-data-structures)
-		- [Intent.Label](#intentlabel)
 		- [Class.Label](#classlabel)
 		- [Ecosystem.Label](#ecosystemlabel)
 		- [Object](#object)
+	- [MessageId](#messageid)
+		- [Message](#message)
 		- [Constructor](#constructor)
 		- [Destructor](#destructor)
 		- [Method](#method)
-		- [Intent](#intent)
 		- [Class](#class)
-		- [Function](#function)
+		- [Multi-method](#multi-method)
 		- [Ecosystem](#ecosystem)
 	- [AVM -\> RM translation](#avm---rm-translation)
 		- [Object](#object-1)
@@ -32,12 +34,12 @@ A high-level summary description of GOOSE v0.2.1. The description intentionally 
 		- [Method](#method-1)
 			- [Method call](#method-call)
 			- [Method member logic](#method-member-logic)
-		- [Intent](#intent-1)
+		- [Intent](#intent)
 			- [Intent creation](#intent-creation)
 			- [Intent logic](#intent-logic)
 			- [Intent member logic](#intent-member-logic)
 		- [Class logic](#class-logic)
-		- [Function](#function-1)
+		- [Function](#function)
 			- [Function call](#function-call)
 			- [Function member logic](#function-member-logic)
 		- [Ecosystem logic](#ecosystem-logic)
@@ -46,26 +48,56 @@ A high-level summary description of GOOSE v0.2.1. The description intentionally 
 
 ## Overview
 
-The Anoma Virtual Machine (AVM) data structures provide an object-oriented abstraction over the Anoma Resource Machine (RM). Ecosystems encapsulate collections of related classes and functions. Each class within an ecosystem uniquely defines its structure through private fields, a set of allowed intents, and member operations — constructors, destructors, and methods. Functions in an ecosystem operate over sets of objects from these classes. Every class belongs to a single ecosystem, and the relationships between classes, their operations, and functions must be fully specified ahead of time — there is no dynamic addition of members or runtime reflection. Intents must be statically declared as allowed for each class of the objects they consume, leading to a rigid dependency graph. An intent is not associated with a single class, but can consume objects of different classes in the same ecosystem.
+The Anoma Virtual Machine (AVM) data structures provide an object-oriented abstraction over the Anoma Resource Machine (RM). Ecosystems encapsulate collections of related classes and functions. Each class within an ecosystem uniquely defines its structure through private fields and member operations — constructors, destructors, and methods. Multi-methods in an ecosystem operate over sets of objects from these classes. Every class belongs to a single ecosystem, and the relationships between classes, their operations, and multi-methods must be fully specified ahead of time — there is no dynamic addition of members or runtime reflection.
 
 The translation from AVM to the Resource Machine (RM) relies on the static nature of AVM programs. Each object is compiled to a single resource, tagged with its class and ecosystem metadata. Constructor, destructor, method and function calls, and intent creation, are all translated into single-action transactions. Because all class member operations, functions and intents are known statically, appropriate Resource Logic checks can be generated from their code. A single Resource Logic is generated for a given ecosystem and associated with each object of a class in the ecosystem. The action's App Data contains an indicator for which member's logic should be checked. Logically, the ecosystem logic is a disjunction of the member logics.
 
-![GOOSE v0.2.1 Summary](Goose-summary.png)
+## Anoma Programs
+
+Anoma programs are an abstraction that reifies the local domain, solver and controller (see [related forum post](https://forum.anoma.net/t/reifying-the-local-domain-solver-and-controller-in-the-avm)). Anoma programs deal with Resource Machine data structures (resources, transactions, etc.). Anoma programs are a low-level compilation target for the AVM programs which deal with higher-level AVM data structures - objects, methods, classes, etc.
+
+An Anoma program consists of a list of statements of the following form.
+- `queryResource : ObjectId -> Resource`. Queries a resource by ID from the Anoma Resource Machine. This is an abstraction over the Resource Machine - we elide how / where resources are stored exactly.
+- `submitTransaction : Transaction -> Unit`. Submit an Anoma transaction to the Resource Machine.
+- `genRand : Unit -> Nat`. Generate a random number.
+
+Relevant file: `Anoma/Program.lean`.
+
+## AVM Programs
+
+AVM programs provide an object-oriented abstraction over Anoma programs to which they are translated. An AVM program `Program A` is parameterized by the return type `A`. An AVM program consists of a list of statements of the following form.
+- `objId := create Class.Contructor args`. Call a constructor to create a new object.
+- `destroy Destructor objId args`. Call a destructor on an object with a given ID.
+- `call Method objId args`. Call a method of an object with a given ID.
+- `multiCall MultiMethod objIds args`. Call a multi-method on objects with given IDs.
+- `upgrade objId to obj`. Upgrade an object with a given ID `objId` to an object `obj`. An upgrade is permitted only to an object of the same class with a newer version. The new object `obj` replaces the upgraded one. The ID of the object is preserved.
+- `obj := fetch objId`. Fetch an object with a given ID.
+- `invoke fn args`. Invoke a function - a sub-program.
+- `return a`. Return a given value `a : A`.
+AVM Programs can also contain conditionals, matches and other Lean control structures - they are implemented as a DSL embedded in Lean.
+
+Relevant files: `Applib/Surface/Program.lean`, `AVM/Program.lean`.
+
+Example - mutual increment program:
+```
+def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
+  x := fetch rx
+  y := fetch ry
+  call Counter.Methods.Incr rx (x.count * n + y.count)
+  call Counter.Methods.Incr ry (y.count * n + x.count)
+  return ()
+⟫
+```
+`Reference` is a typed wrapper over `ObjectId`.
 
 ## AVM data structures
-
-### Intent.Label
-- `Intent.Label` in `AVM/Intent/Label.lean`
-- Uniquely identifies an intent.
-- Consists of:
-	- `Args : Type`. Type of intent arguments. The intent arguments are supplied on intent creation.
-	- `name : String`. A unique intent name.
 
 ### Class.Label
 - `Class.Label` in `AVM/Class/Label.lean`
 - Uniquely identifies and specifies a class.
 - Consists of:
 	- `name : String`. A unique class name.
+	- `version : Nat`. A version of the class. An object can be upgraded to an object of a class with the same name and strictly higher version.
 	- `PrivateFields : Type`. Type of private fields for objects of the class described by the label.
 	- `DynamicResourceLabel : PrivateFields -> Type`. Describes dynamic data stored in Resource's `label` field. The dynamic resource label data is determined by the actual values of the object's fields.
 	- `ConstructorId : Type`. Enumeration type of identifiers for constructors of the described class.
@@ -74,27 +106,46 @@ The translation from AVM to the Resource Machine (RM) relies on the static natur
 	- `DestructorArgs : DestructorId -> Type`. Type of arguments for a given destructor.
 	- `MethodId : Type`. Enumeration type of identifiers for methods of the described class.
 	- `MethodArgs : MethodId -> Type`. Type of arguments for a given method.
-	- `intentLabels : Set Intent.Label`. Intents allowed by the described class. An intent can be a member of `intentLabels` in multiple classes.
 
 ### Ecosystem.Label
-- `Ecosystem.Label` in `AVM/Ecosystem/Label.lean`
+- `Ecosystem.Label` in `AVM/Ecosystem/Label/Base.lean`
 - Uniquely identifies and specifies an ecosystem.
 - An ecosystem is a collection of classes and functions on objects of these classes. A class belongs to exactly one ecosystem. The functions can have multiple designated `self` arguments (_selves_), all of which are consumed (destroyed or modified) by function invocation.
 - Consists of:
 	- `classLabels : Set Class.Label`. Classes in the ecosystem. A class can be in only one ecosystem.
-	- `FunctionId : Type`. Enumeration type for functions in the described ecosystem.
-	- `FunctionArgs : FunctionId -> Type`. Type of function arguments excluding selves.
-	- `FunctionSelves : FunctionId -> List Class.Label`. Class identifiers for selves. Every class label of a `self` argument must be in the `classLabels` set.
+	- `MultiMethodId : Type`. Enumeration type for multi-methods in the described ecosystem.
+	- `MultiMethodArgs : MultiMethodId -> Type`. Type of multi-method arguments excluding selves.
+	- `MultiMethodSelves : MultiMethodId -> List Class.Label`. Class identifiers for selves. Every class label of a `self` argument must be in the `classLabels` set.
 
 ### Object
 - `Object` in `AVM/Object.lean`
 - Concrete object representation.
 - Consists of:
 	- `label : Class.Label` determines the object's class,
+	- `uid : ObjectId` is the unique object ID,
 	- `quantity : Nat`,
 	- private fields,
-	- optionally:
-		- nonce – ensures the uniqueness of resource commitment and nullifier, available for objects fetched from the Anoma system.
+    - nonce – ensures the uniqueness of resource commitment and nullifier.
+
+## MessageId
+- Implemented with `MemberId` in `AVM/Ecosystem/Label/Base.lean` and `Label.MemberId` in `AVM/Class/Label.lean`.
+- A unique message identifier which also specifies the type of the message (the high-level AVM concept the message implements):
+  - `constructorId : (label : Class.Label) -> label.ConstructorId -> MessageId`,
+  - `destructorId : (label : Class.Label) -> label.DestructorId -> MessageId`,
+  - `methodId : (label : Class.Label) -> label.MethodId -> MessageId`,
+  - `upgradeId : (label : Class.Label) -> MessageId`,
+  - `multiMethodId : (label : Ecosystem.Label) -> label.MultiMethodId -> MessageId`.
+
+### Message
+- `Message` in `AVM/Message/Base.lean`
+- A message is a communication sent from one object to another in the AVM. Messages are created for constructor, destructor, method and multi-method calls. The end-user never directly manipulates messages - only through calls to class members and multi-methods.
+- Consists of:
+  - `label : Ecosystem.Label`. The label of the ecosystem of the message.
+  - `vals : Vals`. Message parameter values. The message parameters are object resources and generated random values that are used in the body of the call associated with the message. These need to be provided in the message, because the associated Resource Logic cannot fetch object resources from the Anoma system or generate new object identifiers.
+  - `id : MessageId`. The message ID.
+  - `args : id.Args`. The arguments of the message, where `id.Args` is the type of arguments based on the message id.
+  - `data : Option MultiMethodData`. Extra data for multi-methods which consists of lists of random values to be used as nonces and new object identifiers.
+  - `recipients : List ObjectId`. The recipients of the message.
 
 ### Constructor
 - `Class.Constructor` in `AVM/Class/Member.lean`
@@ -103,8 +154,8 @@ The translation from AVM to the Resource Machine (RM) relies on the static natur
 	- `label : Class.Label` determines the constructor's class.
 	- `id : label.ConstructorId` determines the unique id of the constructor.
 	- `Args := label.ConstructorArgs id` is the type of constructor arguments.
-	- `created : Args -> Object` . Object created in a constructor call.
-	- `invariant : Args -> Bool`. Extra constructor logic. The constructor member logic is a conjunction of auto-generated constructor logic and the extra constructor logic.
+	- `body : Args -> Program Object` . Constructor body, returning the object created by the constructor call.
+	- `invariant : Args -> Bool`. Extra constructor logic. The constructor message logic is a conjunction of auto-generated constructor logic and the extra constructor logic.
 
 ### Destructor
 - `Class.Destructor` in `AVM/Class/Member.lean`
@@ -113,7 +164,8 @@ The translation from AVM to the Resource Machine (RM) relies on the static natur
 	- `label : Class.Label` determines the destructor's class.
 	- `id : label.DestructorId` determines the unique id of the destructor.
 	- `Args := label.DestructorArgs id` is the type of destructor arguments excluding `self`.
-	- `invariant : (self : Object) -> Args -> Bool`. Extra destructor logic. The destructor member logic is a conjunction of auto-generated destructor logic and the extra destructor logic.
+	- `body : Args -> Program Unit` . Destructor body program.
+	- `invariant : (self : Object) -> Args -> Bool`. Extra destructor logic. The destructor message logic is a conjunction of auto-generated destructor logic and the extra destructor logic.
 
 ### Method
 - `Class.Method` in `AVM/Class/Member.lean`
@@ -124,14 +176,6 @@ The translation from AVM to the Resource Machine (RM) relies on the static natur
 	- `Args := label.MethodArgs id` is the type of method arguments excluding `self`.
 	- `created : (self : Object) -> Args -> List Object`. Objects created in the method call.
 	- `invariant : (self : Object) -> Args -> Bool`. Extra method logic. The method member logic is a conjunction of auto-generated method logic and the extra method logic.
-
-### Intent
-- `Intent` in `AVM/Intent.lean`
-- Represents an intent – a declarative specification of user's desired outcome.
-- Intent creation requires intent arguments and provided objects.
-- Consists of:
-	- `label : Intent.Label`. The globally unique label of the intent.
-	- `condition : label.Args -> (provided : List Object) -> (received : List Object) -> Bool`. The intent condition checks if the desired objects were received. The intent arguments and the provided objects list are supplied at intent creation. The received objects list is supplied by the solver.
 
 ### Class
 - `Class` in `AVM/Class.lean`
@@ -144,7 +188,7 @@ The translation from AVM to the Resource Machine (RM) relies on the static natur
 	- `intents : Set Intent`. Set of intents allowed by the class. There is one intent for each element of `label.intentLabels`.
 	- `invariant : (self : Object) -> Logic.Args -> Bool`. Extra class-specific logic. The class logic is the conjunction of the extra class logic and the member logics. `Logic.Args` is the type Resource Logic arguments in the Anoma Resource Machine.
 
-### Function
+### Multi-method
 - `Function` in `AVM/Ecosystem/Function.lean`
 - Represents a function in an ecosystem. A function operates on multiple `self` arguments – objects of classes in the ecosystem. The `self` arguments are consumed by the function. There may be other arguments provided beside the `self` arguments.
 - Consists of:

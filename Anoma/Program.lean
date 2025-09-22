@@ -27,6 +27,9 @@ inductive Program.Error where
   | typeError (msg : String)
   | userError
 
+/-- Represents an Anoma program, as per
+  https://forum.anoma.net/t/reifying-the-local-domain-solver-and-controller-in-the-avm
+  -/
 inductive Program where
   | skip
   | raise (err : Program.Error)
