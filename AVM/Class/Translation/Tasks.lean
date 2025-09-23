@@ -104,14 +104,14 @@ private partial def Body.task'
   (body : Program lab α)
   (cont : α → AdjustFun → Tasks (TasksResult .empty β))
   (mkActionData : β → ActionData)
-  (mkMessage : body.params.Product → SomeMessage)
+  (mkMessage : body.params.Product → β → SomeMessage)
   : Task' :=
   let tasks : Tasks (TasksResult body.params β) :=
     Body.tasks' adjust eco body cont
   let task :=
     Tasks.composeWithMessage
       tasks
-      (fun res => mkMessage res.bodyParameterValues)
+      (fun res => mkMessage res.bodyParameterValues res.value)
       (fun res => mkActionData res.value)
   let mkAdjust (vals : task.params.Product) : AdjustFun :=
     let res := tasks.value (Tasks.coerce vals)
@@ -153,7 +153,7 @@ private partial def Class.Constructor.task'
       [CreatedObject.fromSomeObject newObj (ephemeral := false) (rand := r)]
     { consumed := [consumedObj]
       created := createdObjects }
-  let mkMessage (vals : body.params.Product) : SomeMessage :=
+  let mkMessage (vals : body.params.Product) _ : SomeMessage :=
     constr.message ⟨body.params.Product⟩ vals newId args
   Body.task' adjust eco body mkReturn mkActionData mkMessage
 
@@ -179,7 +179,7 @@ private partial def Class.Destructor.task'
          rand := r }]
     { consumed := [consumedObj]
       created := createdObjects }
-  let mkMessage (vals : body.params.Product) : SomeMessage :=
+  let mkMessage (vals : body.params.Product) _ : SomeMessage :=
     destructor.message ⟨body.params.Product⟩ vals self.uid args
   Body.task' adjust eco body mkReturn mkActionData mkMessage
 
@@ -206,7 +206,7 @@ private partial def Class.Method.task'
          rand := r }
     { consumed := [consumedObj]
       created := [createdObject] }
-  let mkMessage (vals : body.params.Product) : SomeMessage :=
+  let mkMessage (vals : body.params.Product) _ : SomeMessage :=
     method.message ⟨body.params.Product⟩ vals self.uid args
   Body.task' adjust eco body mkReturn mkActionData mkMessage
 
@@ -228,7 +228,7 @@ private partial def Class.Upgrade.task'
          rand := r }
     { consumed := [consumedObj]
       created := [createdObject] }
-  let mkMessage (_ : PUnit) : SomeMessage :=
+  let mkMessage (_ : PUnit) _ : SomeMessage :=
     Class.Upgrade.message classId self.uid
   Body.task' adjust eco (.return PUnit.unit) mkReturn mkActionData mkMessage
 
@@ -297,8 +297,8 @@ partial def Ecosystem.Label.MultiMethodId.task'
         created := reassembled ++ constructed ++ selvesDestroyedEph
         ensureUnique := rands.reassembledNewUidNonces.toList }
 
-  let mkMessage (vals : body.params.Product) : SomeMessage :=
-    ⟨(eco.multiMethods multiId).message selves args body vals⟩
+  let mkMessage (vals : body.params.Product) (tasksRes : MultiTasksResult multiId) : SomeMessage :=
+    ⟨(eco.multiMethods multiId).message selves args ⟨body.params.Product⟩ vals tasksRes.res.data tasksRes.rands⟩
 
   Body.task' adjust eco body mkResult mkActionData mkMessage
 

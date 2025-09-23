@@ -137,6 +137,7 @@ instance hasBEq {lab : Ecosystem.Label} : BEq (Ecosystem.Label.MemberId lab) whe
     | _, multiMethodId _ => false
     | classMember c1, classMember c2 => c1 === c2
 
+/-- The number of object arguments (selves) for this member ID. -/
 def numObjectArgs {lab : Ecosystem.Label} (memberId : MemberId lab) : Nat :=
   match memberId with
   | multiMethodId f => f.numObjectArgs
