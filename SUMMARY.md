@@ -195,11 +195,13 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 	- `id : label.MultiMethodId` determines the unique id of the funtion.
 	- `Args := label.MultiMethodArgs id` is the type of multi-method arguments excluding selves.
 	- `body : (selves : List Object) -> Args -> Program MultiMethodResult`. The body of the multi-method. `MultiMethodResult` is a record which consists of:
-		- `assembled : List Object`. List of assembled objects which are created as a result of the multi-method call. It is the responsibility of the user to ensure that assembled object resources balance with the `self` arguments that are not destructed.
-		- `destroyed : List Object`. List of destroyed objects. Destroyed object resources are balanced with automatically generated created ephemeral resources. This must be a sublist of `selves`.
+		- `disassembled : List Object`. List of disassembles selves. Disassembled object resources are balanced with the newly assembled objects (see `assembled` below). The `disassembled` list must be a sublist of `selves`.
+		- `destroyed : List Object`. List of destroyed selves. Destroyed object resources are balanced with automatically generated created ephemeral resources. The `destroyed` list must be a sublist of `selves`.
+		- `assembled : List Object`. List of assembled objects which are created as a result of the multi-method call. It is the responsibility of the user to ensure that assembled object resources balance with the disassembled selves.
 		- `constructed : List Object`. List of constructed objects. Constructed object resources are balanced with automatically generated consumed ephemeral resources.
 	- `invariant : (selves : List Object) -> Args -> Bool`. Extra multi-method logic. The multi-method message logic is a conjunction of the auto-generated multi-method logic and the extra multi-method logic.
 - `selves : List Object` in `body` and `invariant` above is a list of `self` arguments - objects whose classes are described by `label.MultiMethodSelves id`.
+- `selves = disassembled ++ destroyed`
 
 ### Ecosystem
 - `Ecosystem` in `AVM/Ecosystem.lean`
