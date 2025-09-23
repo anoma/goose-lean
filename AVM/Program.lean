@@ -38,6 +38,7 @@ inductive Program.{u} (lab : Ecosystem.Label) (ReturnType : Type u) : Type (max 
     (mid : lab.MultiMethodId)
     (selvesIds : mid.SelvesIds)
     (args : mid.Args.type)
+    (signatures : mid.Signatures args)
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | /-- Object upgrade -/
@@ -70,7 +71,7 @@ def lift.{v, u}
   | .constructor cid constr args signatures next => .constructor cid constr args signatures (fun a => (next a).lift)
   | .destructor cid destrId selfId args signatures next => .destructor cid destrId selfId args signatures next.lift
   | .method cid methodId selfId args signatures next => .method cid methodId selfId args signatures next.lift
-  | .multiMethod mid selvesIds args next => .multiMethod mid selvesIds args next.lift
+  | .multiMethod mid selvesIds args signatures next => .multiMethod mid selvesIds args signatures next.lift
   | .upgrade cid selfId obj next => .upgrade cid selfId obj next.lift
   | .fetch objId next => .fetch objId (fun a => (next a).lift)
   | .return val => .return (ULift.up val)
@@ -89,8 +90,8 @@ def invoke
     .destructor cid destrId selfId args signatures (Program.invoke cont next)
   | .method cid methodId selfId args signatures cont =>
     .method cid methodId selfId args signatures (Program.invoke cont next)
-  | .multiMethod mid selvesId args cont =>
-    .multiMethod mid selvesId args (Program.invoke cont next)
+  | .multiMethod mid selvesId args signatures cont =>
+    .multiMethod mid selvesId args signatures (Program.invoke cont next)
   | .upgrade cid selfId obj cont =>
     .upgrade cid selfId obj (Program.invoke cont next)
   | .fetch objId cont =>
@@ -108,7 +109,7 @@ def params {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) : Param
   | .constructor _ _ _ _ next => .genId (fun newId => next newId |>.params)
   | .destructor _ _ _ _ _ next => next.params
   | .method _ _ _ _ _ next => next.params
-  | .multiMethod _ _ _ next => next.params
+  | .multiMethod _ _ _ _ next => next.params
   | .upgrade _ _ _ next => next.params
   | .fetch objId next => .fetch objId (fun obj => next obj |>.params)
   | .return _ => .empty
@@ -124,7 +125,7 @@ def value {lab : Ecosystem.Label} {α : Type u} (prog : Program lab α) (vals : 
     next.value vals
   | .method _ _ _ _ _ next =>
     next.value vals
-  | .multiMethod _ _ _ next =>
+  | .multiMethod _ _ _ _ next =>
     next.value vals
   | .upgrade _ _ _ next =>
     next.value vals

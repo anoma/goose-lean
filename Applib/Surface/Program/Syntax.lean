@@ -70,10 +70,10 @@ macro_rules
     `(Program.call' $e $m $args $signatures (Program.return ()))
   | `(⟪call $m:ident $e:term $args:term $signatures:term; $p:program⟫) =>
     `(Program.call' $e $m $args $signatures (⟪$p⟫))
-  | `(⟪multiCall $m:ident $selves:term $args:term⟫) =>
-    `(Program.multiCall' $m $selves $args (Program.return ()))
-  | `(⟪multiCall $m:ident $selves:term $args:term ; $p:program⟫) =>
-    `(Program.multiCall' $m $selves $args (⟪$p⟫))
+  | `(⟪multiCall $m:ident $selves:term $args:term $signatures:term⟫) =>
+    `(Program.multiCall' $m $selves $args $signatures (Program.return ()))
+  | `(⟪multiCall $m:ident $selves:term $args:term $signatures; $p:program⟫) =>
+    `(Program.multiCall' $m $selves $args $signatures (⟪$p⟫))
   | `(⟪upgrade $e:term to $e':term⟫) =>
     `(Program.upgrade' $e $e' Program.return)
   | `(⟪upgrade $e:term to $e':term ; $p:program⟫) =>

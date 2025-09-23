@@ -20,6 +20,7 @@ structure Label : Type 1 where
   MultiMethodObjectArgNames : MultiMethodId → Type := fun _ => PUnit
   /-- Class identifiers for `self` arguments. -/
   MultiMethodObjectArgClass : {f : MultiMethodId} → MultiMethodObjectArgNames f → ClassId
+  MultiMethodSignatureId : MultiMethodId → Type := fun _ => Empty
   [ObjectArgNamesEnum (f : MultiMethodId) : FinEnum (MultiMethodObjectArgNames f)]
   [ObjectArgNamesBEq (f : MultiMethodId) : BEq (MultiMethodObjectArgNames f)]
   [multiMethodsFinite : FinEnum MultiMethodId]
@@ -99,8 +100,10 @@ namespace MultiMethodId
 def Args {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : SomeType :=
   lab.MultiMethodArgs multiId
 
-def Signatures {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) (_args : multiId.Args.type) : Type :=
-  Unit
+def SignatureId {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type := lab.MultiMethodSignatureId multiId
+
+def Signatures {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) (args : multiId.Args.type) : Type :=
+  multiId.SignatureId → Signature (multiId, args)
 
 def ObjectArgNames {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type :=
   lab.MultiMethodObjectArgNames multiId
@@ -175,7 +178,7 @@ instance instLawfulBEq {lab : Ecosystem.Label} : LawfulBEq lab.MemberId where
 
 abbrev SignatureId (lab : Ecosystem.Label) : MemberId lab → Type
   | .classMember m => m.SignatureId
-  | _ => Empty
+  | .multiMethodId m => m.SignatureId
 
 abbrev Args {lab : Ecosystem.Label} (memberId : MemberId lab) : SomeType.{0} :=
   match memberId with

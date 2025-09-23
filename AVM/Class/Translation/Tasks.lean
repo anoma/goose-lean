@@ -81,9 +81,9 @@ private partial def Body.tasks'
       let task := method.task' adjust eco r (adjust self) args signatures
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next cont
-  | .multiMethod multiId selvesIds args next =>
+  | .multiMethod multiId selvesIds args signatures next =>
     Tasks.fetchSelves selvesIds fun selves =>
-      let task := multiId.task' adjust eco (fun x => adjust (selves x)) args
+      let task := multiId.task' adjust eco (fun x => adjust (selves x)) args signatures
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next cont
   | .upgrade classId selfId objData next =>
@@ -245,6 +245,7 @@ partial def Ecosystem.Label.MultiMethodId.task'
   {multiId : lab.MultiMethodId}
   (selves : multiId.Selves)
   (args : multiId.Args.type)
+  (signatures : multiId.Signatures args)
   : Task' :=
   let method := eco.multiMethods multiId
   let body := method.body selves args
@@ -306,7 +307,7 @@ partial def Ecosystem.Label.MultiMethodId.task'
         ensureUnique := rands.reassembledNewUidNonces.toList }
 
   let mkMessage (vals : body.params.Product) : SomeMessage :=
-    ⟨(eco.multiMethods multiId).message selves args vals⟩
+    ⟨(eco.multiMethods multiId).message selves args signatures vals⟩
 
   Body.task' adjust eco body mkResult mkActionData mkMessage
 

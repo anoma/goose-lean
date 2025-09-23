@@ -110,7 +110,7 @@ def counterClass : @Class label .unit where
   destructors := noDestructors
 
 def mergeMethod : @Ecosystem.MultiMethod label .Merge where
-  invariant _ _ := true
+  invariant _ _ _ := true
   body selves (_args : Unit) :=
     let prog : _ := ⟪
          let c1 : Counter := selves .Counter1 |>.data |> fromObject
@@ -147,5 +147,5 @@ example (rx ry : Reference Counter) : Applib.Program label Unit := ⟪
                            unfold label
                            infer_instance
                          ref := ry }
-  multiCall Counter.MultiMethods.Merge selves .unit
+  multiCall Counter.MultiMethods.Merge selves .unit noSignatures
 ⟫

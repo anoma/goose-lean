@@ -90,6 +90,7 @@ def MultiMethod.message
   (method : MultiMethod multiId)
   (selves : multiId.Selves)
   (args : multiId.Args.type)
+  (signatures : multiId.Signatures args)
   (vals : (method.body selves args).params.Product)
   : Message lab :=
   let res : MultiMethodResult multiId := method.body selves args |>.value vals
@@ -101,5 +102,5 @@ def MultiMethod.message
         Vals := ⟨(method.body selves args).params.Product⟩
         vals
         args
-        signatures := .unit
+        signatures
         recipients := Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) }}

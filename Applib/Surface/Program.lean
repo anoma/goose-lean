@@ -39,6 +39,7 @@ inductive Program (lab : Ecosystem.Label) : (ReturnType : Type u) → Type (u + 
     (multiId : lab.MultiMethodId)
     (selves : multiId.SelvesIds)
     (args : multiId.Args.type)
+    (signatures : multiId.Signatures args)
     (next : Program lab ReturnType)
     : Program lab ReturnType
   | upgrade
@@ -74,8 +75,8 @@ def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program
     .destructor cid destrId selfId args signatures (toAVM next)
   | .call cid methodId selfId args signatures next =>
     .method cid methodId selfId args signatures (toAVM next)
-  | .multiCall multiId selves args next =>
-    .multiMethod multiId selves args (toAVM next)
+  | .multiCall multiId selves args signatures next =>
+    .multiMethod multiId selves args signatures (toAVM next)
   | .upgrade classId selfId obj next =>
     .upgrade classId selfId obj (toAVM next)
   | @fetch _ _ _ i objId next =>
@@ -93,8 +94,8 @@ def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Progr
     .destroy cid destrId selfId args signatures (map f next)
   | .call cid methodId selfId args signatures next =>
     .call cid methodId selfId args signatures (map f next)
-  | .multiCall multiId selvesIds args next =>
-    .multiCall multiId selvesIds args (map f next)
+  | .multiCall multiId selvesIds args signatures next =>
+    .multiCall multiId selvesIds args signatures (map f next)
   | .upgrade classId selfId obj next =>
     .upgrade classId selfId obj (map f next)
   | @fetch _ _ C _ objId next =>
@@ -156,10 +157,11 @@ def Program.multiCall'
   (multiId : lab.MultiMethodId)
   (selves : multiId.SelvesReferences)
   (args : multiId.Args.type)
+  (signatures : multiId.Signatures args)
   (next : Program lab α)
   : Program lab α :=
   let selves' : multiId.SelvesIds := fun x => selves x |>.ref.objId
-  multiCall multiId selves' args next
+  multiCall multiId selves' args signatures next
 
 def Program.fetch' {ReturnType} {lab : Ecosystem.Label} {C : Type} (r : Reference C) [i : IsObject C] (next : C → Program lab ReturnType) : Program lab ReturnType :=
   Program.fetch C r.objId next
