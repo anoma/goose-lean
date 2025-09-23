@@ -164,7 +164,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 	- `label : Class.Label` determines the destructor's class.
 	- `id : label.DestructorId` determines the unique id of the destructor.
 	- `Args := label.DestructorArgs id` is the type of destructor arguments excluding `self`.
-	- `body : Args -> Program Unit` . Destructor body program.
+	- `body : (self : Object) -> Args -> Program Unit`. Destructor body program.
 	- `invariant : (self : Object) -> Args -> Bool`. Extra destructor logic. The destructor message logic is a conjunction of auto-generated destructor logic and the extra destructor logic.
 
 ### Method
@@ -174,8 +174,8 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 	- `label : Class.Label` determines the method's class.
 	- `id : label.MethodId` determines the unique id of the method.
 	- `Args := label.MethodArgs id` is the type of method arguments excluding `self`.
-	- `created : (self : Object) -> Args -> List Object`. Objects created in the method call.
-	- `invariant : (self : Object) -> Args -> Bool`. Extra method logic. The method member logic is a conjunction of auto-generated method logic and the extra method logic.
+	- `body : (self : Object) -> Args -> Program Object`. Method body program. The return value is the updated `self`.
+	- `invariant : (self : Object) -> Args -> Bool`. Extra method logic. The method message logic is a conjunction of auto-generated method logic and the extra method logic.
 
 ### Class
 - `Class` in `AVM/Class.lean`
@@ -185,7 +185,6 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 	- `constructors : Set Class.Constructor`. Set of constructors. There is one constructor for each element of `label.ConstructorId`.
 	- `destructors : Set Class.Destructor`. Set of destructors. There is one destructor for each element of `label.DestructorId`.
 	- `methods : Set Class.Method`. Set of methods. There is one method for each element of `label.MethodId`.
-	- `intents : Set Intent`. Set of intents allowed by the class. There is one intent for each element of `label.intentLabels`.
 	- `invariant : (self : Object) -> Logic.Args -> Bool`. Extra class-specific logic. The class logic is the conjunction of the extra class logic and the member logics. `Logic.Args` is the type Resource Logic arguments in the Anoma Resource Machine.
 
 ### Multi-method
