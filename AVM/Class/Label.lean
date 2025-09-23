@@ -69,6 +69,9 @@ def Label.dummy : Label where
   MethodId := Empty
   MethodArgs f := nomatch f
 
+def Label.logicRef (lab : Label) : Anoma.LogicRef :=
+  ⟨"class-logic-" ++ lab.name⟩
+
 inductive Label.MemberId (lab : Class.Label) : Type where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | destructorId (destructorId : lab.DestructorId) : MemberId lab

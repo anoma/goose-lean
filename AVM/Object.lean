@@ -108,7 +108,7 @@ def SomeObject.toResource
             { label
               classId
               dynamicLabel := clab.DynamicLabel.mkDynamicLabel obj.data.privateFields }
-    logicRef := label.logicRef,
+    logicRef := classId.label.logicRef,
     quantity := obj.data.quantity,
     Val := ⟨Object.Resource.Value classId⟩,
     value := { uid := obj.uid
@@ -129,7 +129,7 @@ def Object.fromResource
   let try resLab : AVM.Resource.Label := tryCast res.label
   let try objLab := Resource.Label.getObjectResourceLabel resLab
   check (objLab.label == lab)
-  check (res.logicRef == lab.logicRef)
+  check (res.logicRef == c.label.logicRef)
   let try value : Object.Resource.Value c := tryCast res.value
   some {  uid := value.uid
           data := { quantity := res.quantity

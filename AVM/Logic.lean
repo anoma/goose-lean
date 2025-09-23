@@ -21,7 +21,7 @@ def checkResourceValues (objectValues : List ObjectValue) (resources : List Anom
   where
     resourceValueEq (sdata : ObjectValue) (res : Anoma.Resource) : Bool :=
       sdata.label === res.label &&
-      sdata.label.logicRef == res.logicRef &&
+      sdata.classId.label.logicRef == res.logicRef &&
       sdata.data.quantity == res.quantity &&
         let try resVal : Object.Resource.Value sdata.classId := tryCast res.value
         resVal.privateFields == sdata.data.privateFields &&

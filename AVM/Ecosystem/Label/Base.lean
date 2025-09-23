@@ -47,9 +47,6 @@ def Fin.classId
 
 namespace AVM.Ecosystem.Label
 
-def logicRef (lab : Label) : Anoma.LogicRef :=
-  ⟨"logic-of-ecosystem-" ++ lab.name⟩
-
 /-- Singleton ecosystem: An ecosystem with a single class, no multiMethods and no intents -/
 def singleton (l : Class.Label) : Ecosystem.Label where
   name := l.name
@@ -110,6 +107,7 @@ def ObjectArgNames {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type 
 
 def ObjectArgNamesEnum {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : FinEnum (lab.MultiMethodObjectArgNames multiId) := lab.ObjectArgNamesEnum multiId
 
+/-- The number of selves in a multi-method. -/
 def numObjectArgs {lab : Ecosystem.Label} {multiId : lab.MultiMethodId} : Nat :=
   (lab.ObjectArgNamesEnum multiId).card
 
