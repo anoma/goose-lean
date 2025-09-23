@@ -185,22 +185,21 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 	- `constructors : Set Class.Constructor`. Set of constructors. There is one constructor for each element of `label.ConstructorId`.
 	- `destructors : Set Class.Destructor`. Set of destructors. There is one destructor for each element of `label.DestructorId`.
 	- `methods : Set Class.Method`. Set of methods. There is one method for each element of `label.MethodId`.
-	- `invariant : (self : Object) -> Logic.Args -> Bool`. Extra class-specific logic. The class logic is the conjunction of the extra class logic and the member logics. `Logic.Args` is the type Resource Logic arguments in the Anoma Resource Machine.
+	- `invariant : (self : Object) -> Logic.Args -> Bool`. Extra class-specific logic. The class logic is the conjunction of the extra class logic and the member logics. `Logic.Args` is the type of Resource Logic arguments in the Anoma Resource Machine.
 
 ### Multi-method
-- `Function` in `AVM/Ecosystem/Function.lean`
-- Represents a function in an ecosystem. A function operates on multiple `self` arguments – objects of classes in the ecosystem. The `self` arguments are consumed by the function. There may be other arguments provided beside the `self` arguments.
+- `MultiMethod` in `AVM/Ecosystem/Member.lean`
+- Represents a multi-method in an ecosystem. A multi-method operates on multiple `self` arguments – objects of classes in the ecosystem. The `self` arguments are consumed by the multi-method. There may be other arguments provided beside the `self` arguments.
 - Consists of:
-	- `label : Ecosystem.Label` determines the function's ecosystem.
-	- `id : label.FunctionId` determines the unique id of the funtion.
-	- `Args := label.FunctionArgs id` is the type of function arguments excluding selves.
-	- `body : (selves : List Object) -> Args -> FunctionResult`. The body of the function. `FunctionResult` is a record which consists of:
-		- `assembled : List Object`. List of assembled objects which are created as a result of the function call. It is the responsibility of the user to ensure that assembled object resources balance with the `self` arguments that are not destructed.
-		- `destroyed : List Object`. List of destroyed objects. Destroyed object resources are balanced with automatically generated created ephemeral resources.
+	- `label : Ecosystem.Label` determines the multi-method's ecosystem.
+	- `id : label.MultiMethodId` determines the unique id of the funtion.
+	- `Args := label.MultiMethodArgs id` is the type of multi-method arguments excluding selves.
+	- `body : (selves : List Object) -> Args -> Program MultiMethodResult`. The body of the multi-method. `MultiMethodResult` is a record which consists of:
+		- `assembled : List Object`. List of assembled objects which are created as a result of the multi-method call. It is the responsibility of the user to ensure that assembled object resources balance with the `self` arguments that are not destructed.
+		- `destroyed : List Object`. List of destroyed objects. Destroyed object resources are balanced with automatically generated created ephemeral resources. This must be a sublist of `selves`.
 		- `constructed : List Object`. List of constructed objects. Constructed object resources are balanced with automatically generated consumed ephemeral resources.
-		- `destructed : List Object`. List of destructed selves. This must be a sublist of `selves`.
-	- `invariant : (selves : List Object) -> Args -> Bool`. Extra function logic. The function member logic is a conjunction of the auto-generated function logic and the extra function logic.
-- `selves : List Object` in `body` and `invariant` above is a list of `self` arguments - objects whose classes are described by `label.FunctionSelves id`.
+	- `invariant : (selves : List Object) -> Args -> Bool`. Extra multi-method logic. The multi-method message logic is a conjunction of the auto-generated multi-method logic and the extra multi-method logic.
+- `selves : List Object` in `body` and `invariant` above is a list of `self` arguments - objects whose classes are described by `label.MultiMethodSelves id`.
 
 ### Ecosystem
 - `Ecosystem` in `AVM/Ecosystem.lean`
