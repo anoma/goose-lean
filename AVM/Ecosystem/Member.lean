@@ -62,15 +62,12 @@ instance Assembled.instInhabited
       withOldUid := fun _ _ => .none }
 
 structure MultiMethodResult {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type 1 where
-  /-- For each object argument we specify its usage. See `Usage`.
-  Note that if `argUsage arg = .Destroyed`, then the object that corresponds to `arg` should *not* be put in the destroyed list -/
+  /-- For each object argument we specify its `DeconstructionKind`. -/
   argDeconstruction : multiId.ObjectArgNames → DeconstructionKind
   /-- List of assembled objects. Assembled objects will be created.
       It is the responsibility of the user to ensure that
       assembled objects balance with the object arguments that are disassembled -/
   assembled : Assembled argDeconstruction
-  /-- List of destroyed objects. Destroyed objects will be balanced with automatically generated ephemeral resources -/
-  destroyed : List SomeConsumableObject := []
   /-- List of constructed objects. Constructed objects will be balanced with automatically generated ephemeral resources -/
   constructed : List ObjectValue := []
   deriving Inhabited
@@ -81,7 +78,6 @@ instance instInhabited {lab : Ecosystem.Label} {multiId : lab.MultiMethodId} : I
   default :=
     { argDeconstruction := fun _ => .Disassembled
       assembled := default
-      destroyed := []
       constructed := [] }
 
 def data
@@ -90,7 +86,6 @@ def data
   (res : MultiMethodResult multiId)
   : MultiMethodData :=
   { numConstructed := res.constructed.length
-    numDestroyed := res.destroyed.length
     numSelvesDestroyed := multiId.objectArgNamesVec.toList.countP (fun x => res.argDeconstruction x == .Destroyed)
     numReassembledNewUid := res.assembled.withNewUid.length
     numReassembledOldUid := res.assembled.withOldUidList.length }

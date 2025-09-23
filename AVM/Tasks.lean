@@ -89,10 +89,8 @@ def genMultiMethodRandoms
    rands _ fun reassembledNewUidRands =>
    rands _ fun reassembledOldUidRands =>
    rands _ fun selvesDestroyedEphRands =>
-   rands _ fun destroyedEphRands =>
    rands _ fun reassembledNewUidNonces =>
    {
-     destroyedEphRands
      constructedNonces := constructedNoncesNats.map Anoma.Nonce.mk
      reassembledNewUidNonces := reassembledNewUidNonces.map Anoma.Nonce.mk
      constructedRands

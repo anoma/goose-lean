@@ -200,10 +200,10 @@ def MultiMethod.Message.logicFun
     let fargs : multiId.Args.type := contents.args
     let consumedResObjs := Logic.selectObjectResources args.consumed
     let createdResObjs := Logic.selectObjectResources args.created
-    let try (argsConsumedSelves, argsConstructedEph, argsDestroyed, .unit) :=
+    let try (argsConsumedSelves, argsConstructedEph, .unit) :=
         consumedResObjs
         |> Logic.filterOutDummy
-        |>.splitsExact [multiId.numObjectArgs, data.numConstructed, data.numDestroyed]
+        |>.splitsExact [multiId.numObjectArgs, data.numConstructed]
     let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves.toList
     let prog := method.body argsConsumedObjects fargs
     method.invariant argsConsumedObjects fargs contents.signatures
@@ -212,7 +212,6 @@ def MultiMethod.Message.logicFun
         let consumedUid (arg : multiId.ObjectArgNames) : Anoma.ObjectId := argsConsumedObjects arg |>.uid
         let mkObjectValue {classId : lab.ClassId} (arg : multiId.ObjectArgNames) (d : ObjectData classId) : ObjectValue := ⟨consumedUid arg, d⟩
         let reassembled : List ObjectValue := res.assembled.withOldUidList.map (fun x => mkObjectValue x.arg x.objectData)
-        let destroyedObjects : List ObjectValue := res.destroyed.map (fun x => x.toSomeObject.toObjectValue)
         let constructedObjects : List ObjectValue := res.constructed
         let consumedDestroyedObjects : List ObjectValue :=
           multiId.objectArgNamesVec.toList.filterMap (fun arg =>
@@ -220,22 +219,18 @@ def MultiMethod.Message.logicFun
           match res.argDeconstruction arg with
           | .Destroyed => argObject |>.data.toObjectValue argObject.uid
           | .Disassembled => none)
-        let try (argsCreated, argsConstructed, argsDestroyedEph, argsSelvesDestroyedEph, .unit) :=
+        let try (argsCreated, argsConstructed, argsSelvesDestroyedEph, .unit) :=
           createdResObjs
           |> Logic.filterOutDummy
-          |>.splitsExact [reassembled.length, data.numConstructed, data.numDestroyed, data.numSelvesDestroyed]
+          |>.splitsExact [reassembled.length, data.numConstructed, data.numSelvesDestroyed]
         Logic.checkResourceValues reassembled argsCreated.toList
-          && Logic.checkResourceValues destroyedObjects argsDestroyed.toList
-          && Logic.checkResourceValues destroyedObjects argsDestroyedEph.toList
           && Logic.checkResourceValues constructedObjects argsConstructed.toList
           && Logic.checkResourceValues constructedObjects argsConstructedEph.toList
           && Logic.checkResourceValues consumedDestroyedObjects argsSelvesDestroyedEph.toList
           && Logic.checkResourcesPersistent argsConsumedSelves.toList
-          && Logic.checkResourcesPersistent argsDestroyed.toList
           && Logic.checkResourcesPersistent argsCreated.toList
           && Logic.checkResourcesPersistent argsConstructed.toList
           && Logic.checkResourcesEphemeral argsConstructedEph.toList
-          && Logic.checkResourcesEphemeral argsDestroyedEph.toList
           && Logic.checkResourcesEphemeral argsSelvesDestroyedEph.toList
   else false
 
