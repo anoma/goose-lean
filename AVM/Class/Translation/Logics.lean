@@ -85,14 +85,14 @@ private def Upgrade.Message.logicFun
     && selfRes.isPersistent
     && upgradedRes.isPersistent
 
-/-- The class logic checks if all consumed messages in the action correspond to
-    class members, the single consumed object is the receiver, and there is
-    at least one message. -/
+/-- The class logic checks if the consumed message in the action is associated
+    with the same ecosystem, the `self` object is among the message recipients
+    and the number of recipients is equal to the number of consumed object
+    resources. The class logic also checks the class invariant for `self`. -/
 private def logicFun
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   (cl : Class classId)
-  (consumedMessageResources consumedObjectResources : List Anoma.Resource)
   (args : Logic.Args)
   : Bool :=
   let try self : Object classId := Object.fromResource args.self
@@ -100,16 +100,20 @@ private def logicFun
   match args.status with
   | Created => true
   | Consumed =>
-    let nMessages := consumedMessageResources.length
-    let! [consumedObjectResource] : List Anoma.Resource := consumedObjectResources
-    let try consumedObject : Object classId := Object.fromResource consumedObjectResource
-    -- NOTE: consumedObject == self by definition of Logic.Args; we only check
-    -- that there are no other consumed objects
-    nMessages + 1 == (Logic.filterOutDummy args.consumed).length
-      && consumedMessageResources.all fun res =>
-        let try msg : Message lab := Message.fromResource res
-        let! [recipient] := msg.recipients.toList
-        consumedObject.uid == recipient
+    let consumedMessageResources : List Anoma.Resource := Logic.selectMessageResources args.consumed
+    let consumedObjectResources : List Anoma.Resource := Logic.selectObjectResources args.consumed
+    let! [consumedMessageResource] := consumedMessageResources
+    let try msg : Message lab := Message.fromResource consumedMessageResource
+    let recipients := msg.recipients.toList
+    self.uid ∈ recipients
+    && recipients.length == consumedObjectResources.length
+    -- Note that the message logics already check if the consumed object
+    -- resources have the right form, i.e., correspond to the self / selves. We
+    -- only need to check that the number of recipients is equal to the number
+    -- of consumed object resources, i.e., there are no extra recipients. The
+    -- class logic will be run for each consumed object, with `self` set to that
+    -- object, so it will be checked if every consumed object is among the
+    -- recipients.
 
 def Constructor.Message.logic
   {lab : Ecosystem.Label}
@@ -207,32 +211,4 @@ def MultiMethod.Message.logic
   { reference := ⟨s!"AVM.MultiMethod.{@repr _ lab.multiMethodsRepr multiId}"⟩,
     function args := MultiMethod.Message.logicFun method args data }
 
-/-- The multiMethod logic checks that all consumed messages in the action correspond
-  to members in the ecosystem and the consumed objects are the receivers. -/
-private def logicFun
-  {lab : Ecosystem.Label}
-  (eco : Ecosystem lab)
-  (args : Logic.Args)
-  : Bool :=
-  match args.status with
-  | Created => true
-  | Consumed =>
-      let consumedMessageResources : List Anoma.Resource := Logic.selectMessageResources args.consumed
-      let nMessages := consumedMessageResources.length
-      let consumedObjectResources : List Anoma.Resource := Logic.selectObjectResources args.consumed
-      nMessages >= 1
-        && consumedMessageResources.all fun res =>
-          let try msg : Message lab := Message.fromResource res
-          match msg.id with
-          | .classMember (classId := cl) _ => AVM.Class.logicFun (eco.classes cl) consumedMessageResources consumedObjectResources args
-          | .multiMethodId multiId =>
-            let try selves : multiId.Selves := multiId.ConsumedToSelves consumedObjectResources
-            nMessages + multiId.numObjectArgs == (Logic.filterOutDummy args.consumed).length
-              && Label.MultiMethodId.SelvesToVector selves (fun o => o.uid) ≍? msg.recipients
-
-def logic
-  {lab : Ecosystem.Label}
-  (eco : Ecosystem lab)
-  : Anoma.Logic :=
-  { reference := lab.logicRef,
-    function := logicFun eco }
+end AVM.Ecosystem
