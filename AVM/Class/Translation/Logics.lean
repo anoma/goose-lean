@@ -103,6 +103,8 @@ private def logicFun
     let consumedObjectResources : List Anoma.Resource := Logic.selectObjectResources args.consumed
     let! [consumedMessageResource] := Logic.selectMessageResources args.consumed
     let try msg : Message lab := Message.fromResource consumedMessageResource
+    -- Note: the success of the `try` below ensures that the message is "legal"
+    -- for the consumed objects - it is from the same ecosystem
     let recipients := msg.recipients.toList
     self.uid ∈ recipients
     && recipients.length == consumedObjectResources.length
