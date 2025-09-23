@@ -29,7 +29,7 @@ def defMethod (cl : Type) [i : IsObject cl] {methodId : i.classId.label.MethodId
 
 def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.classId.label.ConstructorId}
  (body : constrId.Args.type → Program i.label cl)
- (invariant : constrId.Args.type → Bool := fun _ => true)
+ (invariant : (args : constrId.Args.type) → (signatures : constrId.Signatures args) → Bool := fun _ _ => true)
  : Class.Constructor i.classId constrId where
     invariant (args : constrId.Args.type) := invariant args
     body (args : constrId.Args.type) := body args |>.map i.toObject |>.toAVM

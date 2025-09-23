@@ -34,6 +34,7 @@ structure Label : Type 1 where
 
   ConstructorId : Type
   ConstructorArgs : ConstructorId -> SomeType
+  ConstructorSignatureId : ConstructorId → Type := fun _ => Empty
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
@@ -77,7 +78,7 @@ inductive Label.MemberId (lab : Class.Label) : Type where
 abbrev Label.MemberId.SignatureId {lab : Class.Label} : Label.MemberId lab → Type
   | .methodId m => lab.MethodSignatureId m
   | .destructorId m => lab.DestructorSignatureId m
-  | .constructorId _ => Empty
+  | .constructorId m => lab.ConstructorSignatureId m
   | .upgradeId => Empty
 
 instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId lab) where

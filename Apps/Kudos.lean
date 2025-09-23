@@ -44,6 +44,17 @@ inductive Constructors where
   | Mint : Constructors
   deriving DecidableEq, Fintype, Repr
 
+namespace Constructors
+
+inductive Mint.SignatureId where
+  | originator
+
+def SignatureId (m : Constructors) : Type :=
+  match m with
+  | .Mint => Mint.SignatureId
+
+end Constructors
+
 inductive Destructors where
   | Burn : Destructors
   deriving DecidableEq, Fintype, Repr
@@ -71,7 +82,6 @@ instance hasTypeRep : TypeRep Kudos where
   rep := Rep.atomic "Kudos"
 
 structure MintArgs where
-  key : PrivateKey
   originator : PublicKey
   quantity : Nat
   deriving BEq
@@ -98,6 +108,7 @@ def clab : Class.Label where
   ConstructorId := Constructors
   ConstructorArgs := fun
     | Constructors.Mint => ⟨MintArgs⟩
+  ConstructorSignatureId := Constructors.SignatureId
 
   DestructorId := Destructors
   DestructorArgs := fun
@@ -129,7 +140,7 @@ def kudosMint : @Class.Constructor label .unit Constructors.Mint := defConstruct
         owner := args.originator
         originator := args.originator : Kudos}
   ⟫)
-  (invariant := fun (args : MintArgs) => checkKey args.originator args.key)
+  (invariant := fun (args : MintArgs) signatures => checkSignature (signatures .originator) args.originator)
 
 def kudosTransfer : @Class.Method label .unit Methods.Transfer := defMethod Kudos
   (body := fun (self : Kudos) (args : TransferArgs) =>

@@ -14,18 +14,26 @@ private def Constructor.Message.logicFun
   (args : Logic.Args)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
-  let try argsData := SomeType.cast msg.contents.args
-  let try vals : (constr.body argsData).params.Product := tryCast msg.contents.vals
-  let newObjData := constr.body argsData |>.value vals
-  let consumedResObjs := Logic.selectObjectResources args.consumed
-  let createdResObjs := Logic.selectObjectResources args.created
-  let! [newObjRes] := createdResObjs
-  let uid : ObjectId := newObjRes.nonce.value
-  Logic.checkResourceValues [newObjData.toObjectValue uid] consumedResObjs
-    && Logic.checkResourceValues [newObjData.toObjectValue uid] createdResObjs
-    && Logic.checkResourcesEphemeral consumedResObjs
-    && Logic.checkResourcesPersistent createdResObjs
-    && constr.invariant argsData
+  match msg with
+  | {id := id, contents := contents} =>
+  -- TODO check syntax
+  if h : id == .classMember (Label.MemberId.constructorId constrId)
+  then
+    let contents : MessageContents lab (.classMember (Label.MemberId.constructorId constrId)) := eq_of_beq h ▸ contents
+    let argsData := contents.args
+    let try vals : (constr.body argsData).params.Product := tryCast contents.vals
+    let newObjData := constr.body argsData |>.value vals
+    let consumedResObjs := Logic.selectObjectResources args.consumed
+    let createdResObjs := Logic.selectObjectResources args.created
+    let signatures := contents.signatures
+    let! [newObjRes] := createdResObjs
+    let uid : ObjectId := newObjRes.nonce.value
+    Logic.checkResourceValues [newObjData.toObjectValue uid] consumedResObjs
+      && Logic.checkResourceValues [newObjData.toObjectValue uid] createdResObjs
+      && Logic.checkResourcesEphemeral consumedResObjs
+      && Logic.checkResourcesPersistent createdResObjs
+      && constr.invariant argsData signatures
+  else false
 
 /-- Creates a message logic function for a given destructor. -/
 private def Destructor.Message.logicFun

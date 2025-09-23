@@ -7,7 +7,7 @@ structure Constructor {lab : Ecosystem.Label} (cid : lab.ClassId) (constrId : ci
   body : constrId.Args.type → Program.{0} lab (ObjectData cid)
   /-- Extra constructor logic. The constructor invariant is combined with
       auto-generated constructor body constraints to create the constructor logic. -/
-  invariant : constrId.Args.type → Bool
+  invariant : (args : constrId.Args.type) → constrId.Signatures args →  Bool
 
 structure Destructor {lab : Ecosystem.Label} (cid : lab.ClassId) (destructorId : cid.label.DestructorId) : Type 1 where
   /-- Destructor call body. -/
