@@ -69,6 +69,9 @@ def Label.dummy : Label where
   methodsRepr := inferInstanceAs (Repr PUnit)
   methodsBEq := inferInstanceAs (BEq PUnit)
 
+def Label.logicRef (lab : Label) : Anoma.LogicRef :=
+  ⟨"class-logic-" ++ lab.name⟩
+
 inductive Label.MemberId (lab : Class.Label) where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
