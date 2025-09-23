@@ -85,7 +85,7 @@ private def Upgrade.Message.logicFun
     && selfRes.isPersistent
     && upgradedRes.isPersistent
 
-/-- The class logic checks if the consumed message in the action is associated
+/-- The class logic checks if the message consumed in the action is associated
     with the same ecosystem, the `self` object is among the message recipients
     and the number of recipients is equal to the number of consumed object
     resources. The class logic also checks the class invariant for `self`. -/
@@ -100,9 +100,8 @@ private def logicFun
   match args.status with
   | Created => true
   | Consumed =>
-    let consumedMessageResources : List Anoma.Resource := Logic.selectMessageResources args.consumed
     let consumedObjectResources : List Anoma.Resource := Logic.selectObjectResources args.consumed
-    let! [consumedMessageResource] := consumedMessageResources
+    let! [consumedMessageResource] := Logic.selectMessageResources args.consumed
     let try msg : Message lab := Message.fromResource consumedMessageResource
     let recipients := msg.recipients.toList
     self.uid ∈ recipients
@@ -114,6 +113,16 @@ private def logicFun
     -- class logic will be run for each consumed object, with `self` set to that
     -- object, so it will be checked if every consumed object is among the
     -- recipients.
+
+/-- The class logic that is the Resource Logic of each resource corresponding to
+  an object of this class. -/
+def logic
+  {lab : Ecosystem.Label}
+  {classId : lab.ClassId}
+  (cl : Class classId)
+  : Anoma.Logic :=
+  { reference := classId.label.logicRef,
+    function := logicFun cl }
 
 def Constructor.Message.logic
   {lab : Ecosystem.Label}
