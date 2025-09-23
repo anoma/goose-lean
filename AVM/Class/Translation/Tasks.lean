@@ -253,8 +253,6 @@ partial def Ecosystem.Label.MultiMethodId.task'
       let res := tasksRes.res
       let rands := tasksRes.rands
       let consumedSelves := Ecosystem.Label.MultiMethodId.SelvesToVector selves (fun x => x.toSomeObject.toConsumable (ephemeral := false)) |>.toList
-      let destroyed := res.destroyed
-      let destroyedEph := destroyed.zipWith rands.destroyedEphRands.toList (f := fun c r => c.balanceDestroyed (rand := r))
       let reassembled := res.assembled.withNewUid.zipWith3 rands.reassembledNewUidRands.toList rands.reassembledNewUidNonces.toList (f := fun (obj : SomeObjectData) r nonce =>
             { label := obj.label
               classId := obj.classId
@@ -295,8 +293,8 @@ partial def Ecosystem.Label.MultiMethodId.task'
                       some (fun r => consumable.balanceDestroyed (rand := r))
                     | .Disassembled => none)
           |>.zipWith rands.selvesDestroyedEphRands.toList (f := fun mk r => mk r)
-      { consumed := consumedSelves ++ constructedEph ++ destroyed
-        created := reassembled ++ constructed ++ destroyedEph ++ selvesDestroyedEph
+      { consumed := consumedSelves ++ constructedEph
+        created := reassembled ++ constructed ++ selvesDestroyedEph
         ensureUnique := rands.reassembledNewUidNonces.toList }
 
   let mkMessage (vals : body.params.Product) : SomeMessage :=

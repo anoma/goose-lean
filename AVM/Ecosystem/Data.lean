@@ -4,7 +4,6 @@ namespace AVM
 
 structure MultiMethodData : Type where
   numConstructed : Nat
-  numDestroyed : Nat
   numSelvesDestroyed : Nat
   numReassembledNewUid : Nat
   numReassembledOldUid : Nat
@@ -14,7 +13,6 @@ instance Nonce.hasTypeRep : TypeRep MultiMethodData where
   rep := Rep.atomic "AVM.MultiMethodData"
 
 structure MultiMethodRandoms (d : MultiMethodData) where
-  destroyedEphRands : List.Vector Nat d.numDestroyed
   /-- The nonce is also used for uid -/
   constructedNonces : List.Vector Anoma.Nonce d.numConstructed
   constructedRands : List.Vector Nat d.numConstructed
