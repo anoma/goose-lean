@@ -62,7 +62,7 @@ instance Assembled.instInhabited
       withOldUid := fun _ _ => .none }
 
 structure MultiMethodResult {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type 1 where
-  /-- For each object argument we specify its usage. See `Usage`. -/
+  /-- For each object argument we specify its `DeconstructionKind`. -/
   argDeconstruction : multiId.ObjectArgNames → DeconstructionKind
   /-- List of assembled objects. Assembled objects will be created.
       It is the responsibility of the user to ensure that
