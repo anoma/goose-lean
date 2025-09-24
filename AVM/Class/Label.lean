@@ -122,13 +122,13 @@ instance Label.MemberId.instLawfulBEq {lab : Class.Label} : LawfulBEq (Class.Lab
 instance Label.MemberId.hasTypeRep (lab : Class.Label) : TypeRep (Class.Label.MemberId lab) where
   rep := Rep.composite "AVM.Class.Label.MemberId" [Rep.atomic lab.name]
 
-def Label.ConstructorId.Args {lab : Class.Label} (constrId : lab.ConstructorId) : SomeType :=
+abbrev Label.ConstructorId.Args {lab : Class.Label} (constrId : lab.ConstructorId) : SomeType :=
   lab.ConstructorArgs constrId
 
-def Label.MethodId.Args {lab : Class.Label} (methodId : lab.MethodId) : SomeType :=
+abbrev Label.MethodId.Args {lab : Class.Label} (methodId : lab.MethodId) : SomeType :=
   lab.MethodArgs methodId
 
-def Label.DestructorId.Args {lab : Class.Label} (destructorId : lab.DestructorId) : SomeType.{0} :=
+abbrev Label.DestructorId.Args {lab : Class.Label} (destructorId : lab.DestructorId) : SomeType.{0} :=
   lab.DestructorArgs destructorId
 
 def Label.MemberId.Args {lab : Class.Label} (memberId : MemberId lab) : SomeType :=

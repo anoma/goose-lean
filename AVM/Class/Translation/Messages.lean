@@ -17,13 +17,12 @@ def Constructor.message
   (signatures : Class.Label.MemberId.constructorId constrId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.constructorId constrId)
-    contents :=
-      { data := .unit
-        logicRef := Constructor.Message.logic.{0, 0} constr |>.reference
-        vals
-        args
-        signatures
-        recipients := [newId] }}
+    data := .unit
+    logicRef := Constructor.Message.logic.{0, 0} constr |>.reference
+    vals
+    args
+    signatures
+    recipients := [newId] }
 
 def Destructor.message
   {lab : Ecosystem.Label}
@@ -37,13 +36,12 @@ def Destructor.message
   (signatures : Class.Label.MemberId.destructorId destrId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.destructorId destrId)
-    contents :=
-      { data := .unit
-        logicRef := Destructor.Message.logic.{0, 0} destr |>.reference
-        vals
-        args
-        signatures
-        recipients := [selfId] }}
+    data := .unit
+    logicRef := Destructor.Message.logic.{0, 0} destr |>.reference
+    vals
+    args
+    signatures
+    recipients := [selfId] }
 
 def Method.message
   {lab : Ecosystem.Label}
@@ -57,13 +55,12 @@ def Method.message
   (signatures : Class.Label.MemberId.methodId methodId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.methodId methodId)
-    contents :=
-      { data := .unit
-        logicRef := Method.Message.logic.{0, 0} method |>.reference
-        vals
-        args
-        signatures
-        recipients := [selfId] }}
+    data := .unit
+    logicRef := Method.Message.logic.{0, 0} method |>.reference
+    vals
+    args
+    signatures
+    recipients := [selfId] }
 
 def Upgrade.message
   {lab : Ecosystem.Label}
@@ -71,14 +68,13 @@ def Upgrade.message
   (selfId : ObjectId)
   : Message lab :=
   { id := .classMember (classId := classId) .upgradeId
-    contents :=
-      { data := .unit
-        logicRef := Upgrade.Message.logic.{0, 0} classId |>.reference
-        Vals := ⟨PUnit⟩
-        vals := PUnit.unit
-        args := .unit
-        signatures f := nomatch f
-        recipients := [selfId] }}
+    data := .unit
+    logicRef := Upgrade.Message.logic.{0, 0} classId |>.reference
+    Vals := ⟨PUnit⟩
+    vals := PUnit.unit
+    args := .unit
+    signatures f := nomatch f
+    recipients := [selfId] }
 
 end AVM.Class
 
@@ -96,7 +92,6 @@ def MultiMethod.message
   (rands : MultiMethodRandoms data)
   : Message lab :=
   { id := .multiMethodId multiId
-    contents := {
     logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
     data
     Vals := ⟨(method.body selves args).params.Product⟩
@@ -105,4 +100,4 @@ def MultiMethod.message
     signatures
     recipients :=
       (Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) |>.toList)
-        ++ rands.constructedNonces.toList.map (·.value) }}
+        ++ rands.constructedNonces.toList.map (·.value) }

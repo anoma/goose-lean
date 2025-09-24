@@ -3,6 +3,11 @@ import AVM.Ecosystem.Data
 namespace AVM
 
 structure MessageContents (lab : Ecosystem.Label) (id : lab.MemberId) : Type 1 where
+
+/-- A message is a communication sent from one object to another in the AVM. -/
+structure Message (lab : Ecosystem.Label) : Type 1 where
+  /-- The message ID. -/
+  id : lab.MemberId
   {Vals : SomeType.{0}}
   /-- Message parameter values. The message parameters are object resources and
     generated random values that are used in the body of the call associated with
@@ -21,27 +26,18 @@ structure MessageContents (lab : Ecosystem.Label) (id : lab.MemberId) : Type 1 w
   /-- The recipients of the message. -/
   recipients : List ObjectId
 
-/-- A message is a communication sent from one object to another in the AVM. -/
-structure Message (lab : Ecosystem.Label) : Type 1 where
-  /-- The message ID. -/
-  id : lab.MemberId
-  /-- The data that the message carries. -/
-  contents : MessageContents lab id
-
-instance MessageContents.hasBEq {lab : Ecosystem.Label} {id : lab.MemberId} : BEq (MessageContents lab id) where
-  beq a b :=
-    a.vals === b.vals
-    && a.args == b.args
-    && a.recipients == b.recipients
-
 instance Message.hasTypeRep (lab : Ecosystem.Label) : TypeRep (Message lab) where
   rep := Rep.composite "AVM.Message" [Rep.atomic lab.name]
 
 instance Message.hasBEq {lab : Ecosystem.Label} : BEq (Message lab) where
   beq a b :=
-    if h : a.id == b.id
-    then a.contents == eq_of_beq h ▸ b.contents
-    else false
+    match a, b with
+    | {id := aid, args := aargs, ..}, {id := bid, args := bargs,  ..} =>
+    check h : aid == bid
+    let h' := eq_of_beq h
+    check a.vals === b.vals
+    check aargs == h' ▸ bargs
+    check a.recipients == b.recipients
 
 structure SomeMessage : Type 1 where
   {label : Ecosystem.Label}
@@ -57,14 +53,13 @@ instance : Inhabited SomeMessage where
   default := { label := Ecosystem.Label.dummy
                message :=
                 { id := .classMember (classId := .unit) (.constructorId PUnit.unit)
-                  contents := {
                   Vals := ⟨PUnit⟩
                   vals := PUnit.unit
                   data := .unit
                   logicRef := default
                   signatures f := nomatch f
                   args := PUnit.unit
-                  recipients := [] }}}
+                  recipients := [] }}
 
 def Message.toSomeMessage {lab : Ecosystem.Label} (msg : Message lab) : SomeMessage :=
   { label := lab, message := msg }

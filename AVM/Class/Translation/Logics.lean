@@ -15,15 +15,15 @@ private def Constructor.Message.logicFun
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
   match msg with
-  | {id := id, contents := contents} =>
+  | {id := id, args := argsData', signatures := signatures', vals := vals, ..} =>
   check h : id == .classMember (Label.MemberId.constructorId constrId)
-  let contents : MessageContents lab (.classMember (Label.MemberId.constructorId constrId)) := eq_of_beq h ▸ contents
-  let argsData := contents.args
-  let try vals : (constr.body argsData).params.Product := tryCast contents.vals
+  have h' := eq_of_beq h
+  let argsData := cast (by simp! [h']) argsData'
+  let signatures := cast (by grind) signatures'
+  let try vals : (constr.body (argsData)).params.Product := tryCast vals
   let newObjData := constr.body argsData |>.value vals
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  let signatures := contents.signatures
   let! [newObjRes] := createdResObjs
   let uid : ObjectId := newObjRes.nonce.value
   Logic.checkResourceValues [newObjData.toObjectValue uid] consumedResObjs
@@ -42,11 +42,11 @@ private def Destructor.Message.logicFun
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
   match msg with
-  | {id := id, contents := contents} =>
+  | {id := id, args := args', signatures := signatures', ..} =>
   check h : id == .classMember (Label.MemberId.destructorId destructorId)
-  let contents : MessageContents lab (.classMember (Label.MemberId.destructorId destructorId)) := eq_of_beq h ▸ contents
-  let argsData := contents.args
-  let signatures : destructorId.Signatures argsData := contents.signatures
+  have h' := eq_of_beq h
+  let argsData := cast (by simp! [h']) args'
+  let signatures : destructorId.Signatures argsData := cast (by grind) signatures'
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
   let! [selfRes] := consumedResObjs
@@ -65,18 +65,18 @@ private def Method.Message.logicFun
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
   match msg with
-  | {id := id, contents := contents} =>
+  | {id := id, args := args', signatures := signatures', vals := vals', ..} =>
   if h : id == .classMember (Label.MemberId.methodId methodId)
   then
-    let contents : MessageContents lab (.classMember (Label.MemberId.methodId methodId)) := eq_of_beq h ▸ contents
-    let argsData : methodId.Args.type := contents.args
+    have h' := eq_of_beq h
+    let argsData : methodId.Args.type := cast (by simp! [h']) args'
     let consumedResObjs := Logic.selectObjectResources args.consumed
     let createdResObjs := Logic.selectObjectResources args.created
     let! [selfRes] := consumedResObjs
     let try selfObj : Object classId := Object.fromResource selfRes
     let body := method.body selfObj argsData
-    let try vals : body.params.Product := tryCast contents.vals
-    let signatures : methodId.Signatures argsData := contents.signatures
+    let try vals : body.params.Product := tryCast vals'
+    let signatures : methodId.Signatures argsData := cast (by grind) signatures'
     check method.invariant selfObj argsData signatures
     let createdObject : Object classId := body |>.value vals
     Logic.checkResourceValues [createdObject.toObjectValue] createdResObjs
@@ -121,8 +121,8 @@ private def logicFun
     -- Note: the success of the `try` below ensures that the message is "legal"
     -- for the consumed objects - it is from the same ecosystem
     let try msg : Message lab := Message.fromResource consumedMessageResource
-    self.uid ∈ msg.contents.recipients
-    && msg.contents.recipients.length == consumedObjectResources.length
+    self.uid ∈ msg.recipients
+    && msg.recipients.length == consumedObjectResources.length
     -- Note that the message logics already check if the consumed object
     -- resources have the right form, i.e., correspond to the self / selves. We
     -- only need to check that the number of recipients is equal to the number
@@ -188,11 +188,11 @@ def MultiMethod.Message.logicFun
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
   match msg with
-  | {id := id, contents := contents} =>
+  | {id := id, args := args', signatures := signatures', ..} =>
   if h : id == .multiMethodId multiId
   then
-    let contents : MessageContents lab (.multiMethodId multiId) := eq_of_beq h ▸ contents
-    let fargs : multiId.Args.type := contents.args
+    have h' := eq_of_beq h
+    let fargs : multiId.Args.type := cast (by simp! [h']) args'
     let consumedResObjs := Logic.selectObjectResources args.consumed
     let createdResObjs := Logic.selectObjectResources args.created
     let try (argsConsumedSelves, argsConstructedEph, .unit) :=
@@ -201,8 +201,9 @@ def MultiMethod.Message.logicFun
         |>.splitsExact [multiId.numObjectArgs, data.numConstructed]
     let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves.toList
     let prog := method.body argsConsumedObjects fargs
-    method.invariant argsConsumedObjects fargs contents.signatures
-     && let try vals : prog.params.Product := tryCast msg.contents.vals
+    let signatures := cast (by grind) signatures'
+    method.invariant argsConsumedObjects fargs signatures
+     && let try vals : prog.params.Product := tryCast msg.vals
         let res : MultiMethodResult multiId := prog |>.value vals
         let consumedUid (arg : multiId.ObjectArgNames) : Anoma.ObjectId := argsConsumedObjects arg |>.uid
         let mkObjectValue {classId : lab.ClassId} (arg : multiId.ObjectArgNames) (d : ObjectData classId) : ObjectValue := ⟨consumedUid arg, d⟩

@@ -94,12 +94,12 @@ instance {lab : Ecosystem.Label} {classId : lab.ClassId}
 
 namespace MultiMethodId
 
-def Args {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : SomeType :=
+abbrev Args {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : SomeType :=
   lab.MultiMethodArgs multiId
 
-def SignatureId {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type := lab.MultiMethodSignatureId multiId
+abbrev SignatureId {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type := lab.MultiMethodSignatureId multiId
 
-def Signatures {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) (args : multiId.Args.type) : Type :=
+abbrev Signatures {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) (args : multiId.Args.type) : Type :=
   multiId.SignatureId → Signature (multiId, args)
 
 def ObjectArgNames {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type :=

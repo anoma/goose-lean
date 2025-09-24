@@ -9,7 +9,7 @@ def SomeMessage.toResource (msg : SomeMessage) (nonce : Anoma.Nonce) : Anoma.Res
   { Val := ⟨PUnit⟩,
     Label := ⟨SomeMessage⟩,
     label := msg,
-    logicRef := msg.message.contents.logicRef,
+    logicRef := msg.message.logicRef,
     value := PUnit.unit,
     quantity := 1,
     nullifierKeyCommitment := default,
@@ -18,7 +18,7 @@ def SomeMessage.toResource (msg : SomeMessage) (nonce : Anoma.Nonce) : Anoma.Res
 
 def SomeMessage.fromResource (res : Anoma.Resource.{u, v}) : Option SomeMessage :=
   let try msg : SomeMessage := tryCast res.label
-  check (msg.message.contents.logicRef == res.logicRef)
+  check (msg.message.logicRef == res.logicRef)
   some msg
 
 def Message.toResource {lab : Ecosystem.Label} (msg : Message lab) (nonce : Anoma.Nonce) : Anoma.Resource :=
