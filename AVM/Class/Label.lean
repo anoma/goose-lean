@@ -2,6 +2,7 @@ import Anoma.Resource
 import Prelude
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Data.FinEnum
+import AVM.Authorization
 
 abbrev AVM.ObjectId := Anoma.ObjectId
 
@@ -33,21 +34,33 @@ structure Label : Type 1 where
 
   ConstructorId : Type
   ConstructorArgs : ConstructorId -> SomeType
+  ConstructorSignatureId : ConstructorId → Type := fun _ => Empty
+  ConstructorSignatureIdEnum : (s : ConstructorId) → FinEnum (ConstructorSignatureId s)
+    := by intro s; cases s <;> infer_instance
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
+  [constructorsLawfulBEq : LawfulBEq ConstructorId]
 
   DestructorId : Type := Empty
   DestructorArgs : DestructorId -> SomeType := fun _ => ⟨PUnit⟩
+  DestructorSignatureId : DestructorId → Type := fun _ => Empty
+  DestructorSignatureIdEnum : (s : DestructorId) → FinEnum (DestructorSignatureId s)
+    := by intro s; cases s <;> infer_instance
   [destructorsFinite : Fintype DestructorId]
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
+  [destructorsLawfulBEq : LawfulBEq DestructorId]
 
   MethodId : Type
   MethodArgs : MethodId -> SomeType
+  MethodSignatureId : MethodId → Type := fun _ => Empty
+  MethodSignatureIdEnum : (s : MethodId) → FinEnum (MethodSignatureId s)
+    := by intro s; cases s <;> infer_instance
   [methodsFinite : Fintype MethodId]
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
+  [methodsLawfulBEq : LawfulBEq MethodId]
 
 def Label.dummy : Label where
   name := "Dummy"
@@ -59,24 +72,23 @@ def Label.dummy : Label where
   constructorsRepr := inferInstanceAs (Repr PUnit)
   constructorsBEq := inferInstanceAs (BEq PUnit)
   DestructorId := Empty
-  DestructorArgs := fun _ => ⟨PUnit⟩
-  destructorsFinite := inferInstanceAs (Fintype Empty)
-  destructorsRepr := inferInstanceAs (Repr Empty)
-  destructorsBEq := inferInstanceAs (BEq Empty)
-  MethodId := PUnit
-  MethodArgs := fun _ => ⟨PUnit⟩
-  methodsFinite := inferInstanceAs (Fintype PUnit)
-  methodsRepr := inferInstanceAs (Repr PUnit)
-  methodsBEq := inferInstanceAs (BEq PUnit)
+  MethodId := Empty
+  MethodArgs f := nomatch f
 
 def Label.logicRef (lab : Label) : Anoma.LogicRef :=
   ⟨"class-logic-" ++ lab.name⟩
 
-inductive Label.MemberId (lab : Class.Label) where
+inductive Label.MemberId (lab : Class.Label) : Type where
   | constructorId (constrId : lab.ConstructorId) : MemberId lab
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
   | upgradeId : MemberId lab
+
+abbrev Label.MemberId.SignatureId {lab : Class.Label} : Label.MemberId lab → Type
+  | .methodId m => lab.MethodSignatureId m
+  | .destructorId m => lab.DestructorSignatureId m
+  | .constructorId m => lab.ConstructorSignatureId m
+  | .upgradeId => Empty
 
 instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId lab) where
   beq a b :=
@@ -92,16 +104,37 @@ instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId l
     | _, methodId _ => false
     | upgradeId, upgradeId => true
 
+instance Label.MemberId.instReflBEq {lab : Class.Label} : ReflBEq lab.MemberId where
+  rfl := by
+    intro a
+    have := lab.constructorsLawfulBEq
+    have := lab.destructorsLawfulBEq
+    have := lab.methodsLawfulBEq
+    cases a
+    iterate 4 {
+      unfold BEq.beq Label.MemberId.hasBEq
+      simp
+    }
+
+instance Label.MemberId.instLawfulBEq {lab : Class.Label} : LawfulBEq (Class.Label.MemberId lab) where
+  eq_of_beq := by
+    intro a b
+    have := lab.constructorsLawfulBEq
+    have := lab.destructorsLawfulBEq
+    have := lab.methodsLawfulBEq
+    unfold BEq.beq Label.MemberId.hasBEq
+    cases a <;> cases b <;> simp
+
 instance Label.MemberId.hasTypeRep (lab : Class.Label) : TypeRep (Class.Label.MemberId lab) where
   rep := Rep.composite "AVM.Class.Label.MemberId" [Rep.atomic lab.name]
 
-def Label.ConstructorId.Args {lab : Class.Label} (constrId : lab.ConstructorId) : SomeType :=
+abbrev Label.ConstructorId.Args {lab : Class.Label} (constrId : lab.ConstructorId) : SomeType :=
   lab.ConstructorArgs constrId
 
-def Label.MethodId.Args {lab : Class.Label} (methodId : lab.MethodId) : SomeType :=
+abbrev Label.MethodId.Args {lab : Class.Label} (methodId : lab.MethodId) : SomeType :=
   lab.MethodArgs methodId
 
-def Label.DestructorId.Args {lab : Class.Label} (destructorId : lab.DestructorId) : SomeType.{0} :=
+abbrev Label.DestructorId.Args {lab : Class.Label} (destructorId : lab.DestructorId) : SomeType.{0} :=
   lab.DestructorArgs destructorId
 
 def Label.MemberId.Args {lab : Class.Label} (memberId : MemberId lab) : SomeType :=
@@ -110,6 +143,34 @@ def Label.MemberId.Args {lab : Class.Label} (memberId : MemberId lab) : SomeType
   | destructorId c => lab.DestructorArgs c
   | methodId c => lab.MethodArgs c
   | upgradeId => ⟨PUnit⟩
+
+abbrev Label.MemberId.Signatures
+  {lab : Class.Label}
+  (f : MemberId lab)
+  (args : f.Args.type)
+  : Type :=
+  f.SignatureId → Signature (f, args)
+
+abbrev Label.MethodId.Signatures
+  {lab : Class.Label}
+  (f : lab.MethodId)
+  (args : f.Args.type)
+  : Type :=
+  MemberId.methodId f |>.Signatures args
+
+abbrev Label.ConstructorId.Signatures
+  {lab : Class.Label}
+  (f : lab.ConstructorId)
+  (args : f.Args.type)
+  : Type :=
+  MemberId.constructorId f |>.Signatures args
+
+abbrev Label.DestructorId.Signatures
+  {lab : Class.Label}
+  (f : lab.DestructorId)
+  (args : f.Args.type)
+  : Type :=
+  MemberId.destructorId f |>.Signatures args
 
 instance Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"

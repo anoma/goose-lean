@@ -78,7 +78,7 @@ instance hasTypeRep : TypeRep Check where
 
 inductive Methods where
   | Transfer
-  deriving Repr, BEq, Fintype
+  deriving Repr, BEq, Fintype, DecidableEq
 
 structure TransferArgs where
   newOwner : PublicKey
@@ -159,6 +159,29 @@ inductive Methods where
   | Burn : Methods
   deriving DecidableEq, Fintype, Repr
 
+namespace Methods
+
+inductive Transfer.SignatureId where
+  | owner
+ deriving DecidableEq, FinEnum
+
+inductive Mint.SignatureId where
+  | owner
+ deriving DecidableEq, FinEnum
+
+inductive Burn.SignatureId where
+  | owner
+  | originator
+ deriving DecidableEq, FinEnum
+
+abbrev SignatureId (m : Methods) : Type :=
+  match m with
+  | .Transfer => Transfer.SignatureId
+  | .Mint => Mint.SignatureId
+  | .Burn => Burn.SignatureId
+
+end Methods
+
 inductive Constructors where
   | Open : Constructors
   deriving DecidableEq, Fintype, Repr
@@ -166,6 +189,17 @@ inductive Constructors where
 inductive Destructors where
   | Close : Destructors
   deriving DecidableEq, Fintype, Repr
+
+namespace Destructors
+
+inductive Close.SignatureId : Type where
+  | owner
+ deriving DecidableEq, FinEnum
+
+abbrev SignatureId : Destructors → Type
+ | .Close => Close.SignatureId
+
+end Destructors
 
 open AVM
 
@@ -204,8 +238,8 @@ instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
 
 structure BurnArgs where
   denom : Denomination
+  owner : PublicKey
   quantity : Nat
-  key : PrivateKey
   deriving DecidableEq
 
 instance BurnArgs.hasTypeRep : TypeRep BurnArgs where
@@ -220,6 +254,7 @@ def BankLabel : Class.Label where
     | Methods.Transfer => ⟨TransferArgs⟩
     | Methods.Mint => ⟨MintArgs⟩
     | Methods.Burn => ⟨BurnArgs⟩
+  MethodSignatureId := Methods.SignatureId
 
   ConstructorId := Constructors
   ConstructorArgs := fun
@@ -228,6 +263,7 @@ def BankLabel : Class.Label where
   DestructorId := Destructors
   DestructorArgs := fun
     | Destructors.Close => ⟨PUnit⟩
+  DestructorSignatureId := Destructors.SignatureId
 
 inductive Classes where
   | Bank
@@ -288,7 +324,6 @@ def kudosMint : @Class.Method label Classes.Bank Methods.Mint := defMethod Kudos
     return
       self.overBalances (fun b => b.addTokens args.denom.originator args.denom args.quantity)
   ⟫)
-  (invariant := fun (_self : KudosBank) (args : MintArgs) => checkKey args.denom.originator args.key)
 
 def kudosTransfer : @Class.Method label Classes.Bank Methods.Transfer := defMethod KudosBank
   (body := fun (self : KudosBank) (args : TransferArgs) => ⟪
@@ -297,9 +332,9 @@ def kudosTransfer : @Class.Method label Classes.Bank Methods.Transfer := defMeth
         |> Balances.addTokens args.newOwner args.denom args.quantity
         |> Balances.subTokens args.oldOwner args.denom args.quantity)
   ⟫)
-  (invariant := fun (self : KudosBank) (args : TransferArgs) =>
-    checkKey args.oldOwner args.key
-    && 0 < args.quantity
+  (invariant := fun (self : KudosBank) (args : TransferArgs) signatures =>
+    0 < args.quantity
+    && checkSignature (signatures .owner) args.oldOwner
     && args.quantity <= self.getBalance args.oldOwner args.denom)
 
 def kudosBurn : @Class.Method label Classes.Bank Methods.Burn := defMethod KudosBank
@@ -308,13 +343,16 @@ def kudosBurn : @Class.Method label Classes.Bank Methods.Burn := defMethod Kudos
       self.overBalances (fun b => b
         |> Balances.subTokens args.denom.originator args.denom args.quantity)
   ⟫)
-  (invariant := fun (self : KudosBank) (args : BurnArgs) =>
-    checkKey args.denom.originator args.key
+  (invariant := fun (self : KudosBank) (args : BurnArgs) signatures =>
+    checkSignature (signatures .originator) args.denom.originator
+    && checkSignature (signatures .owner) args.owner
     && 0 < args.quantity
     && args.quantity <= self.getBalance args.denom.originator args.denom)
 
 def kudosClose : @Class.Destructor label Classes.Bank Destructors.Close := defDestructor
-  (invariant := fun (self : KudosBank) (_args : PUnit) => self.balances.isEmpty)
+  (invariant := fun (self : KudosBank) (_args : PUnit) signatures =>
+    checkSignature (signatures .owner) self.owner
+    && self.balances.isEmpty)
 
 def kudosClass : @Class label Classes.Bank where
   constructors := fun
@@ -331,8 +369,6 @@ def checkTransfer : @Class.Method label Classes.Check .Transfer := defMethod Che
     return
       {self with owner := args.newOwner : Check}
   ⟫)
-  (invariant := fun (self : Check) (args : Check.TransferArgs) =>
-    checkKey self.owner args.key)
 
 def checkClass : @Class label Classes.Check where
   constructors := noConstructors

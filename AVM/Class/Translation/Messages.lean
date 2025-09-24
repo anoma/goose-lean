@@ -14,12 +14,14 @@ def Constructor.message
   (vals : Vals.type)
   (newId : ObjectId)
   (args : constrId.Args.type)
+  (signatures : Class.Label.MemberId.constructorId constrId |>.Signatures args)
   : Message lab :=
-  { id := .classMember (.constructorId constrId),
+  { id := .classMember (.constructorId constrId)
     data := .unit
     logicRef := Constructor.Message.logic.{0, 0} constr |>.reference
-    vals,
-    args,
+    vals
+    args
+    signatures
     recipients := [newId] }
 
 def Destructor.message
@@ -31,12 +33,14 @@ def Destructor.message
   (vals : Vals.type)
   (selfId : ObjectId)
   (args : destrId.Args.type)
+  (signatures : Class.Label.MemberId.destructorId destrId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.destructorId destrId)
     data := .unit
     logicRef := Destructor.Message.logic.{0, 0} destr |>.reference
     vals
     args
+    signatures
     recipients := [selfId] }
 
 def Method.message
@@ -48,12 +52,14 @@ def Method.message
   (vals : Vals.type)
   (selfId : ObjectId)
   (args : methodId.Args.type)
+  (signatures : Class.Label.MemberId.methodId methodId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.methodId methodId)
     data := .unit
     logicRef := Method.Message.logic.{0, 0} method |>.reference
     vals
     args
+    signatures
     recipients := [selfId] }
 
 def Upgrade.message
@@ -67,6 +73,7 @@ def Upgrade.message
     Vals := ⟨PUnit⟩
     vals := PUnit.unit
     args := .unit
+    signatures f := nomatch f
     recipients := [selfId] }
 
 end AVM.Class
@@ -79,17 +86,18 @@ def MultiMethod.message
   (method : MultiMethod multiId)
   (selves : multiId.Selves)
   (args : multiId.Args.type)
-  (Vals : SomeType)
-  (vals : Vals.type)
+  (signatures : multiId.Signatures args)
+  (vals : (method.body selves args).params.Product)
   (data : MultiMethodData)
   (rands : MultiMethodRandoms data)
   : Message lab :=
   { id := .multiMethodId multiId
     logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
     data
-    Vals
+    Vals := ⟨(method.body selves args).params.Product⟩
     vals
     args
+    signatures
     recipients :=
       (Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) |>.toList)
         ++ rands.constructedNonces.toList.map (·.value) }

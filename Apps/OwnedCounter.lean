@@ -20,6 +20,22 @@ inductive Methods where
   | Transfer : Methods
   deriving DecidableEq, Fintype, Repr
 
+namespace Methods
+
+inductive Transfer.SignatureId : Type where
+  | owner
+  deriving DecidableEq, FinEnum
+
+inductive Incr.SignatureId : Type where
+  | owner
+  deriving DecidableEq, FinEnum
+
+abbrev SignatureId : Methods → Type
+ | .Incr => Incr.SignatureId
+ | .Transfer => Transfer.SignatureId
+
+end Methods
+
 inductive Constructors where
   | Zero : Constructors
   deriving DecidableEq, Fintype, Repr
@@ -27,6 +43,17 @@ inductive Constructors where
 inductive Destructors where
   | Ten : Destructors
   deriving DecidableEq, Fintype, Repr
+
+namespace Destructors
+
+inductive Ten.SignatureId : Type where
+  | owner
+ deriving DecidableEq, FinEnum
+
+abbrev SignatureId : Destructors → Type
+ | .Ten => Ten.SignatureId
+
+end Destructors
 
 open AVM
 
@@ -37,10 +64,12 @@ def clab : Class.Label where
   MethodArgs := fun
     | Methods.Incr => ⟨Nat⟩
     | Methods.Transfer => ⟨PublicKey⟩
+  MethodSignatureId := Methods.SignatureId
   ConstructorId := Constructors
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
   DestructorId := Destructors
+  DestructorSignatureId := Destructors.SignatureId
 
 def label : Ecosystem.Label := Ecosystem.Label.singleton clab
 
@@ -70,14 +99,20 @@ def counterConstructor : @Class.Constructor label .unit Constructors.Zero := def
 
 def counterIncr : @Class.Method label .unit Methods.Incr := defMethod OwnedCounter
   (body := fun (self : OwnedCounter) (step : Nat) => ⟪return self.incrementBy step⟫)
+  (invariant := fun (self : OwnedCounter) (_step : Nat) signatures =>
+    checkSignature (signatures .owner) self.owner)
 
 def counterTransfer : @Class.Method label .unit Methods.Transfer := defMethod OwnedCounter
   (body := fun (self : OwnedCounter) (newOwner : PublicKey) =>
     ⟪return {self with owner := newOwner : OwnedCounter}⟫)
+  (invariant := fun (self : OwnedCounter) (_newOwner : PublicKey) signatures =>
+    checkSignature (signatures .owner) self.owner)
 
 /-- We only allow the counter to be destroyed if its count is at least 10 -/
 def counterDestroy : @Class.Destructor label .unit Destructors.Ten := defDestructor
-  (invariant := fun (self : OwnedCounter) () => self.count >= 10)
+  (invariant := fun (self : OwnedCounter) () signatures =>
+    checkSignature (signatures .owner) self.owner
+    && self.count >= 10)
 
 def counterClass : @Class label .unit where
   constructors := fun

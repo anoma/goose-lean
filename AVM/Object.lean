@@ -2,6 +2,7 @@ import Anoma.Resource
 import AVM.Ecosystem.Label.Base
 import AVM.Ecosystem.Data
 import AVM.Label
+import AVM.Authorization
 
 namespace AVM
 
@@ -13,7 +14,8 @@ structure ObjectData {lab : Ecosystem.Label} (c : lab.ClassId) where
   deriving BEq
 
 instance ObjectData.inhabited {lab : Ecosystem.Label} (c : lab.ClassId) : Inhabited (ObjectData c) where
-  default := {quantity := 0, privateFields := c.label.privateFieldsInhabited.default}
+  default := { quantity := 0
+               privateFields := c.label.privateFieldsInhabited.default }
 
 instance ObjectData.hasTypeRep {lab : Ecosystem.Label} (c : lab.ClassId) : TypeRep (ObjectData c) where
   rep := Rep.composite "AVM.ObjectData" [Rep.atomic lab.name, Rep.atomic c.label.name]
@@ -109,7 +111,8 @@ def SomeObject.toResource
     logicRef := classId.label.logicRef,
     quantity := obj.data.quantity,
     Val := ⟨Object.Resource.Value classId⟩,
-    value := ⟨obj.uid, obj.data.privateFields⟩,
+    value := { uid := obj.uid
+               privateFields := obj.data.privateFields },
     ephemeral := ephemeral,
     nonce := obj.nonce,
     nullifierKeyCommitment := default }
@@ -128,8 +131,9 @@ def Object.fromResource
   check (objLab.label == lab)
   check (res.logicRef == c.label.logicRef)
   let try value : Object.Resource.Value c := tryCast res.value
-  some {  uid := value.uid,
-          data := ⟨res.quantity, value.privateFields⟩,
+  some {  uid := value.uid
+          data := { quantity := res.quantity
+                    privateFields := value.privateFields }
           nonce := res.nonce }
 
 def SomeObject.fromResource.{u, v}

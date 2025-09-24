@@ -1,5 +1,7 @@
-import AVM.Message.Base
-import AVM.Label
+import AVM.Class.Label
+import AVM.Ecosystem.Label
+import AVM.Ecosystem.Data
+import AVM.Authorization
 
 namespace AVM
 
