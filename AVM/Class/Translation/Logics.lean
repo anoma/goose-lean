@@ -14,13 +14,10 @@ private def Constructor.Message.logicFun
   (args : Logic.Args)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
-  match msg with
-  | {id := id, args := argsData', signatures := signatures', vals := vals, ..} =>
-  check h : id == .classMember (Label.MemberId.constructorId constrId)
-  have h' := eq_of_beq h
-  let argsData := cast (by simp! [h']) argsData'
-  let signatures := cast (by grind) signatures'
-  let try vals : (constr.body (argsData)).params.Product := tryCast vals
+  check h : msg.id == .classMember (Label.MemberId.constructorId constrId)
+  let argsData := cast (by simp! [eq_of_beq h]) msg.args
+  let signatures := cast (by grind only) msg.signatures
+  let try vals : (constr.body (argsData)).params.Product := tryCast msg.vals
   let newObjData := constr.body argsData |>.value vals
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
@@ -41,12 +38,9 @@ private def Destructor.Message.logicFun
   (args : Logic.Args)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
-  match msg with
-  | {id := id, args := args', signatures := signatures', ..} =>
-  check h : id == .classMember (Label.MemberId.destructorId destructorId)
-  have h' := eq_of_beq h
-  let argsData := cast (by simp! [h']) args'
-  let signatures : destructorId.Signatures argsData := cast (by grind) signatures'
+  check h : msg.id == .classMember (Label.MemberId.destructorId destructorId)
+  let argsData := cast (by simp! [eq_of_beq h]) msg.args
+  let signatures : destructorId.Signatures argsData := cast (by grind only) msg.signatures
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
   let! [selfRes] := consumedResObjs
@@ -64,25 +58,20 @@ private def Method.Message.logicFun
   (args : Logic.Args)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
-  match msg with
-  | {id := id, args := args', signatures := signatures', vals := vals', ..} =>
-  if h : id == .classMember (Label.MemberId.methodId methodId)
-  then
-    have h' := eq_of_beq h
-    let argsData : methodId.Args.type := cast (by simp! [h']) args'
-    let consumedResObjs := Logic.selectObjectResources args.consumed
-    let createdResObjs := Logic.selectObjectResources args.created
-    let! [selfRes] := consumedResObjs
-    let try selfObj : Object classId := Object.fromResource selfRes
-    let body := method.body selfObj argsData
-    let try vals : body.params.Product := tryCast vals'
-    let signatures : methodId.Signatures argsData := cast (by grind) signatures'
-    check method.invariant selfObj argsData signatures
-    let createdObject : Object classId := body |>.value vals
-    Logic.checkResourceValues [createdObject.toObjectValue] createdResObjs
-      && Logic.checkResourcesPersistent consumedResObjs
-      && Logic.checkResourcesPersistent createdResObjs
-  else false
+  check h : msg.id == .classMember (Label.MemberId.methodId methodId)
+  let argsData : methodId.Args.type := cast (by simp! [eq_of_beq h]) msg.args
+  let consumedResObjs := Logic.selectObjectResources args.consumed
+  let createdResObjs := Logic.selectObjectResources args.created
+  let! [selfRes] := consumedResObjs
+  let try selfObj : Object classId := Object.fromResource selfRes
+  let body := method.body selfObj argsData
+  let try vals : body.params.Product := tryCast msg.vals
+  let signatures : methodId.Signatures argsData := cast (by grind only) msg.signatures
+  check method.invariant selfObj argsData signatures
+  let createdObject : Object classId := body |>.value vals
+  Logic.checkResourceValues [createdObject.toObjectValue] createdResObjs
+    && Logic.checkResourcesPersistent consumedResObjs
+    && Logic.checkResourcesPersistent createdResObjs
 
 private def Upgrade.Message.logicFun
   {lab : Ecosystem.Label}
