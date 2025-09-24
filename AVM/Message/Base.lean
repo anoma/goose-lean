@@ -38,6 +38,7 @@ instance Message.hasBEq {lab : Ecosystem.Label} : BEq (Message lab) where
     check a.vals === b.vals
     check aargs == h' ▸ bargs
     check a.recipients == b.recipients
+    sorry -- TODO check equality of signatures
 
 structure SomeMessage : Type 1 where
   {label : Ecosystem.Label}
