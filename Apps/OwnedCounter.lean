@@ -24,12 +24,14 @@ namespace Methods
 
 inductive Transfer.SignatureId : Type where
   | owner
+  deriving DecidableEq, FinEnum
 
 inductive Incr.SignatureId : Type where
   | owner
+  deriving DecidableEq, FinEnum
 
-def SignatureId : Methods → Type
- | .Incr => Transfer.SignatureId
+abbrev SignatureId : Methods → Type
+ | .Incr => Incr.SignatureId
  | .Transfer => Transfer.SignatureId
 
 end Methods
@@ -46,8 +48,9 @@ namespace Destructors
 
 inductive Ten.SignatureId : Type where
   | owner
+ deriving DecidableEq, FinEnum
 
-def SignatureId : Destructors → Type
+abbrev SignatureId : Destructors → Type
  | .Ten => Ten.SignatureId
 
 end Destructors

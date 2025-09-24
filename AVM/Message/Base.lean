@@ -26,19 +26,31 @@ structure Message (lab : Ecosystem.Label) : Type 1 where
   /-- The recipients of the message. -/
   recipients : List ObjectId
 
+def Message.rawSignatures {lab : Ecosystem.Label} (msg : Message lab) : List Nat :=
+  match msg with
+  | {id := id, signatures := signatures, ..} =>
+  match id with
+  | .multiMethodId m => lab.MultiMethodSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
+  | .classMember (classId := clab) c => match c with
+    | .methodId m => clab.label.MethodSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
+    | .destructorId m => clab.label.DestructorSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
+    | .constructorId m => clab.label.ConstructorSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
+    | .upgradeId => []
+
 instance Message.hasTypeRep (lab : Ecosystem.Label) : TypeRep (Message lab) where
   rep := Rep.composite "AVM.Message" [Rep.atomic lab.name]
 
 instance Message.hasBEq {lab : Ecosystem.Label} : BEq (Message lab) where
   beq a b :=
     match a, b with
-    | {id := aid, args := aargs, ..}, {id := bid, args := bargs,  ..} =>
+    | {id := aid, args := aargs, signatures := asigs, ..},
+      {id := bid, args := bargs, signatures := bsigs, ..} =>
     check h : aid == bid
     let h' := eq_of_beq h
     check a.vals === b.vals
-    check aargs == h' ▸ bargs
+    check s : aargs == cast (by simp! [h']) bargs
     check a.recipients == b.recipients
-    sorry -- TODO check equality of signatures
+    check a.rawSignatures == b.rawSignatures
 
 structure SomeMessage : Type 1 where
   {label : Ecosystem.Label}

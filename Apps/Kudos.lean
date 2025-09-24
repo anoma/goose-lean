@@ -34,8 +34,9 @@ namespace Methods
 
 inductive Transfer.SignatureId : Type where
   | owner
+ deriving DecidableEq, FinEnum
 
-def SignatureId : Methods → Type
+abbrev SignatureId : Methods → Type
  | .Transfer => Transfer.SignatureId
 
 end Methods
@@ -48,8 +49,9 @@ namespace Constructors
 
 inductive Mint.SignatureId where
   | originator
+ deriving DecidableEq, FinEnum
 
-def SignatureId (m : Constructors) : Type :=
+abbrev SignatureId (m : Constructors) : Type :=
   match m with
   | .Mint => Mint.SignatureId
 
@@ -63,8 +65,9 @@ namespace Destructors
 
 inductive Burn.SignatureId : Type where
   | owner
+ deriving DecidableEq, FinEnum
 
-def SignatureId : Destructors → Type
+abbrev SignatureId : Destructors → Type
  | .Burn => Burn.SignatureId
 
 end Destructors

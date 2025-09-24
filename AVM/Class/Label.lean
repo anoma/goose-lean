@@ -35,6 +35,8 @@ structure Label : Type 1 where
   ConstructorId : Type
   ConstructorArgs : ConstructorId -> SomeType
   ConstructorSignatureId : ConstructorId → Type := fun _ => Empty
+  ConstructorSignatureIdEnum : (s : ConstructorId) → FinEnum (ConstructorSignatureId s)
+    := by intro s; cases s <;> infer_instance
   [constructorsFinite : Fintype ConstructorId]
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
@@ -43,6 +45,8 @@ structure Label : Type 1 where
   DestructorId : Type := Empty
   DestructorArgs : DestructorId -> SomeType := fun _ => ⟨PUnit⟩
   DestructorSignatureId : DestructorId → Type := fun _ => Empty
+  DestructorSignatureIdEnum : (s : DestructorId) → FinEnum (DestructorSignatureId s)
+    := by intro s; cases s <;> infer_instance
   [destructorsFinite : Fintype DestructorId]
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
@@ -51,6 +55,8 @@ structure Label : Type 1 where
   MethodId : Type
   MethodArgs : MethodId -> SomeType
   MethodSignatureId : MethodId → Type := fun _ => Empty
+  MethodSignatureIdEnum : (s : MethodId) → FinEnum (MethodSignatureId s)
+    := by intro s; cases s <;> infer_instance
   [methodsFinite : Fintype MethodId]
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]

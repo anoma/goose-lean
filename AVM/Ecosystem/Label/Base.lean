@@ -21,6 +21,8 @@ structure Label : Type 1 where
   /-- Class identifiers for `self` arguments. -/
   MultiMethodObjectArgClass : {f : MultiMethodId} → MultiMethodObjectArgNames f → ClassId
   MultiMethodSignatureId : MultiMethodId → Type := fun _ => Empty
+  MultiMethodSignatureIdEnum : (s : MultiMethodId) → FinEnum (MultiMethodSignatureId s)
+    := by intro s; cases s <;> infer_instance
   [ObjectArgNamesEnum (f : MultiMethodId) : FinEnum (MultiMethodObjectArgNames f)]
   [ObjectArgNamesBEq (f : MultiMethodId) : BEq (MultiMethodObjectArgNames f)]
   [multiMethodsFinite : FinEnum MultiMethodId]
