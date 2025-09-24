@@ -17,7 +17,7 @@ private def Constructor.Message.logicFun
   check h : msg.id == .classMember (Label.MemberId.constructorId constrId)
   let argsData := cast (by simp! [eq_of_beq h]) msg.args
   let signatures := cast (by grind only) msg.signatures
-  let try vals : (constr.body (argsData)).params.Product := tryCast msg.vals
+  let try vals : (constr.body argsData).params.Product := tryCast msg.vals
   let newObjData := constr.body argsData |>.value vals
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
@@ -176,48 +176,44 @@ def MultiMethod.Message.logicFun
   (data : MultiMethodData)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
-  match msg with
-  | {id := id, args := args', signatures := signatures', ..} =>
-  if h : id == .multiMethodId multiId
-  then
-    have h' := eq_of_beq h
-    let fargs : multiId.Args.type := cast (by simp! [h']) args'
-    let consumedResObjs := Logic.selectObjectResources args.consumed
-    let createdResObjs := Logic.selectObjectResources args.created
-    let try (argsConsumedSelves, argsConstructedEph, .unit) :=
-        consumedResObjs
-        |> Logic.filterOutDummy
-        |>.splitsExact [multiId.numObjectArgs, data.numConstructed]
-    let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves.toList
-    let prog := method.body argsConsumedObjects fargs
-    let signatures := cast (by grind) signatures'
-    method.invariant argsConsumedObjects fargs signatures
-     && let try vals : prog.params.Product := tryCast msg.vals
-        let res : MultiMethodResult multiId := prog |>.value vals
-        let consumedUid (arg : multiId.ObjectArgNames) : Anoma.ObjectId := argsConsumedObjects arg |>.uid
-        let mkObjectValue {classId : lab.ClassId} (arg : multiId.ObjectArgNames) (d : ObjectData classId) : ObjectValue := ⟨consumedUid arg, d⟩
-        let reassembled : List ObjectValue := res.assembled.withOldUidList.map (fun x => mkObjectValue x.arg x.objectData)
-        let constructedObjects : List ObjectValue := res.constructed
-        let consumedDestroyedObjects : List ObjectValue :=
-          multiId.objectArgNamesVec.toList.filterMap (fun arg =>
-          let argObject := argsConsumedObjects arg
-          match res.argDeconstruction arg with
-          | .Destroyed => argObject |>.data.toObjectValue argObject.uid
-          | .Disassembled => none)
-        let try (argsCreated, argsConstructed, argsSelvesDestroyedEph, .unit) :=
-          createdResObjs
-          |> Logic.filterOutDummy
-          |>.splitsExact [reassembled.length, data.numConstructed, data.numSelvesDestroyed]
-        Logic.checkResourceValues reassembled argsCreated.toList
-          && Logic.checkResourceValues constructedObjects argsConstructed.toList
-          && Logic.checkResourceValues constructedObjects argsConstructedEph.toList
-          && Logic.checkResourceValues consumedDestroyedObjects argsSelvesDestroyedEph.toList
-          && Logic.checkResourcesPersistent argsConsumedSelves.toList
-          && Logic.checkResourcesPersistent argsCreated.toList
-          && Logic.checkResourcesPersistent argsConstructed.toList
-          && Logic.checkResourcesEphemeral argsConstructedEph.toList
-          && Logic.checkResourcesEphemeral argsSelvesDestroyedEph.toList
-  else false
+  check h : msg.id == .multiMethodId multiId
+  let fargs : multiId.Args.type := cast (by simp! [eq_of_beq h]) msg.args
+  let consumedResObjs := Logic.selectObjectResources args.consumed
+  let createdResObjs := Logic.selectObjectResources args.created
+  let try (argsConsumedSelves, argsConstructedEph, .unit) :=
+      consumedResObjs
+      |> Logic.filterOutDummy
+      |>.splitsExact [multiId.numObjectArgs, data.numConstructed]
+  let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves.toList
+  let prog := method.body argsConsumedObjects fargs
+  let signatures := cast (by grind only) msg.signatures
+  check method.invariant argsConsumedObjects fargs signatures
+  let try vals : prog.params.Product := tryCast msg.vals
+  let res : MultiMethodResult multiId := prog |>.value vals
+  let consumedUid (arg : multiId.ObjectArgNames) : Anoma.ObjectId := argsConsumedObjects arg |>.uid
+  let mkObjectValue {classId : lab.ClassId} (arg : multiId.ObjectArgNames) (d : ObjectData classId) : ObjectValue := ⟨consumedUid arg, d⟩
+  let reassembled : List ObjectValue := res.assembled.withOldUidList.map (fun x => mkObjectValue x.arg x.objectData)
+  let constructedObjects : List ObjectValue := res.constructed
+  let consumedDestroyedObjects : List ObjectValue :=
+    multiId.objectArgNamesVec.toList.filterMap
+      (fun arg =>
+        let argObject := argsConsumedObjects arg
+        match res.argDeconstruction arg with
+        | .Destroyed => argObject |>.data.toObjectValue argObject.uid
+        | .Disassembled => none)
+  let try (argsCreated, argsConstructed, argsSelvesDestroyedEph, .unit) :=
+    createdResObjs
+    |> Logic.filterOutDummy
+    |>.splitsExact [reassembled.length, data.numConstructed, data.numSelvesDestroyed]
+  Logic.checkResourceValues reassembled argsCreated.toList
+    && Logic.checkResourceValues constructedObjects argsConstructed.toList
+    && Logic.checkResourceValues constructedObjects argsConstructedEph.toList
+    && Logic.checkResourceValues consumedDestroyedObjects argsSelvesDestroyedEph.toList
+    && Logic.checkResourcesPersistent argsConsumedSelves.toList
+    && Logic.checkResourcesPersistent argsCreated.toList
+    && Logic.checkResourcesPersistent argsConstructed.toList
+    && Logic.checkResourcesEphemeral argsConstructedEph.toList
+    && Logic.checkResourcesEphemeral argsSelvesDestroyedEph.toList
 
 def MultiMethod.Message.logic
   {lab : Ecosystem.Label}
