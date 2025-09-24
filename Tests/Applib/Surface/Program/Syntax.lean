@@ -23,7 +23,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Eco.label Un
 ⟫
 
 def createCounter : Program Eco.label (Reference Counter) := ⟪
-  r := create Counter Counter.Constructors.Zero () noSignatures
+  r := create Counter Counter.Constructors.Zero ()
   call Counter.Methods.Incr r (7 : Nat);
   return r
 ⟫
@@ -79,11 +79,11 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
 ⟫
 
 example : Program Eco.label (Reference TwoCounter) := ⟪
-  rx := create Counter Counter.Constructors.Zero () noSignatures
-  ry := create Counter Counter.Constructors.Zero () noSignatures
+  rx := create Counter Counter.Constructors.Zero ()
+  ry := create Counter Counter.Constructors.Zero ()
   call Counter.Methods.Incr rx (2 : Nat)
   call Counter.Methods.Incr ry (7 : Nat)
-  tc := create TwoCounter TwoCounter.Constructors.Zero (rx, ry) noSignatures
+  tc := create TwoCounter TwoCounter.Constructors.Zero (rx, ry)
   return tc
 ⟫
 
@@ -218,17 +218,17 @@ open Applib
 example (r : Reference OwnedCounter) (newOwner : PublicKey) : Program label (Reference OwnedCounter) := ⟪
   c := fetch r
   call OwnedCounter.Methods.Transfer r newOwner;
-  r' := create OwnedCounter OwnedCounter.Constructors.Zero () noSignatures
+  r' := create OwnedCounter OwnedCounter.Constructors.Zero ()
   call OwnedCounter.Methods.Incr r' (c.count + 1);
-  destroy OwnedCounter.Destructors.Ten r () noSignatures
+  destroy OwnedCounter.Destructors.Ten r ()
   return r'
 ⟫
 
 example (n : Nat) : Program label (Reference OwnedCounter) := ⟪
-  r := create OwnedCounter OwnedCounter.Constructors.Zero () noSignatures
+  r := create OwnedCounter OwnedCounter.Constructors.Zero ()
   call OwnedCounter.Methods.Incr r n;
-  create OwnedCounter OwnedCounter.Constructors.Zero () noSignatures
-  create OwnedCounter OwnedCounter.Constructors.Zero () noSignatures
+  create OwnedCounter OwnedCounter.Constructors.Zero ()
+  create OwnedCounter OwnedCounter.Constructors.Zero ()
   return r
 ⟫
 

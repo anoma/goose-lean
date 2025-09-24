@@ -20,16 +20,23 @@ syntax colGe withPosition("if " term " then " colGt withPosition(program)) colGe
 syntax colGe withPosition("if " term " then " colGt withPosition(program)) : program
 syntax colGe withPosition("if " term " then " colGt withPosition(program)) optSemicolon(program) : program
 syntax colGe "create " ident ident term : program
+syntax colGe "create " ident ident term " signed " term : program
 syntax colGe withPosition("create " ident ident term) optSemicolon(program) : program
+syntax colGe withPosition("create " ident ident term " signed " term) optSemicolon(program) : program
 syntax colGe withPosition(ident " := " " create " ident ident term) optSemicolon(program) : program
+syntax colGe withPosition(ident " := " " create " ident ident term " signed " term) optSemicolon(program) : program
 syntax colGe "destroy " ident term : program
+syntax colGe "destroy " ident term " signed " term : program
 syntax colGe withPosition("destroy " ident term) optSemicolon(program) : program
+syntax colGe withPosition("destroy " ident term " signed " term) optSemicolon(program) : program
 syntax colGe "call " ident term : program
 syntax colGe "call " ident term " signed " term : program
 syntax colGe withPosition("call " ident term) optSemicolon(program) : program
-syntax colGe withPosition("call " ident term " signed " term optSemicolon(program)) : program
+syntax colGe withPosition("call " ident term " signed " term) optSemicolon(program) : program
 syntax colGe "multiCall " ident term : program
+syntax colGe "multiCall " ident term " signed " term : program
 syntax colGe withPosition("multiCall " ident term) optSemicolon(program) : program
+syntax colGe withPosition("multiCall " ident term " signed " term) optSemicolon(program) : program
 syntax colGe "upgrade " term " to " term : program
 syntax colGe withPosition("upgrade " term " to " term) optSemicolon(program) : program
 syntax colGe "invoke " term : program
@@ -59,15 +66,25 @@ macro_rules
     `(if $cond then ⟪$thenProg⟫ else Program.return ())
   | `(⟪if $cond:term then $thenProg:program ; $p:program⟫) =>
     `(let next := fun () => ⟪$p⟫; if $cond then Program.invoke ⟪$thenProg⟫ next else next ())
-  | `(⟪create $c:ident $m:ident $e:term $signatures:term⟫) =>
+  | `(⟪create $c:ident $m:ident $e:term ⟫) =>
+    `(Program.create' $c $m $e noSignatures Program.return)
+  | `(⟪create $c:ident $m:ident $e:term signed $signatures:term⟫) =>
     `(Program.create' $c $m $e $signatures Program.return)
-  | `(⟪create $c:ident $m:ident $e:term $signatures:term; $p:program⟫) =>
+  | `(⟪create $c:ident $m:ident $e:term; $p:program⟫) =>
+    `(Program.create' $c $m $e noSignatures (fun _ => ⟪$p⟫))
+  | `(⟪create $c:ident $m:ident $e:term signed $signatures:term; $p:program⟫) =>
     `(Program.create' $c $m $e $signatures (fun _ => ⟪$p⟫))
-  | `(⟪$x:ident := create $c:ident $m:ident $e:term $signatures:term; $p:program⟫) =>
+  | `(⟪$x:ident := create $c:ident $m:ident $e:term; $p:program⟫) =>
+    `(Program.create' $c $m $e noSignatures (fun $x => ⟪$p⟫))
+  | `(⟪$x:ident := create $c:ident $m:ident $e:term signed $signatures:term; $p:program⟫) =>
     `(Program.create' $c $m $e $signatures (fun $x => ⟪$p⟫))
-  | `(⟪destroy $m:ident $e:term $args:term $signatures:term⟫) =>
+  | `(⟪destroy $m:ident $e:term $args:term⟫) =>
+    `(Program.destroy' $e $m $args noSignatures (Program.return ()))
+  | `(⟪destroy $m:ident $e:term $args:term signed $signatures:term⟫) =>
     `(Program.destroy' $e $m $args $signatures (Program.return ()))
-  | `(⟪destroy $m:ident $e:term $args:term $signatures:term; $p:program⟫) =>
+  | `(⟪destroy $m:ident $e:term $args:term; $p:program⟫) =>
+    `(Program.destroy' $e $m $args noSignatures (⟪$p⟫))
+  | `(⟪destroy $m:ident $e:term $args:term signed $signatures:term; $p:program⟫) =>
     `(Program.destroy' $e $m $args $signatures (⟪$p⟫))
   | `(⟪call $m:ident $e:term $args:term⟫) =>
     `(Program.call' $e $m $args noSignatures (Program.return ()))
@@ -77,10 +94,14 @@ macro_rules
     `(Program.call' $e $m $args noSignatures (⟪$p⟫))
   | `(⟪call $m:ident $e:term $args:term signed $signatures ; $p:program⟫) =>
     `(Program.call' $e $m $args $signatures (⟪$p⟫))
-  | `(⟪multiCall $m:ident $selves:term $args:term $signatures:term⟫) =>
+  | `(⟪multiCall $m:ident $selves:term $args:term⟫) =>
+    `(Program.multiCall' $m $selves $args noSignatures (Program.return ()))
+  | `(⟪multiCall $m:ident $selves:term $args:term signed $signatures:term; $p:program⟫) =>
+    `(Program.multiCall' $m $selves $args $signatures $signatures (⟪$p⟫))
+  | `(⟪multiCall $m:ident $selves:term $args:term; $p:program⟫) =>
+    `(Program.multiCall' $m $selves $args noSignatures (⟪$p⟫))
+  | `(⟪multiCall $m:ident $selves:term $args:term signed $signatures:term⟫) =>
     `(Program.multiCall' $m $selves $args $signatures (Program.return ()))
-  | `(⟪multiCall $m:ident $selves:term $args:term $signatures; $p:program⟫) =>
-    `(Program.multiCall' $m $selves $args $signatures (⟪$p⟫))
   | `(⟪upgrade $e:term to $e':term⟫) =>
     `(Program.upgrade' $e $e' Program.return)
   | `(⟪upgrade $e:term to $e':term ; $p:program⟫) =>
