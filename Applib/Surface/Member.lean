@@ -9,7 +9,7 @@ macro "noConstructors" : term => `(fun x => Empty.elim x)
 macro "noDestructors" : term => `(fun x => Empty.elim x)
 macro "noMethods" : term => `(fun x => Empty.elim x)
 
-def noSignatures
+def unsigned
   {Args SignatureId : Type}
   {args : Args}
   : SignatureId → Signature args := fun _ => Signature.sign args PrivateKey.universal
