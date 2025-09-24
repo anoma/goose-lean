@@ -16,24 +16,21 @@ private def Constructor.Message.logicFun
   let try msg : Message lab := Message.fromResource args.self
   match msg with
   | {id := id, contents := contents} =>
-  -- TODO check syntax
-  if h : id == .classMember (Label.MemberId.constructorId constrId)
-  then
-    let contents : MessageContents lab (.classMember (Label.MemberId.constructorId constrId)) := eq_of_beq h ▸ contents
-    let argsData := contents.args
-    let try vals : (constr.body argsData).params.Product := tryCast contents.vals
-    let newObjData := constr.body argsData |>.value vals
-    let consumedResObjs := Logic.selectObjectResources args.consumed
-    let createdResObjs := Logic.selectObjectResources args.created
-    let signatures := contents.signatures
-    let! [newObjRes] := createdResObjs
-    let uid : ObjectId := newObjRes.nonce.value
-    Logic.checkResourceValues [newObjData.toObjectValue uid] consumedResObjs
-      && Logic.checkResourceValues [newObjData.toObjectValue uid] createdResObjs
-      && Logic.checkResourcesEphemeral consumedResObjs
-      && Logic.checkResourcesPersistent createdResObjs
-      && constr.invariant argsData signatures
-  else false
+  check h : id == .classMember (Label.MemberId.constructorId constrId)
+  let contents : MessageContents lab (.classMember (Label.MemberId.constructorId constrId)) := eq_of_beq h ▸ contents
+  let argsData := contents.args
+  let try vals : (constr.body argsData).params.Product := tryCast contents.vals
+  let newObjData := constr.body argsData |>.value vals
+  let consumedResObjs := Logic.selectObjectResources args.consumed
+  let createdResObjs := Logic.selectObjectResources args.created
+  let signatures := contents.signatures
+  let! [newObjRes] := createdResObjs
+  let uid : ObjectId := newObjRes.nonce.value
+  Logic.checkResourceValues [newObjData.toObjectValue uid] consumedResObjs
+    && Logic.checkResourceValues [newObjData.toObjectValue uid] createdResObjs
+    && Logic.checkResourcesEphemeral consumedResObjs
+    && Logic.checkResourcesPersistent createdResObjs
+    && constr.invariant argsData signatures
 
 /-- Creates a message logic function for a given destructor. -/
 private def Destructor.Message.logicFun
@@ -46,21 +43,18 @@ private def Destructor.Message.logicFun
   let try msg : Message lab := Message.fromResource args.self
   match msg with
   | {id := id, contents := contents} =>
-  -- TODO check syntax
-  if h : id == .classMember (Label.MemberId.destructorId destructorId)
-  then
-    let contents : MessageContents lab (.classMember (Label.MemberId.destructorId destructorId)) := eq_of_beq h ▸ contents
-    let argsData := contents.args
-    let signatures : destructorId.Signatures argsData := contents.signatures
-    let consumedResObjs := Logic.selectObjectResources args.consumed
-    let createdResObjs := Logic.selectObjectResources args.created
-    let! [selfRes] := consumedResObjs
-    let try selfObj : Object classId := Object.fromResource selfRes
-    Logic.checkResourceValues [selfObj.toObjectValue] createdResObjs
-      && Logic.checkResourcesPersistent consumedResObjs
-      && Logic.checkResourcesEphemeral createdResObjs
-      && destructor.invariant selfObj argsData signatures
-  else false
+  check h : id == .classMember (Label.MemberId.destructorId destructorId)
+  let contents : MessageContents lab (.classMember (Label.MemberId.destructorId destructorId)) := eq_of_beq h ▸ contents
+  let argsData := contents.args
+  let signatures : destructorId.Signatures argsData := contents.signatures
+  let consumedResObjs := Logic.selectObjectResources args.consumed
+  let createdResObjs := Logic.selectObjectResources args.created
+  let! [selfRes] := consumedResObjs
+  let try selfObj : Object classId := Object.fromResource selfRes
+  Logic.checkResourceValues [selfObj.toObjectValue] createdResObjs
+    && Logic.checkResourcesPersistent consumedResObjs
+    && Logic.checkResourcesEphemeral createdResObjs
+    && destructor.invariant selfObj argsData signatures
 
 private def Method.Message.logicFun
   {lab : Ecosystem.Label}

@@ -1,4 +1,9 @@
+import Lean.Parser.Term
+
+open Lean.Parser.Term
+
 syntax withPosition("check" term) optSemicolon(term)? : term
+syntax withPosition("check " binderIdent " : " term) optSemicolon(term) : term
 syntax withPosition("check" term) optSemicolon(doSeq) : doElem
 
 /-- The `check a; b` macro returns `b` if `a` evaluates to `true`, or `default`
@@ -6,6 +11,8 @@ syntax withPosition("check" term) optSemicolon(doSeq) : doElem
 macro_rules
 | `(check $cond:term ; $body:term) =>
   `(if $cond then $body else default)
+| `(check $h:ident : $cond:term ; $body:term) =>
+  `(if $h:ident : $cond then $body else default)
 | `(check $cond:term) =>
   `($cond)
 | `(doElem| check $cond:term ; $body:doSeq) =>
