@@ -23,7 +23,7 @@ def Constructor.message
         vals
         args
         signatures
-        recipients := List.Vector.singleton newId }}
+        recipients := [newId] }}
 
 def Destructor.message
   {lab : Ecosystem.Label}
@@ -43,7 +43,7 @@ def Destructor.message
         vals
         args
         signatures
-        recipients := List.Vector.singleton selfId }}
+        recipients := [selfId] }}
 
 def Method.message
   {lab : Ecosystem.Label}
@@ -63,7 +63,7 @@ def Method.message
         vals
         args
         signatures
-        recipients := List.Vector.singleton selfId }}
+        recipients := [selfId] }}
 
 def Upgrade.message
   {lab : Ecosystem.Label}
@@ -78,7 +78,7 @@ def Upgrade.message
         vals := PUnit.unit
         args := .unit
         signatures f := nomatch f
-        recipients := List.Vector.singleton selfId }}
+        recipients := [selfId] }}
 
 end AVM.Class
 
@@ -92,15 +92,17 @@ def MultiMethod.message
   (args : multiId.Args.type)
   (signatures : multiId.Signatures args)
   (vals : (method.body selves args).params.Product)
+  (data : MultiMethodData)
+  (rands : MultiMethodRandoms data)
   : Message lab :=
-  let res : MultiMethodResult multiId := method.body selves args |>.value vals
-  let data := res.data
   { id := .multiMethodId multiId
-    contents :=
-      { logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
-        data
-        Vals := ⟨(method.body selves args).params.Product⟩
-        vals
-        args
-        signatures
-        recipients := Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) }}
+    contents := {
+    logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
+    data
+    Vals := ⟨(method.body selves args).params.Product⟩
+    vals
+    args
+    signatures
+    recipients :=
+      (Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) |>.toList)
+        ++ rands.constructedNonces.toList.map (·.value) }}

@@ -118,10 +118,11 @@ private def logicFun
   | Consumed =>
     let consumedObjectResources : List Anoma.Resource := Logic.selectObjectResources args.consumed
     let! [consumedMessageResource] := Logic.selectMessageResources args.consumed
+    -- Note: the success of the `try` below ensures that the message is "legal"
+    -- for the consumed objects - it is from the same ecosystem
     let try msg : Message lab := Message.fromResource consumedMessageResource
-    let recipients := msg.contents.recipients.toList
-    self.uid ∈ recipients
-    && recipients.length == consumedObjectResources.length
+    self.uid ∈ msg.contents.recipients
+    && msg.contents.recipients.length == consumedObjectResources.length
     -- Note that the message logics already check if the consumed object
     -- resources have the right form, i.e., correspond to the self / selves. We
     -- only need to check that the number of recipients is equal to the number

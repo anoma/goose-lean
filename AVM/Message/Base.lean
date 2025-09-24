@@ -19,7 +19,7 @@ structure MessageContents (lab : Ecosystem.Label) (id : lab.MemberId) : Type 1 w
   /-- Extra data. -/
   data : id.Data
   /-- The recipients of the message. -/
-  recipients : List.Vector ObjectId id.numObjectArgs
+  recipients : List ObjectId
 
 /-- A message is a communication sent from one object to another in the AVM. -/
 structure Message (lab : Ecosystem.Label) : Type 1 where
@@ -56,15 +56,15 @@ instance SomeMessage.hasBEq : BEq SomeMessage where
 instance : Inhabited SomeMessage where
   default := { label := Ecosystem.Label.dummy
                message :=
-                { id := .classMember (classId := .unit) (.constructorId PUnit.unit),
-                  contents :=
-                    { Vals := ⟨PUnit⟩
-                      vals := PUnit.unit
-                      data := .unit
-                      logicRef := default
-                      args := PUnit.unit
-                      signatures f := nomatch f
-                      recipients := List.Vector.singleton 0 }}}
+                { id := .classMember (classId := .unit) (.constructorId PUnit.unit)
+                  contents := {
+                  Vals := ⟨PUnit⟩
+                  vals := PUnit.unit
+                  data := .unit
+                  logicRef := default
+                  signatures f := nomatch f
+                  args := PUnit.unit
+                  recipients := [] }}}
 
 def Message.toSomeMessage {lab : Ecosystem.Label} (msg : Message lab) : SomeMessage :=
   { label := lab, message := msg }

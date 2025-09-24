@@ -189,6 +189,7 @@ abbrev Signatures {lab : Ecosystem.Label} (mem : MemberId lab) (args : mem.Args.
   | .classMember m => m.Signatures args
   | .multiMethodId m => m.Signatures args
 
+/-- The number of object arguments (selves) for this member ID. -/
 def numObjectArgs {lab : Ecosystem.Label} (memberId : MemberId lab) : Nat :=
   match memberId with
   | multiMethodId f => f.numObjectArgs
