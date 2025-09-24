@@ -5,9 +5,6 @@ import AVM.Ecosystem
 import AVM.Class.Translation.Messages
 import AVM.Action
 
--- TODO needed?
-import AVM.Class.Label
-
 namespace AVM
 
 /-- Type of functions which adjust object values by modifications that occurred
