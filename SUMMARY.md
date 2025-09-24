@@ -5,26 +5,31 @@ A high-level summary description of GOOSE v0.3.0. The description intentionally 
 	- [Overview](#overview)
 	- [Anoma Programs](#anoma-programs)
 	- [AVM Programs](#avm-programs)
+	- [Translation overview](#translation-overview)
 	- [AVM data structures](#avm-data-structures)
 		- [Class.Label](#classlabel)
 		- [Ecosystem.Label](#ecosystemlabel)
 		- [Object](#object)
+	- [ObjectData](#objectdata)
 	- [MessageId](#messageid)
 		- [Message](#message)
 		- [Constructor](#constructor)
 		- [Destructor](#destructor)
 		- [Method](#method)
 		- [Class](#class)
-		- [Multi-method](#multi-method)
+		- [MultiMethod](#multimethod)
 		- [Ecosystem](#ecosystem)
 	- [AVM -\> RM translation](#avm---rm-translation)
 		- [Object](#object-1)
 			- [Resource data check](#resource-data-check)
+		- [Tasks](#tasks)
+			- [Task composition](#task-composition)
 		- [Member calls](#member-calls)
+			- [Example](#example)
+			- [Compliance Units](#compliance-units)
 			- [Dummy Resource](#dummy-resource)
 			- [Action partitioning](#action-partitioning)
-			- [Member logics](#member-logics)
-			- [App Data](#app-data)
+			- [Message logics](#message-logics)
 		- [Constructor](#constructor-1)
 			- [Constructor call](#constructor-call)
 			- [Constructor member logic](#constructor-member-logic)
@@ -50,7 +55,9 @@ A high-level summary description of GOOSE v0.3.0. The description intentionally 
 
 The Anoma Virtual Machine (AVM) data structures provide an object-oriented abstraction over the Anoma Resource Machine (RM). Ecosystems encapsulate collections of related classes and functions. Each class within an ecosystem uniquely defines its structure through private fields and member operations — constructors, destructors, and methods. Multi-methods in an ecosystem operate over sets of objects from these classes. Every class belongs to a single ecosystem, and the relationships between classes, their operations, and multi-methods must be fully specified ahead of time — there is no dynamic addition of members or runtime reflection.
 
-The translation from AVM to the Resource Machine (RM) relies on the static nature of AVM programs. Each object is compiled to a single resource, tagged with its class and ecosystem metadata. Constructor, destructor, method and function calls, and intent creation, are all translated into single-action transactions. Because all class member operations, functions and intents are known statically, appropriate Resource Logic checks can be generated from their code. A single Resource Logic is generated for a given ecosystem and associated with each object of a class in the ecosystem. The action's App Data contains an indicator for which member's logic should be checked. Logically, the ecosystem logic is a disjunction of the member logics.
+The translation from AVM to the Resource Machine (RM) relies on the static nature of AVM programs. Each object is compiled to a single resource, tagged with its class and ecosystem metadata. Constructor, destructor, method and multi-method calls are translated into message sends. Each message is implemented with a single message resource. The transactions generated for each call consist of a number of actions, one per object. The messages received by the object are consumed in the action, the messages sent by it are created. The Resource Logics (RLs) of the message resources implement the checks corresponding to the code of the class member operations and multi-methods.
+
+Because all class member operations and multi-methods are known statically, appropriate RL for the message resources can be automatically generated the code. In addition to RLs for messages, a single Resource Logic is generated for each class and associated with each object of the class - it checks if the messages sent to the object correspond to statically known member operations or multi-methods.
 
 ## Anoma Programs
 
@@ -83,12 +90,14 @@ Example - mutual increment program:
 def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
   x := fetch rx
   y := fetch ry
-  call Counter.Methods.Incr rx (x.count * n + y.count)
-  call Counter.Methods.Incr ry (y.count * n + x.count)
+  call Counter.Incr rx (x.count * n + y.count)
+  call Counter.Incr ry (y.count * n + x.count)
   return ()
 ⟫
 ```
 `Reference` is a typed wrapper over `ObjectId`.
+
+## Translation overview
 
 ## AVM data structures
 
@@ -127,6 +136,10 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 	- private fields,
     - nonce – ensures the uniqueness of resource commitment and nullifier.
 
+## ObjectData
+- `ObjectData` in `AVM/Object.lean`
+- Consists of `label`, `quantity` and private fields of the object.
+
 ## MessageId
 - Implemented with `MemberId` in `AVM/Ecosystem/Label/Base.lean` and `Label.MemberId` in `AVM/Class/Label.lean`.
 - A unique message identifier which also specifies the type of the message (the high-level AVM concept the message implements):
@@ -154,7 +167,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 	- `label : Class.Label` determines the constructor's class.
 	- `id : label.ConstructorId` determines the unique id of the constructor.
 	- `Args := label.ConstructorArgs id` is the type of constructor arguments.
-	- `body : Args -> Program Object` . Constructor body, returning the object created by the constructor call.
+	- `body : Args -> Program ObjectData` . Constructor body, returning the object data for the object created by the constructor call.
 	- `invariant : Args -> Bool`. Extra constructor logic. The constructor message logic is a conjunction of auto-generated constructor logic and the extra constructor logic.
 
 ### Destructor
@@ -187,7 +200,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 	- `methods : Set Class.Method`. Set of methods. There is one method for each element of `label.MethodId`.
 	- `invariant : (self : Object) -> Logic.Args -> Bool`. Extra class-specific logic. The class logic is the conjunction of the extra class logic and the member logics. `Logic.Args` is the type of Resource Logic arguments in the Anoma Resource Machine.
 
-### Multi-method
+### MultiMethod
 - `MultiMethod` in `AVM/Ecosystem/Member.lean`
 - Represents a multi-method in an ecosystem. A multi-method operates on multiple `self` arguments – objects of classes in the ecosystem. The `self` arguments are consumed by the multi-method. There may be other arguments provided beside the `self` arguments.
 - Consists of:
@@ -209,39 +222,85 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 - Consists of:
 	- `label : Ecosystem.Label`. Unique ecosystem label.
 	- `classes : Set Class`. Classes in the ecosystem. A class is in exactly one ecosystem.
-	- `functions : Set Function`. Functions in the ecosystem. A function is in exactly one ecosystem.
+	- `multiMethods : Set MultiMethod`. Multi-methods in the ecosystem. A multi-method is in exactly one ecosystem.
 
 ## AVM -> RM translation
 
 ### Object
 
-Objects are translated to Resources. Currently, it's a 1:1 translation.
+Objects are translated to Resources. Every object is translated to a single resource, but it may contain references to sub-objects which are translated to separate resources.
 
 - `label` (the class label) is stored in the `label` field.
 - `quantity` is stored in the `quantity` field.
 - Private fields are stored in the `value` field.
-- The Resource Logic (RL) of the resource corresponding to the object is determined by the ecosystem of the object's class. This way the resource kind (label + logic) determines the object class.
+- The Resource Logic (RL) of the resource corresponding to the object is determined by the object's class. This way the resource kind (label + logic) determines the object class. The RL check if the messages sent to the object are correspond to class member or known multi-methods.
 - The ephemerality of the resource is _not_ determined by the object. An object can map to either an ephemeral or a persistent resource depending on how it is used in the action.
-- If `nonce` is not `none`, then it is stored in the `nonce` field. Otherwise, the nonce is computed as follows.
-	 - For consumed persistent resources the nonce must be available in the object.
-	 - For consumed ephemeral resources the nonce is random.
-	 - For created resources (persistent and ephemeral) the nonce is equal to the nullifier of the consumed resource in the same compliance unit.
 - The `nullifierKeyCommitment` field is computed using the universal nullifier key.
 
 #### Resource data check
-Resource data check `checkDataEq(res,obj)` compares a resource `res` against an object `obj`.
+Resource data check `checkDataEq(res,objData)` compares a resource `res` against  object data `objData`.
 
 - `Class.Member.Logic.checkResourceData` in `AVM/Class/Member/Logic.lean`.
-- Check `res.label == obj.label`.
-- Check `res.logicHash` is equal to the hash of the [ecosystem logic](#ecosystem-logic) for the ecosystem of the class of `obj`.
-- Check `res.quantity == obj.quantity`.
-- Check `res.value` encodes the private fields of `obj`.
+- Check `res.label == objData.label`.
+- Check `res.logicHash` is equal to the hash of the [class logic](#class-logic) for the class of `objData`.
+- Check `res.quantity == objData.quantity`.
+- Check `res.value` encodes the private fields of `objData`.
+
+### Tasks
+
+- `Task` in `AVM/Task.lean`
+- A Task is an intermediate data structure into which class member and multi-method calls are translated.
+- Consists of:
+  - `Params : Type`. Type of Task parameters - objects to fetch from the Anoma system and new object ids to generate.
+  - `message : Params → Option Message`. The message to send.
+  - `actions : Params → List Action`. Task actions - Resource Machine actions to perform parameterised by fetched objects and new object ids.
+- A Task us translated into an Anoma Program which:
+  1. Fetches the objects and generates object ids specified by `Params`.
+  2. Submits a transaction with actions:
+  	- an action with one created resource corresponding to `message`,
+  	- `actions` of the Task.
+
+#### Task composition
+
+Tasks `<Params1, message1, actions1>, .., <ParamsN, messageN, actionsN>` can be composed with a new message `msg` and action `act` to create a task `<Params, message, actions>` such that:
+- `Params := Params1 ++ .. ++ ParamsN`,
+- `message params1 .. paramsN := message1 params1 ++ .. ++ messageN paramsN`,
+- `actions params1 .. paramsN := act :: actions1 params1 ++ .. ++ actionsN paramsN`.
 
 ### Member calls
 
-Calls to class members (constructor, destructor or method calls), function calls and intent creation are translated into single-action transactions. The generated Action contains a list of Compliance Units and a map from Resources to their App Data.
+Calls to class members (constructor, destructor or method calls) and multi-methods are first translated into Tasks - one Task per call. The Task is composed from sub-tasks generated for the nested calls in the body program of the class member / multi-method, a message corresponding to the called member, and an action implementing the changes to selves and creation of objects specified by the member body.
 
-A Compliance Unit has exactly one consumed and one created resource. To ensure matching numbers of consumed and created resources, dummy ephemeral resources with quantity 0 are put in as placeholders in compliance units.
+#### Example
+
+Consider the following `Counter` and `TwoCounter` classes with the methods `Counter.Incr` and `TwoCounter.MutualIncrement`.
+```
+class Counter {
+  count : Nat
+}
+
+method Counter.Incr (self : Counter) (n : Nat) : Program Counter := ⟪
+  return {self with count := count + n}
+⟫
+
+class TwoCounter {
+	cnt1 : Reference Counter
+	cnt2 : Reference Counter
+}
+
+method TwoCounter.MutualIncrement (self : TwoCounter) (n : Nat) : Program TwoCounter := ⟪
+  c1 := fetch self.cnt1
+  c2 := fetch self.cnt2
+  call Counter.Incr self.cnt1 (c1.count * n + c2.count)
+  call Counter.Incr self.cnt2 (c2.count * n + c1.count)
+  return self
+⟫
+```
+
+TODO
+
+#### Compliance Units
+The generated actions consist of lists of Compliance Units. A Compliance Unit has exactly one consumed and one created resource. To ensure matching numbers of consumed and created resources, dummy ephemeral resources with quantity 0 are put in as placeholders in compliance units.
 
 #### Dummy Resource
 Dummy Resource has the unique dummy label and the always-true resource logic.
@@ -263,34 +322,23 @@ An Action can be considered to contain lists of consumed and created non-dummy r
 - See: `AVM/Action.lean`.
 In what follows, when referring to consumed and created resources of an Action, we implicitly ignore Dummy Resources.
 
-#### Member logics
-A member logic is a logic for a specific member call:
+#### Message logics
+A message logic is a logic for a specific message (corresponding to a member call):
 
 - constructor,
 - destructor,
 - method,
-- function,
-- intent creation,
-- always false logic.
+- multi-method,
+- upgrade.
 
-The member logics check the constraints for the member call. App Data contains an indicator which member logic should be checked.
-
-The intent member logic is distinct from the intent logic. The intent member logic is checked for each object consumed on intent creation, asserting that the created intent is allowed for the object's class. The intent logic is checked on intent resource consumption, asserting that the intent condition holds.
-
-#### App Data
-App Data for each (non-dummy) resource in the action consists of:
-
-- member logic indicator:
-	- for consumed resources: member logic for the member being called,
-	- for created resources: always false logic[^1],
-- member call arguments `args` (except for the intent member logic).
+The message logics check the constraints for the corresponding member call.
 
 ### Constructor
 
 #### Constructor call
-Constructor calls are translated to single-action transactions. The action for a call to a constructor `constr` with arguments `args : constr.Args` is specified by the following.
+Constructor calls are translated to Tasks. The task for a call to a constructor `constr` with arguments `args : constr.Args` is specified by the following.
 
-- `Class.Constructor.action` in `AVM/Class/Translation.lean`.
+- `Class.Constructor.task` in `AVM/Class/Translation.lean`.
 - Consumed resources:
 	- one ephemeral resource corresponding to the created object `constr.created args`.
 - Created resources:
