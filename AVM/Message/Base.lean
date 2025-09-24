@@ -20,7 +20,7 @@ structure Message (lab : Ecosystem.Label) : Type 1 where
   /-- Extra data. -/
   data : id.Data
   /-- The recipients of the message. -/
-  recipients : List.Vector ObjectId id.numObjectArgs
+  recipients : List ObjectId
 
 instance Message.hasTypeRep (lab : Ecosystem.Label) : TypeRep (Message lab) where
   rep := Rep.composite "AVM.Message" [Rep.atomic lab.name]
@@ -51,7 +51,7 @@ instance : Inhabited SomeMessage where
                   logicRef := default
                   id := .classMember (classId := .unit) (.constructorId PUnit.unit),
                   args := PUnit.unit
-                  recipients := List.Vector.singleton 0 }}
+                  recipients := [] }}
 
 def Message.toSomeMessage {lab : Ecosystem.Label} (msg : Message lab) : SomeMessage :=
   { label := lab, message := msg }

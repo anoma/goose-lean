@@ -20,7 +20,7 @@ def Constructor.message
     logicRef := Constructor.Message.logic.{0, 0} constr |>.reference
     vals,
     args,
-    recipients := List.Vector.singleton newId }
+    recipients := [newId] }
 
 def Destructor.message
   {lab : Ecosystem.Label}
@@ -37,7 +37,7 @@ def Destructor.message
     logicRef := Destructor.Message.logic.{0, 0} destr |>.reference
     vals
     args
-    recipients := List.Vector.singleton selfId }
+    recipients := [selfId] }
 
 def Method.message
   {lab : Ecosystem.Label}
@@ -54,7 +54,7 @@ def Method.message
     logicRef := Method.Message.logic.{0, 0} method |>.reference
     vals
     args
-    recipients := List.Vector.singleton selfId }
+    recipients := [selfId] }
 
 def Upgrade.message
   {lab : Ecosystem.Label}
@@ -67,7 +67,7 @@ def Upgrade.message
     Vals := ⟨PUnit⟩
     vals := PUnit.unit
     args := .unit
-    recipients := List.Vector.singleton selfId }
+    recipients := [selfId] }
 
 end AVM.Class
 
@@ -79,15 +79,17 @@ def MultiMethod.message
   (method : MultiMethod multiId)
   (selves : multiId.Selves)
   (args : multiId.Args.type)
-  (body : Program lab (MultiMethodResult multiId))
-  (vals : body.params.Product)
+  (Vals : SomeType)
+  (vals : Vals.type)
+  (data : MultiMethodData)
+  (rands : MultiMethodRandoms data)
   : Message lab :=
-  let res : MultiMethodResult multiId := body.value vals
-  let data := res.data
   { id := .multiMethodId multiId
     logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
     data
-    Vals := ⟨body.params.Product⟩
+    Vals
     vals
     args
-    recipients := Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) }
+    recipients :=
+      (Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) |>.toList)
+        ++ rands.constructedNonces.toList.map (·.value) }
