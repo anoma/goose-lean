@@ -153,7 +153,7 @@ def incrementBoth : @Class.Method Eco.label Eco.Classes.TwoCounter Methods.Incre
     c1 := fetch self.c1
     c2 := fetch self.c2
     call Counter.Methods.Incr self.c1 (c2.count * n + c1.count)
-    call signed (noSignatures) Counter.Methods.Incr self.c2 (c1.count * n + c2.count)
+    call Counter.Methods.Incr self.c2 (c1.count * n + c2.count) signed noSignatures
     return self
   ⟫)
 

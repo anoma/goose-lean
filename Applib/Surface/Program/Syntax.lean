@@ -24,8 +24,10 @@ syntax colGe withPosition("create " ident ident term) optSemicolon(program) : pr
 syntax colGe withPosition(ident " := " " create " ident ident term) optSemicolon(program) : program
 syntax colGe "destroy " ident term : program
 syntax colGe withPosition("destroy " ident term) optSemicolon(program) : program
-syntax colGe "call " ("signed " "(" term ")")? ident term : program
-syntax colGe withPosition("call " ("signed " "(" term ")")? ident term) optSemicolon(program) : program
+syntax colGe "call " ident term : program
+syntax colGe "call " ident term " signed " term : program
+syntax colGe withPosition("call " ident term) optSemicolon(program) : program
+syntax colGe withPosition("call " ident term " signed " term optSemicolon(program)) : program
 syntax colGe "multiCall " ident term : program
 syntax colGe withPosition("multiCall " ident term) optSemicolon(program) : program
 syntax colGe "upgrade " term " to " term : program
@@ -69,11 +71,11 @@ macro_rules
     `(Program.destroy' $e $m $args $signatures (⟪$p⟫))
   | `(⟪call $m:ident $e:term $args:term⟫) =>
     `(Program.call' $e $m $args noSignatures (Program.return ()))
-  | `(⟪call signed ($signatures) $m:ident $e:term $args:term⟫) =>
+  | `(⟪call $m:ident $e:term $args:term signed $signatures⟫) =>
     `(Program.call' $e $m $args $signatures (Program.return ()))
   | `(⟪call $m:ident $e:term $args:term ; $p:program⟫) =>
     `(Program.call' $e $m $args noSignatures (⟪$p⟫))
-  | `(⟪call signed ($signatures) $m:ident $e:term $args:term ; $p:program⟫) =>
+  | `(⟪call $m:ident $e:term $args:term signed $signatures ; $p:program⟫) =>
     `(Program.call' $e $m $args $signatures (⟪$p⟫))
   | `(⟪multiCall $m:ident $selves:term $args:term $signatures:term⟫) =>
     `(Program.multiCall' $m $selves $args $signatures (Program.return ()))
