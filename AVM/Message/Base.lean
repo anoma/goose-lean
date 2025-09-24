@@ -2,8 +2,6 @@ import AVM.Ecosystem.Data
 
 namespace AVM
 
-structure MessageContents (lab : Ecosystem.Label) (id : lab.MemberId) : Type 1 where
-
 /-- A message is a communication sent from one object to another in the AVM. -/
 structure Message (lab : Ecosystem.Label) : Type 1 where
   /-- The message ID. -/
