@@ -24,7 +24,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Eco.label Un
 
 def createCounter : Program Eco.label (Reference Counter) := ⟪
   r := create Counter Counter.Constructors.Zero ()
-  call Counter.Methods.Incr r (7 : Nat);
+  call Counter.Methods.Incr r (7 : Nat)
   return r
 ⟫
 
@@ -104,7 +104,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
   match c1.count with
   | 0 => return c2
   | Nat.succ n' =>
-    call Counter.Methods.Incr cRef (3 : Nat);
+    call Counter.Methods.Incr cRef (3 : Nat)
     if c1.count > c2.count then
       c := fetch cRef
       invoke mutualIncrement self.c2 self.c1 (n' + c.count)
@@ -127,7 +127,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label Unit := ⟪
     else
       invoke mutualIncrement self.c1 self.c2 n'
     call Counter.Methods.Incr self.c2 n'
-  call Counter.Methods.Incr self.c1 n;
+  call Counter.Methods.Incr self.c1 n
   call Counter.Methods.Incr self.c2 n
 ⟫
 
@@ -217,16 +217,16 @@ open Applib
 
 example (r : Reference OwnedCounter) (newOwner : PublicKey) : Program label (Reference OwnedCounter) := ⟪
   c := fetch r
-  call OwnedCounter.Methods.Transfer r newOwner;
+  call OwnedCounter.Methods.Transfer r newOwner
   r' := create OwnedCounter OwnedCounter.Constructors.Zero ()
-  call OwnedCounter.Methods.Incr r' (c.count + 1);
+  call OwnedCounter.Methods.Incr r' (c.count + 1)
   destroy OwnedCounter.Destructors.Ten r ()
   return r'
 ⟫
 
 example (n : Nat) : Program label (Reference OwnedCounter) := ⟪
   r := create OwnedCounter OwnedCounter.Constructors.Zero ()
-  call OwnedCounter.Methods.Incr r n;
+  call OwnedCounter.Methods.Incr r n
   create OwnedCounter OwnedCounter.Constructors.Zero ()
   create OwnedCounter OwnedCounter.Constructors.Zero ()
   return r
