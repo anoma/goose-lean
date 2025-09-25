@@ -34,23 +34,21 @@ A high-level summary description of GOOSE v0.3.0. The description intentionally 
 				- [Action partitioning](#action-partitioning)
 		- [Constructor](#constructor-1)
 			- [Constructor call](#constructor-call)
-			- [Constructor member logic](#constructor-member-logic)
+			- [Constructor message logic](#constructor-message-logic)
 		- [Destructor](#destructor-1)
 			- [Destructor call](#destructor-call)
-			- [Destructor member logic](#destructor-member-logic)
+			- [Destructor message logic](#destructor-message-logic)
 		- [Method](#method-1)
 			- [Method call](#method-call)
-			- [Method member logic](#method-member-logic)
-		- [Intent](#intent)
-			- [Intent creation](#intent-creation)
-			- [Intent logic](#intent-logic)
-			- [Intent member logic](#intent-member-logic)
+			- [Method message logic](#method-message-logic)
+		- [Upgrade](#upgrade)
+			- [Upgrade call](#upgrade-call)
+			- [Upgrade message logic](#upgrade-message-logic)
 		- [Class logic](#class-logic)
-		- [Function](#function)
-			- [Function call](#function-call)
-			- [Function member logic](#function-member-logic)
-		- [Ecosystem logic](#ecosystem-logic)
-	- [Translation issues](#translation-issues)
+		- [Multi-method](#multi-method)
+			- [Multi-method call](#multi-method-call)
+			- [Multi-method message logic](#multi-method-message-logic)
+	- [Translation issues and limitaton](#translation-issues-and-limitaton)
 	- [Implemented example apps](#implemented-example-apps)
 
 ## Overview
@@ -81,7 +79,7 @@ AVM programs provide an object-oriented abstraction over Anoma programs to which
 - `multiCall MultiMethod objIds args`. Call a multi-method on objects with given IDs.
 - `upgrade objId to obj`. Upgrade an object with a given ID `objId` to an object `obj`. An upgrade is permitted only to an object of the same class with a newer version. The new object `obj` replaces the upgraded one. The ID of the object is preserved.
 - `obj := fetch objId`. Fetch an object with a given ID.
-- `invoke fn args`. Invoke a function - a sub-program.
+- `invoke fn args`. Invoke a function, i.e., a sub-program.
 - `return a`. Return a given value `a : A`.
 AVM Programs can also contain conditionals, matches and other Lean control structures - they are implemented as a DSL embedded in Lean.
 
@@ -133,7 +131,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 - Concrete object representation.
 - Consists of:
 	- `label : Class.Label` determines the object's class,
-	- `uid : ObjectId` is the unique object ID,
+	- `id : ObjectId` is the unique object ID,
 	- `quantity : Nat`,
 	- private fields,
     - nonce – ensures the uniqueness of resource commitment and nullifier.
@@ -158,7 +156,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
   - `label : Ecosystem.Label`. The label of the ecosystem of the message.
   - `vals : Vals`. Message parameter values. The message parameters are object resources and generated random values that are used in the body of the call associated with the message. These need to be provided in the message, because the associated Resource Logic cannot fetch object resources from the Anoma system or generate new object identifiers.
   - `id : MessageId`. The message ID.
-  - `args : id.Args`. The arguments of the message, where `id.Args` is the type of arguments based on the message id.
+  - `args : id.Args`. The arguments of the message, where `id.Args` is the type of arguments based on the message id. The message arguments are the non-self arguments of the corresponding member or multi-method call.
   - `data : Option MultiMethodData`. Extra data for multi-methods which consists of lists of random values to be used as nonces and new object identifiers.
   - `recipients : List ObjectId`. The recipients of the message.
 
@@ -169,7 +167,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 	- `label : Class.Label` determines the constructor's class.
 	- `id : label.ConstructorId` determines the unique id of the constructor.
 	- `Args := label.ConstructorArgs id` is the type of constructor arguments.
-	- `body : Args -> Program ObjectData` . Constructor body, returning the object data for the object created by the constructor call.
+	- `body : Args -> Program ObjectData`. Constructor body, returning the object data for the object created by the constructor call.
 	- `invariant : Args -> Bool`. Extra constructor logic. The constructor message logic is a conjunction of auto-generated constructor logic and the extra constructor logic.
 
 ### Destructor
@@ -382,163 +380,140 @@ In what follows, when referring to consumed and created resources of an Action, 
 ### Constructor
 
 #### Constructor call
-Constructor calls are translated to Tasks. The task for a call to a constructor `constr` with arguments `args : constr.Args` is specified by the following.
+Constructor calls are translated to Tasks. The task for a call to a constructor `constr` with arguments `args : constr.Args` is the composition of the tasks for nested calls in constructor body with the constructor action specified by the following.
 
 - `Class.Constructor.task'` in `AVM/Class/Translation/Tasks.lean`.
 - Consumed resources:
-	- one ephemeral object resource corresponding to the created object `constr.created args`.
+	- one ephemeral object resource corresponding to the created object `(constr.body args).result`,
+	- one ephemeral message resource for the received constructor message, with message arguments set to `args`.
 - Created resources:
-	- one persistent object resource corresponding to the created object `constr.created args`.
+	- one persistent object resource corresponding to the created object `(constr.body args).result`,
+	- ephemeral message resources for all messages sent in the constructor body (corresponding to nested calls).
 
-#### Constructor member logic
-Constructor member logic is the member logic executed for the consumed ephemeral resource in the transaction for a constructor call. Constructor logic is implemented in `Class.Constructor.logic` in `AVM/Class/Translation.lean`.
+#### Constructor message logic
+Constructor message logic is the logic associated with the constructor message. Constructor message logic is implemented in `Class.Constructor.logic` in `AVM/Class/Translation/Logics.lean`.
 
-Constructor member logic has access to RL arguments which contain the following.
+Constructor message logic has access to RL arguments which contain the following.
 
-- `consumed : List Resource`. List of resources consumed in the transaction.
-- `created : List Resource`. List of resources created in the transaction.
-- App Data for the consumed ephemeral resource, which contains the constructor call arguments `args`.
+- `msgRes : Resource`. The resource of the constructor message. Let `msg := Message.fromResource msgRes`.
+- `consumed : List Resource`. List of resources consumed in the action.
+- `created : List Resource`. List of resources created in the action.
 
-Constructor member logic for a constructor `constr` performs the following checks.
+Constructor message logic for a constructor `constr` performs the following checks.
 
-- `consumed` contains exactly one ephemeral resource `res` and `checkDataEq(res, constr.created args)` holds.
-- `created` contains exactly one persistent resource `res'` and `checkDataEq(res', constr.created args)` holds.
-- `constr.invariant args` holds.
+- `consumed` contains exactly one ephemeral object resource `res` and `checkDataEq(res, (constr.body msg.args).result)` holds.
+- `created` contains exactly one persistent object resource `res'` and `checkDataEq(res', (constr.body msg.args).result)` holds.
+- `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
+- `constr.invariant msg.args` holds.
 
 ### Destructor
 
 #### Destructor call
-Destructor calls are translated to single-action transactions. The action for a call to a destructor `destr` on `self : Object` with arguments `args : destr.Args` is specified by the following.
+Destructor calls are translated to Tasks. The task for a call to a destructor `destr` on `self : Object` with arguments `args : destr.Args` is the composition of the tasks for nested calls in destructor body with the destructor action specified by the following.
 
-- `Class.Destructor.action` in `AVM/Class/Translation.lean`.
+- `Class.Destructor.task'` in `AVM/Class/Translation/Tasks.lean`.
 - Consumed resources:
-	- one persistent resource corresponding to `self`.
+	- one persistent object resource corresponding to `self`,
+	- one ephemeral message resource for the received destructor message, with message arguments set to `args`.
 - Created resources:
-	- one ephemeral resource corresponding to `self`.
+	- one ephemeral object resource corresponding to `self`,
+	- ephemeral message resources for all messages sent in the destructor body (corresponding to nested calls).
 
-#### Destructor member logic
-Destructor member logic is the member logic executed for the consumed persistent resource in the transaction for a destructor call. The consumed resource `selfRes` corresponds to the `self` object in the destructor call. Destructor logic is implemented in `Class.Destructor.logic` in `AVM/Class/Translation.lean`.
+#### Destructor message logic
+Destructor message logic is the logic associated with the destructor message. Destructor message logic is implemented in `Class.Destructor.logic` in `AVM/Class/Translation/Logics.lean`.
 
-Destructor member logic has access to RL arguments which contain the following.
+Destructor message logic has access to RL arguments which contain the following.
 
-- `selfRes` consumed resource.
-- `consumed : List Resource`. List of resources consumed in the transaction.
-- `created : List Resource`. List of resources created in the transaction.
-- App Data for the consumed persistent resource `selfRes`, which contains the destructor call arguments `args`.
+- `msgRes : Resource`. The resource of the destructor message. Let `msg := Message.fromResource msgRes`.
+- `consumed : List Resource`. List of resources consumed in the action.
+- `created : List Resource`. List of resources created in the action.
 
-The `self` object is re-created from `selfRes`.
+Destructor message logic for a destructor `destr` performs the following checks.
 
-Destructor member logic for a destructor `destr` performs the following checks.
-
-- `consumed` contains exactly one persistent resource `selfRes` and `checkDataEq(selfRes, self)` holds.
-- `created` contains exactly one emphemeral resource `selfRes'` and `checkDataEq(selfRes', self)` holds.
+- `consumed` contains exactly one persistent object resource `selfRes` corresponding to the `self` object.
+- `created` contains exactly one emphemeral object resource `selfRes'` and `checkDataEq(selfRes', self.data)` holds.
+- `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
 - `destr.invariant self args` holds.
 
 ### Method
 
 #### Method call
-Method calls are translated to single-action transactions. The action for a call to a method `method` on `self : Object` with arguments `args : method.Args` is specified by the following.
+Method calls are translated to Tasks. The task for a call to a method `method` on `self : Object` with arguments `args : destr.Args` is the composition of the tasks for nested calls in method body with the method action specified by the following.
 
-- `Class.Method.action` in `AVM/Class/Translation.lean`
+- `Class.Method.task'` in `AVM/Class/Translation.lean`
 - Consumed resources:
-	- one persistent resource corresponding to `self`.
+	- one persistent object resource corresponding to `self`,
+	- one ephemeral message resource for the received method message, with message arguments set to `args`.
 - Created resources:
-	- persistent resources corresponding to the created objects `method.created self args`.
+	- one persistent object resource corresponding to `(method.body self args).result`,
+	- ephemeral message resources for all messages sent in the method body (corresponding to nested calls).
 
-#### Method member logic
-Method member logic is the member logic executed for the consumed persistent resource in the transaction for a method call. The consumed resource `selfRes` corresponds to the `self` object in the method call. Method logic is implemented in `Class.Method.logic` in `AVM/Class/Translation.lean`.
+#### Method message logic
+Method message logic is the logic associated with the method message. Method message logic is implemented in `Class.Method.logic` in `AVM/Class/Translation/Logics.lean`.
 
-Method member logic has access to RL arguments which contain the following.
+Method message logic has access to RL arguments which contain the following.
 
-- `selfRes` consumed resource.
-- `consumed : List Resource`. List of resources consumed in the transaction.
-- `created : List Resource`. List of resources created in the transaction.
-- App Data for the consumed resource `selfRes`, which contains the method call arguments `args`.
+- `msgRes : Resource`. The resource of the method message. Let `msg := Message.fromResource msgRes`.
+- `consumed : List Resource`. List of resources consumed in the action.
+- `created : List Resource`. List of resources created in the action.
 
-The `self` object is re-created from `selfRes`.
+Method message logic for a method `method` performs the following checks.
 
-Method member logic for a method `method` performs the following checks.
-
-- `consumed` contains exactly one persistent resource `selfRes` and `checkDataEq(selfRes, self)` holds.
-- `created` contains resources corresponding to the created objects:
-	- `created.length == method.created self args`,
-	- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip created (method.created self args)`,
-	- each resource in `created` is persistent.
+- `consumed` contains exactly one persistent object resource `selfRes` corresponding to the `self` object.
+- `created` contains exactly one persistent object resource `selfRes'` and `checkDataEq(selfRes', (method.body self args).result.data)` holds.
+- `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
 - `method.invariant self args` holds.
 
-### Intent
-Intents are translated to intent resources.
+### Upgrade
 
-- The intent label, the intent arguments and the provided objects are all stored in the resource label.
-- The intent resource is ephemeral with quantity 1.
-- The nonce is set on intent resource creation to the nullifier of the dummy resource consumed in the same compliance unit.
-- The intent resource uses the universal key commitment.
+#### Upgrade call
+Upgrade calls are translated to Tasks. The task for an upgrade of `self : Object` to `obj : Object` consists of a single action specified by the following.
 
-#### Intent creation
-Intent creation is translated to a single-action transaction. The action for the creation of an intent `intent` with arguments `args : intent.label.Args` and provided objects `provided` is specified by the following.
-
-- `Intent.action` in `AVM/Intent.lean`.
+- `Class.Upgrade.task'` in `AVM/Class/Translation.lean`
 - Consumed resources:
-	- persistent resources corresponding to the provided objects `provided`.
-- Created resource:
-	- one ephemeral resource corresponding to the created intent.
+	- one persistent object resource corresponding to `self`,
+	- one ephemeral message resource for the received upgrade message, with no arguments.
+- Created resources:
+	- one persistent object resource corresponding to `obj`.
 
-#### Intent logic
-Intent logic is the RL associated with the intent resource. Intent logic is distinct from the intent member logic associated with objects provided to the intent. Intent logic is implemented in `Intent.logic` in `AVM/Intent.lean`.
+#### Upgrade message logic
+Upgrade message logic is the logic associated with the upgrade message. Upgrade message logic is implemented in `Class.Upgrade.logic` in `AVM/Class/Translation/Logics.lean`.
 
-Intent logic has access to RL arguments which contain the following.
+Upgrade message logic has access to RL arguments which contain the following.
 
-- `intentRes` consumed intent resource.
-- `consumed : List Resource`. List of resources consumed in the transaction.
-- `created : List Resource`. List of resources created in the transaction.
-- `isConsumed : Bool` indicates whether `intentRes` is consumed or created in the transaction.
+- `consumed : List Resource`. List of resources consumed in the action.
+- `created : List Resource`. List of resources created in the action.
 
-The intent arguments `args` and provided objects `provided` are retrieved from the label of `intentRes`.
+Upgrade message logic performs the following checks.
 
-Intent logic for an intent `intent` performs the following checks.
-
-- If `intentRes` is consumed, then re-create received objects `received` from `created` and check `intent.condition args provided received`.
-- If `intentRes` is created, then check:
-	- `consumed.length == provided.length`,
-	- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip consumed provided`.
-
-#### Intent member logic
-Intent member logic is checked for each object consumed (provided) on intent creation. It checks that the intent is allowed for the object's class. The intent member logic is implemented in `Class.Intent.Logic` in `AVM/Class/Translation.lean`.
-
-Intent member logic has access to RL arguments which contain the following.
-
-- `consumed : List Resource`. List of resources consumed in the transaction.
-- `created : List Resource`. List of resources created in the transaction.
-
-Intent member logic for an intent `intent` performs the following checks.
-
-- `created` contains exactly one resource `intentRes` with:
-	- `intentRes.label.intentLabel == intent.label`.
-	- `intentRes.logicHash` equal to the hash of the intent logic for `intent`.
-	- `intentRes.ephemeral == true`.
-	- `intentRes.quantity == 1`.
-- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip consumed provided`.
+- `consumed` contains exactly one persistent object resource `selfRes` corresponding to the `self` object.
+- `created` contains exactly one persistent object resource `objRes` corresponding to the `obj` upgraded object.
+- `obj.id = self.id` and the class of `obj` is the same as the class of `self` but with higher version.
+- `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
 
 ### Class logic
 
-Class logic is the logic associated with a class. Class logic is implemented in `Class.logic` in `AVM/Class/Translation.lean`.
+Class logic is the logic associated with a class. Class logic is implemented in `Class.logic` in `AVM/Class/Translation/Logics.lean`.
 
 Class logic has access to RL arguments `logicArgs : Logic.Args` which contain the following.
 
-- `selfRes` consumed resource.
-- App Data for the consumed resource `selfRes`, which contains the member logic indicator.
+- `selfRes` consumed resource corresponding to the `self` object of this class.
+- `consumed : List Resource`. List of resources consumed in the action.
+- `created : List Resource`. List of resources created in the action.
 
 The `self` object is re-created from `selfRes`.
 
 Class logic for a class `cls` performs the following checks.
 
-- Execute the member logic (constructor, destructor, method or intent member logic) based on the member logic indicator stored in App Data.
-- Check `cls.invariant self logicArgs` holds.
+- `consumed` contains exactly one message resource corresponding to a message `msg` in the ecosystem of the class.
+- `self.id` is in `msg.recipients`.
+- `msg.recipients.length` is equal to the number of object resources in `consumed`.
+- `cls.invariant self logicArgs` holds.
 
-### Function
+### Multi-method
 
-#### Function call
-Function call is translated to a single-action transaction. The action for a call to a function `fun` on `selves : List Object` with arguments `args : fun.Args` is specified by the following.
+#### Multi-method call
+Multi-method call is translated to a single-action transaction. The action for a call to a function `fun` on `selves : List Object` with arguments `args : fun.Args` is specified by the following.
 
 - `Function.action` in `AVM/Ecosystem/Translation.lean`
 - Consumed resources:
@@ -551,7 +526,7 @@ Function call is translated to a single-action transaction. The action for a cal
 	- persistent resources corresponding to the constructed objects `(fun.body selves args).constructed`,
 	- ephemeral resources corresponding to the destructed selves `(fun.body selves args).destructed`.
 
-#### Function member logic
+#### Multi-method message logic
 Function member logic is the member logic associated with a function. Function member logic is implemented in `Function.logic` in `AVM/Ecosystem/Translation.lean`.
 
 Function member logic has access to RL arguments which contain the following.
@@ -598,39 +573,11 @@ Function member logic for a function `fun` performs the following checks.
 - resources in `destroyedEph` are ephemeral.
 - `fun.invariant selves args` holds.
 
-### Ecosystem logic
+## Translation issues and limitaton
 
-Ecosystem logic is the RL associated with an ecosystem. The RL of a resource corresponding to an object is always the ecosystem logic of the ecosystem of the object's class.
+TODO
 
-Ecosystem logic has access to RL arguments `logicArgs : Logic.Args` which contain the following.
-
-- App Data containing the member logic indicator.
-- `isConsumed : Bool` indicates whether the resource associated with the RL is consumed or created in the transaction.
-
-Ecosystem logic for an ecosystem `eco` performs the following checks.
-
-- If `isConsumed == true`, then:
-	- If the member logic indiator is a class member logic indicator (constructor, destructor, method or intent member logic), then execute the class logic for the class associated with this member logic.
-	- If the member logic indicator is a function member logic indicator, then execute the corresponding function member logic.
-	- If the member logic indicator designates the always false logic, then return `false`.
-- If `isConsumed == false`, then return `true`.
-
-## Translation issues
-
-- Handling of nullifier key commitments:
-	- needs conceptual work on how to represent them as identities/ownership on a higher level.
-- RL checks for the created case:
-	- none for now, which is correct for the simple app examples we have, but not general enough,
-	- Yulia needs to think about this.
-- Member logic indicators:
-	- fine to put in App Data, assuming user not malicious,
-	- Yulia needs to think more about the security implications.
-- Intents are static:
-	- every object provided to an intent must have this intent declared in its class,
-	- static (compilation time) dependency of classes on allowed intents,
-	- severe usability limitation.
-- No nested method calls.
-	- A method cannot call other methods inside its body. Currently, all method calls need to happen at the top level.
+- Objects can be upgraded by anyone and no data preservation is checked on upgrade, except that the class version increases and the id is preserved. Hence, someone could upgrade an object to one with different essential fields, e.g., owner. We need some form of access control to limit object upgrade to the object owner or other authorized principals.
 
 ## Implemented example apps
 
@@ -654,10 +601,3 @@ Ecosystem logic for an ecosystem `eco` performs the following checks.
 	- Functions:
     	- cheques: issue, deposit.
     	- auctions: new, bid, end.
-- Fixed Kudos:
-    - Kudos with 1-to-1 exchange.
-    - Kudos token has: quantity, originator, owner.
-    - Operations: mint.
-    - Intents: swap (1-to-1 exchange).
-
-[^1]: Member logics are checked only when a resource is consumed, so the always false logic will never be run. It needs to return false to prevent it from being maliciously misused to circumvent a member logic check.
