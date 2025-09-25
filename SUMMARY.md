@@ -438,7 +438,7 @@ Destructor message logic for a destructor `destr` performs the following checks.
 ### Method
 
 #### Method call
-Method calls are translated to Tasks. The task for a call to a method `method` on `self : Object` with arguments `args : destr.Args` is the composition of the tasks for nested calls in method body with the method action specified by the following.
+Method calls are translated to Tasks. The task for a call to a method `method` on `self : Object` with arguments `args : method.Args` is the composition of the tasks for nested calls in method body with the method action specified by the following.
 
 - `Class.Method.task'` in `AVM/Class/Translation.lean`
 - Consumed resources:
@@ -492,7 +492,6 @@ Upgrade message logic performs the following checks.
 - `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
 
 ### Class logic
-
 Class logic is the logic associated with a class. Class logic is implemented in `Class.logic` in `AVM/Class/Translation/Logics.lean`.
 
 Class logic has access to RL arguments `logicArgs : Logic.Args` which contain the following.
@@ -513,9 +512,9 @@ Class logic for a class `cls` performs the following checks.
 ### Multi-method
 
 #### Multi-method call
-Multi-method call is translated to a single-action transaction. The action for a call to a function `fun` on `selves : List Object` with arguments `args : fun.Args` is specified by the following.
+Multi-method calls are translated to Tasks. The task for a call to a multi-method `multiMethod` on `selves : List Object` with arguments `args : multiMethod.Args` is the composition of the tasks for nested calls in multi-method body with the multi-method action specified by the following.
 
-- `Function.action` in `AVM/Ecosystem/Translation.lean`
+- `Ecosystem.MultiMethod.task'` in `AVM/Ecosystem/Translation/Tasks.lean`
 - Consumed resources:
 	- persistent resources corresponding to `selves`,
 	- persistent resources corresponding to the destroyed objects `(fun.body selves args).destroyed`,
