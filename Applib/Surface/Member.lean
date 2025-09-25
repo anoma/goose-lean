@@ -15,7 +15,7 @@ def unsigned
   : SignatureId → Signature args := fun _ => Signature.sign args PrivateKey.universal
 
 def defMethod (cl : Type) [i : IsObject cl] {methodId : i.classId.label.MethodId}
- (body : (self : cl) → methodId.Args.type → Program i.label cl)
+ (body : (self : cl) → methodId.Args.type → Program i.label.toScope cl)
  (invariant : (self : cl) → (args : methodId.Args.type) → methodId.Signatures args → Bool := fun _ _ _ => true)
  : Class.Method i.classId methodId where
     invariant (self : Object i.classId) (args : methodId.Args.type) :=
@@ -28,14 +28,14 @@ def defMethod (cl : Type) [i : IsObject cl] {methodId : i.classId.label.MethodId
         |>.toAVM
 
 def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.classId.label.ConstructorId}
- (body : constrId.Args.type → Program i.label cl)
+ (body : constrId.Args.type → Program i.label.toScope cl)
  (invariant : (args : constrId.Args.type) → (signatures : constrId.Signatures args) → Bool := fun _ _ => true)
  : Class.Constructor i.classId constrId where
     invariant (args : constrId.Args.type) := invariant args
     body (args : constrId.Args.type) := body args |>.map i.toObject |>.toAVM
 
 def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.classId.label.DestructorId}
- (body : (self : cl) → destructorId.Args.type → Program i.label PUnit := fun _ _ => Program.return ())
+ (body : (self : cl) → destructorId.Args.type → Program i.label.toScope PUnit := fun _ _ => Program.return ())
  (invariant : (self : cl) -> (args : destructorId.Args.type) → destructorId.Signatures args → Bool := fun _ _ _ => true)
  : Class.Destructor i.classId destructorId where
     invariant (self : Object i.classId) (args : destructorId.Args.type) (signatures : destructorId.Signatures args) :=
