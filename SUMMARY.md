@@ -22,14 +22,16 @@ A high-level summary description of GOOSE v0.3.0. The description intentionally 
 	- [AVM -\> RM translation](#avm---rm-translation)
 		- [Object](#object-1)
 			- [Resource data check](#resource-data-check)
-		- [Tasks](#tasks)
+		- [Message](#message-1)
+		- [Task](#task)
 			- [Task composition](#task-composition)
-		- [Member calls](#member-calls)
-			- [Example](#example)
-			- [Compliance Units](#compliance-units)
-			- [Dummy Resource](#dummy-resource)
-			- [Action partitioning](#action-partitioning)
+		- [Member calls - message sending](#member-calls---message-sending)
 			- [Message logics](#message-logics)
+			- [Example](#example)
+			- [Technical details](#technical-details)
+				- [Compliance Units](#compliance-units)
+				- [Dummy Resource](#dummy-resource)
+				- [Action partitioning](#action-partitioning)
 		- [Constructor](#constructor-1)
 			- [Constructor call](#constructor-call)
 			- [Constructor member logic](#constructor-member-logic)
@@ -214,7 +216,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 		- `constructed : List Object`. List of constructed objects. Constructed object resources are balanced with automatically generated consumed ephemeral resources.
 	- `invariant : (selves : List Object) -> Args -> Bool`. Extra multi-method logic. The multi-method message logic is a conjunction of the auto-generated multi-method logic and the extra multi-method logic.
 - `selves : List Object` in `body` and `invariant` above is a list of `self` arguments - objects whose classes are described by `label.MultiMethodSelves id`.
-- `selves = disassembled ++ destroyed`
+- `selves = disassembled ++ destroyed`.
 
 ### Ecosystem
 - `Ecosystem` in `AVM/Ecosystem.lean`
@@ -246,15 +248,19 @@ Resource data check `checkDataEq(res,objData)` compares a resource `res` against
 - Check `res.quantity == objData.quantity`.
 - Check `res.value` encodes the private fields of `objData`.
 
-### Tasks
+### Message
+
+Messages are translated to ephemeral consumed resources (received messages) or ephemeral created resources (sent messages). All message data is stored in the resource label - this ensures that sent and received messages match, due to the balance check in the Anoma Resource Machine.
+
+### Task
 
 - `Task` in `AVM/Task.lean`
 - A Task is an intermediate data structure into which class member and multi-method calls are translated.
 - Consists of:
   - `Params : Type`. Type of Task parameters - objects to fetch from the Anoma system and new object ids to generate.
-  - `message : Params → Option Message`. The message to send.
+  - `message : Message`. The message to send.
   - `actions : Params → List Action`. Task actions - Resource Machine actions to perform parameterised by fetched objects and new object ids.
-- A Task us translated into an Anoma Program which:
+- A Task is translated into an Anoma Program which:
   1. Fetches the objects and generates object ids specified by `Params`.
   2. Submits a transaction with actions:
   	- an action with one created resource corresponding to `message`,
@@ -264,12 +270,24 @@ Resource data check `checkDataEq(res,objData)` compares a resource `res` against
 
 Tasks `<Params1, message1, actions1>, .., <ParamsN, messageN, actionsN>` can be composed with a new message `msg` and action `act` to create a task `<Params, message, actions>` such that:
 - `Params := Params1 ++ .. ++ ParamsN`,
-- `message params1 .. paramsN := message1 params1 ++ .. ++ messageN paramsN`,
+- `message := msg`,
 - `actions params1 .. paramsN := act :: actions1 params1 ++ .. ++ actionsN paramsN`.
+Typically, `act` has among created resources the message resources for `message1, .., messageN`.
 
-### Member calls
+### Member calls - message sending
 
-Calls to class members (constructor, destructor or method calls) and multi-methods are first translated into Tasks - one Task per call. The Task is composed from sub-tasks generated for the nested calls in the body program of the class member / multi-method, a message corresponding to the called member, and an action implementing the changes to selves and creation of objects specified by the member body.
+Calls to class members (constructor, destructor or method calls) and multi-methods are first translated into Tasks - one Task per call. The Task is composed from sub-tasks generated for the nested calls in the body program of the class member / multi-method, a message corresponding to the called member, and an action sending the sub-task messages and implementing the changes to selves and creation of objects specified by the member body.
+
+#### Message logics
+A message logic is a logic for a specific message (corresponding to a member call):
+
+- constructor,
+- destructor,
+- method,
+- multi-method,
+- upgrade.
+
+The message logics check the constraints for the corresponding member call, i.e., that the object resource in the action was modified correctly according to the member's code.
 
 #### Example
 
@@ -297,12 +315,51 @@ method TwoCounter.MutualIncrement (self : TwoCounter) (n : Nat) : Program TwoCou
 ⟫
 ```
 
-TODO
+The Task generated for `Counter.Incr` is:
+- parameters: `self : Counter`
+- message: `Counter.Incr(self.id, n)`
+- action:
+  - consumed resources:
+    - object resource for `self`,
+    - message resource for `Counter.Incr(self.id, n)`
+  - created resources:
+    - object resource for `{self with count := self.count + n}`.
 
-#### Compliance Units
+The message logic for `Counter.Incr` checks if there is exactly one consumed object resource `self`, and exactly one created object resource `self'` with `self' = {self with count := self.count + n}`. The argument `n` is stored in the message resource.
+
+The Task generated for `TwoCounter.MutualIncrement` composes the Tasks for the two calls to `Counter.Incr` with an action that sends the messages (has them as created resources) to the sub-objects and checks the constraints on the `self : TwoCounter` object.
+- parameters: `self : TwoCounter, c1 : Counter, c2 : Counter`
+- message: `TwoCounter.MutualIncrement(self.id, n)`
+- actions:
+  1. action for the call to `Counter.Incr` on `self.cnt1`:
+	- consumed resources:
+    	- object resource for `c1`
+    	- message resource for `Counter.Incr(c1.id, c1.count * n + c2.count)`
+    - created resources:
+    	- object resource for `{c1 with count := c1.count + c1.count * n + c2.count}`
+  2. action for the call to `Counter.Incr` on `self.cnt2`:
+	- consumed resources:
+    	- object resource for `c2`
+    	- message resource for `Counter.Incr(c2.id, c2.count * n + c1.count)`
+    - created resources:
+    	- object resource for `{c2 with count := c2.count + c2.count * n + c1.count}`
+  3. action for `TwoCounter.MutualIncrement`:
+	- consumed resources:
+    	- object resource for `self`
+    	- message resource for `TwoCounter.MutualIncrement(n)`
+	- created resources:
+    	- object resource for `self`
+    	- message resources for `Counter.Incr(c1.id, c1.count * n + c2.count)` and `Counter.Incr(c2.id, c2.count * n + c1.count)`
+
+The message logic for `TwoCounter.MutualIncrement` checks if there is exactly one consumed object resource `self`, and exactly one created object resource `self'` with `self' = self`.
+
+#### Technical details
+In the description above, we elided some technical details not essential to the idea of translation, but necessary to implement it correctly for the Anoma Resource Machine.
+
+##### Compliance Units
 The generated actions consist of lists of Compliance Units. A Compliance Unit has exactly one consumed and one created resource. To ensure matching numbers of consumed and created resources, dummy ephemeral resources with quantity 0 are put in as placeholders in compliance units.
 
-#### Dummy Resource
+##### Dummy Resource
 Dummy Resource has the unique dummy label and the always-true resource logic.
 
 - `dummyResource` in `AVM/Action/DummyResource.lean`.
@@ -314,7 +371,7 @@ Dummy Resource has the unique dummy label and the always-true resource logic.
 - Resource Logic of the Dummy Resource is always true.
 - Dummy Resource uses the universal key commitment.
 
-#### Action partitioning
+##### Action partitioning
 An Action can be considered to contain lists of consumed and created non-dummy resources. We partition Actions into Compliance Units as follows.
 
 - We put every non-dummy consumed resource in a separate compliance unit with a created Dummy Resource.
@@ -322,27 +379,16 @@ An Action can be considered to contain lists of consumed and created non-dummy r
 - See: `AVM/Action.lean`.
 In what follows, when referring to consumed and created resources of an Action, we implicitly ignore Dummy Resources.
 
-#### Message logics
-A message logic is a logic for a specific message (corresponding to a member call):
-
-- constructor,
-- destructor,
-- method,
-- multi-method,
-- upgrade.
-
-The message logics check the constraints for the corresponding member call.
-
 ### Constructor
 
 #### Constructor call
 Constructor calls are translated to Tasks. The task for a call to a constructor `constr` with arguments `args : constr.Args` is specified by the following.
 
-- `Class.Constructor.task` in `AVM/Class/Translation.lean`.
+- `Class.Constructor.task'` in `AVM/Class/Translation/Tasks.lean`.
 - Consumed resources:
-	- one ephemeral resource corresponding to the created object `constr.created args`.
+	- one ephemeral object resource corresponding to the created object `constr.created args`.
 - Created resources:
-	- one persistent resource corresponding to the created object `constr.created args`.
+	- one persistent object resource corresponding to the created object `constr.created args`.
 
 #### Constructor member logic
 Constructor member logic is the member logic executed for the consumed ephemeral resource in the transaction for a constructor call. Constructor logic is implemented in `Class.Constructor.logic` in `AVM/Class/Translation.lean`.
