@@ -94,6 +94,6 @@ end MultiMethodResult
 
 structure Ecosystem.MultiMethod {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type 1 where
   /-- Computes the result of a multiMethod call. See `MultiMethodResult`. -/
-  body (selves : multiId.Selves) (args : multiId.Args.type) : Program.{1} lab (MultiMethodResult multiId)
+  body (selves : multiId.Selves) (args : multiId.Args.type) : Program.{1} lab.toScope (MultiMethodResult multiId)
   /-- Extra multiMethod logic. -/
   invariant (selves : multiId.Selves) (args : multiId.Args.type) (signatures : multiId.Signatures args) : Bool

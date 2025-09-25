@@ -6,79 +6,82 @@ namespace Applib
 
 open AVM
 
-inductive Program (lab : Ecosystem.Label) : (ReturnType : Type u) → Type (u + 1) where
+inductive Program (lab : Scope.Label) : (α : Type u) → Type (u + 1) where
   | create
-    {ReturnType : Type u}
-    (C : Type)
-    (cid : lab.ClassId)
+    {α : Type u}
+    (eid : lab.EcosystemId)
+    (cid : eid.label.ClassId)
     (constrId : cid.label.ConstructorId)
     (args : constrId.Args.type)
     (signatures : constrId.Signatures args)
-    (next : ObjectId → Program lab ReturnType)
-    : Program lab ReturnType
+    (next : ObjectId → Program lab α)
+    : Program lab α
   | destroy
-    {ReturnType : Type u}
-    (cid : lab.ClassId)
+    {α : Type u}
+    (eid : lab.EcosystemId)
+    (cid : eid.label.ClassId)
     (destrId : cid.label.DestructorId)
     (selfId : ObjectId)
     (args : destrId.Args.type)
     (signatures : destrId.Signatures args)
-    (next : Program lab ReturnType)
-    : Program lab ReturnType
+    (next : Program lab α)
+    : Program lab α
   | call
-    {ReturnType : Type u}
-    (cid : lab.ClassId)
+    {α : Type u}
+    (eid : lab.EcosystemId)
+    (cid : eid.label.ClassId)
     (methodId : cid.label.MethodId)
     (selfId : ObjectId)
     (args : methodId.Args.type)
     (signatures : methodId.Signatures args)
-    (next : Program lab ReturnType)
-    : Program lab ReturnType
+    (next : Program lab α)
+    : Program lab α
   | multiCall
-    {ReturnType : Type u}
-    (multiId : lab.MultiMethodId)
+    {α : Type u}
+    (eid : lab.EcosystemId)
+    (multiId : eid.label.MultiMethodId)
     (selves : multiId.SelvesIds)
     (args : multiId.Args.type)
     (signatures : multiId.Signatures args)
-    (next : Program lab ReturnType)
-    : Program lab ReturnType
+    (next : Program lab α)
+    : Program lab α
   | upgrade
-    {ReturnType : Type u}
-    (classId : lab.ClassId)
+    {α : Type u}
+    (eid : lab.EcosystemId)
+    (classId : eid.label.ClassId)
     (selfId : ObjectId)
     (objData : SomeObjectData)
-    (next : Program lab ReturnType)
-    : Program lab ReturnType
+    (next : Program lab α)
+    : Program lab α
   | fetch
-    {ReturnType : Type u}
+    {α : Type u}
     (C : Type)
     [i : IsObject C]
     (objId : ObjectId)
-    (next : C → Program lab ReturnType)
-    : Program lab ReturnType
+    (next : C → Program lab α)
+    : Program lab α
   | invoke
-    {ReturnType : Type u}
     {α : Type u}
-    (prog : Program lab α)
-    (next : α → Program lab ReturnType)
-    : Program lab ReturnType
+    (prog : Program lab β)
+    (next : β → Program lab α)
+    : Program lab α
   | return
-    {ReturnType : Type u}
-    (val : ReturnType)
-    : Program lab ReturnType
+    {α : Type u}
+    (val : α)
+    : Program lab α
 
-def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program lab ReturnType :=
+def Program.toAVM {lab : Scope.Label} {α} (prog : Program lab α) : AVM.Program lab α :=
   match prog with
-  | .create _ cid constrId args signatures next =>
-    .constructor cid constrId args signatures (fun objId => toAVM (next objId))
-  | .destroy cid destrId selfId args signatures next =>
-    .destructor cid destrId selfId args signatures (toAVM next)
-  | .call cid methodId selfId args signatures next =>
-    .method cid methodId selfId args signatures (toAVM next)
-  | .multiCall multiId selves args signatures next =>
-    .multiMethod multiId selves args signatures (toAVM next)
-  | .upgrade classId selfId obj next =>
-    .upgrade classId selfId obj (toAVM next)
+  | .create eid cid constrId args signatures next =>
+    .constructor eid cid constrId args signatures (fun objId => toAVM (next objId))
+  | .destroy eid cid destrId selfId args signatures next =>
+    .destructor eid cid destrId selfId args signatures (toAVM next)
+  | .call eid cid methodId selfId args signatures next =>
+    .method eid cid methodId selfId args signatures (toAVM next)
+  | .multiCall eid multiId selves args signatures next =>
+    .multiMethod eid multiId selves args signatures (toAVM next)
+  | .upgrade eid classId selfId obj next =>
+    .upgrade eid classId selfId obj (toAVM next)
   | @fetch _ _ _ i objId next =>
     .fetch (classId := i.classId) objId (fun obj => toAVM (next (i.fromObject obj.data)))
   | .invoke p next =>
@@ -86,18 +89,18 @@ def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program
   | .return val =>
     .return val
 
-def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Program lab A) : Program lab B :=
+def Program.map {lab : Scope.Label} {A B : Type} (f : A → B) (prog : Program lab A) : Program lab B :=
   match prog with
-  | .create C cid constrId args signatures next =>
-    .create C cid constrId args signatures (fun x => map f (next x))
-  | .destroy cid destrId selfId args signatures next =>
-    .destroy cid destrId selfId args signatures (map f next)
-  | .call cid methodId selfId args signatures next =>
-    .call cid methodId selfId args signatures (map f next)
-  | .multiCall multiId selvesIds args signatures next =>
-    .multiCall multiId selvesIds args signatures (map f next)
-  | .upgrade classId selfId obj next =>
-    .upgrade classId selfId obj (map f next)
+  | .create eid cid constrId args signatures next =>
+    .create eid cid constrId args signatures (fun x => map f (next x))
+  | .destroy eid cid destrId selfId args signatures next =>
+    .destroy eid cid destrId selfId args signatures (map f next)
+  | .call eid cid methodId selfId args signatures next =>
+    .call eid cid methodId selfId args signatures (map f next)
+  | .multiCall eid multiId selvesIds args signatures next =>
+    .multiCall eid multiId selvesIds args signatures (map f next)
+  | .upgrade eid classId selfId obj next =>
+    .upgrade eid classId selfId obj (map f next)
   | @fetch _ _ C _ objId next =>
     .fetch C objId (fun x => map f (next x))
   | .invoke p next =>
@@ -106,62 +109,96 @@ def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Progr
     .return (f val)
 
 def Program.create'
-  {ReturnType}
+  {α}
+  {lab : Scope.Label}
+  {eid : lab.EcosystemId}
   (C : Type)
   [i : IsObject C]
+  (inScope : eid.label = i.label := by rfl)
   (constrId : i.classId.label.ConstructorId)
   (args : constrId.Args.type)
   (signatures : constrId.Signatures args)
-  (next : Reference C → Program i.label ReturnType)
-  : Program i.label ReturnType :=
-  Program.create C i.classId constrId args signatures (fun objId => next ⟨objId⟩)
+  (next : Reference C → Program lab α)
+  : Program lab α := by
+  -- TODO simplify
+  refine Program.create eid ?_ ?_ ?_ ?_ (fun objId => next ⟨objId⟩)
+  exact cast (by grind) i.classId;
+  exact cast (by grind) constrId
+  exact cast (by grind) args
+  exact cast (by grind) signatures
 
 def Program.destroy'
-  {ReturnType}
+  {α}
+  {lab : Scope.Label}
+  {eid : lab.EcosystemId}
   {C : Type}
   (r : Reference C)
   [i : IsObject C]
+  (inScope : eid.label = i.label := by rfl)
   (destrId : i.classId.label.DestructorId)
   (args : destrId.Args.type)
   (signatures : destrId.Signatures args)
-  (next : Program i.label ReturnType)
-  : Program i.label ReturnType :=
-  Program.destroy i.classId destrId r.objId args signatures next
+  (next : Program lab α)
+  : Program lab α := by
+  refine Program.destroy eid ?_ ?_ r.objId ?_ ?_ next
+  exact cast (by grind) i.classId;
+  exact cast (by grind) destrId
+  exact cast (by grind) args
+  exact cast (by grind) signatures
 
 def Program.call'
-  {ReturnType}
+  {α}
   {C : Type}
+  {lab : Scope.Label}
   (r : Reference C)
   [i : IsObject C]
+  (inScope : i.label ∈ lab)
   (methodId : i.classId.label.MethodId)
   (args : methodId.Args.type)
   (signatures : methodId.Signatures args)
-  (next : Program i.label ReturnType)
-  : Program i.label ReturnType :=
-  Program.call i.classId methodId r.objId args signatures next
+  (next : Program lab α)
+  : Program lab α := by
+  rcases inScope with ⟨eid, p⟩
+  refine Program.call eid ?_ ?_ r.objId ?_ ?_ next
+  exact cast (by grind) i.classId;
+  exact cast (by grind) methodId
+  exact cast (by grind) args
+  exact cast (by grind) signatures
 
 def Program.upgrade'
-  {ReturnType}
+  {α}
   {C C' : Type}
+  {lab : Scope.Label}
+  {eid : lab.EcosystemId}
   (r : Reference C)
   [i : IsObject C]
   [i' : IsObject C']
+  (inScope : eid.label = i.label := by rfl)
   (c' : C')
-  (next : Program i.label ReturnType)
-  : Program i.label ReturnType :=
-  Program.upgrade i.classId r.objId (i'.toObject c' |>.toSomeObjectData) next
+  (next : Program lab α)
+  : Program lab α := by
+  refine Program.upgrade eid ?_ r.objId (i'.toObject c' |>.toSomeObjectData) next
+  exact cast (by grind) i.classId;
 
 def Program.multiCall'
   {α}
-  {lab : Ecosystem.Label}
-  (multiId : lab.MultiMethodId)
+  {lab : Scope.Label}
+  {eid : lab.EcosystemId}
+  (multiId : eid.label.MultiMethodId)
   (selves : multiId.SelvesReferences)
   (args : multiId.Args.type)
   (signatures : multiId.Signatures args)
   (next : Program lab α)
   : Program lab α :=
   let selves' : multiId.SelvesIds := fun x => selves x |>.ref.objId
-  multiCall multiId selves' args signatures next
+  multiCall eid multiId selves' args signatures next
 
-def Program.fetch' {ReturnType} {lab : Ecosystem.Label} {C : Type} (r : Reference C) [i : IsObject C] (next : C → Program lab ReturnType) : Program lab ReturnType :=
+def Program.fetch'
+  {α}
+  {lab : Scope.Label}
+  {C : Type}
+  (r : Reference C)
+  [i : IsObject C]
+  (next : C → Program lab α)
+  : Program lab α :=
   Program.fetch C r.objId next
