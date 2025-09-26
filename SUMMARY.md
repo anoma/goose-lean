@@ -10,8 +10,8 @@ A high-level summary description of GOOSE v0.3.0. The description intentionally 
 		- [Class.Label](#classlabel)
 		- [Ecosystem.Label](#ecosystemlabel)
 		- [Object](#object)
-	- [ObjectData](#objectdata)
-	- [MessageId](#messageid)
+		- [ObjectData](#objectdata)
+		- [MessageId](#messageid)
 		- [Message](#message)
 		- [Constructor](#constructor)
 		- [Destructor](#destructor)
@@ -180,11 +180,11 @@ Action sending the call messages:
 	- private fields,
     - nonce – ensures the uniqueness of resource commitment and nullifier.
 
-## ObjectData
+### ObjectData
 - `ObjectData` in `AVM/Object.lean`
 - Consists of `label`, `quantity` and private fields of the object.
 
-## MessageId
+### MessageId
 - Implemented with `MemberId` in `AVM/Ecosystem/Label/Base.lean` and `Label.MemberId` in `AVM/Class/Label.lean`.
 - A unique message identifier which also specifies the type of the message (the high-level AVM concept the message implements):
   - `constructorId : (label : Class.Label) -> label.ConstructorId -> MessageId`,
