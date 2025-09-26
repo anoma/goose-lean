@@ -265,7 +265,7 @@ partial def Ecosystem.Label.MultiMethodId.task'
               uid := nonce.value
               rand := r
               : CreatedObject })
-              ++ res.assembled.withOldUidList.zipWith rands.reassembledNewUidRands.toList (f := fun obj r =>
+              ++ res.assembled.withOldUidList.zipWith rands.reassembledOldUidRands.toList (f := fun obj r =>
             { label := lab
               classId := obj.arg.classId
               data := obj.objectData
