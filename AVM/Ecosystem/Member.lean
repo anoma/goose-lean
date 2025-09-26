@@ -65,8 +65,8 @@ structure MultiMethodResult {lab : Ecosystem.Label} (multiId : lab.MultiMethodId
   /-- For each object argument (self) we specify its `DeconstructionKind`. -/
   argDeconstruction : multiId.ObjectArgNames → DeconstructionKind
   /-- List of assembled objects. Assembled objects will be created. It is the
-        responsibility of the user to ensure that assembled objects balance with
-        the object arguments (selves) that are disassembled -/
+    responsibility of the user to ensure that assembled objects balance with the
+    object arguments (selves) that are disassembled -/
   assembled : Assembled argDeconstruction
   /-- List of constructed objects. Constructed objects will be balanced with automatically generated ephemeral resources -/
   constructed : List ObjectValue := []
