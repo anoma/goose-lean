@@ -31,7 +31,7 @@ syntax colGe withPosition("destroy " ident term) optSemicolon(program) : program
 syntax colGe withPosition("destroy " ident term " signed " term) optSemicolon(program) : program
 syntax colGe "call " ident term : program
 syntax colGe "call " ident term " signed " term : program
-syntax colGe withPosition("call " ident term) optSemicolon(program) : program
+syntax colGe withPosition("call[" term "] " ident term) optSemicolon(program) : program
 syntax colGe withPosition("call " ident term " signed " term) optSemicolon(program) : program
 syntax colGe "multiCall " ident term : program
 syntax colGe "multiCall " ident term " signed " term : program
@@ -90,8 +90,8 @@ macro_rules
     `(Program.call' $e $m $args unsigned (Program.return ()))
   | `(⟪call $m:ident $e:term $args:term signed $signatures⟫) =>
     `(Program.call' $e $m $args $signatures (Program.return ()))
-  | `(⟪call $m:ident $e:term $args:term ; $p:program⟫) =>
-    `(Program.call' $e $m $args unsigned (⟪$p⟫))
+  | `(⟪call[$eid:term] $m:ident $e:term $args:term ; $p:program⟫) =>
+    `(Program.call' (inScope := {eid := $eid}) $e $m $args unsigned (⟪$p⟫))
   | `(⟪call $m:ident $e:term $args:term signed $signatures ; $p:program⟫) =>
     `(Program.call' $e $m $args $signatures (⟪$p⟫))
   | `(⟪multiCall $m:ident $selves:term $args:term⟫) =>

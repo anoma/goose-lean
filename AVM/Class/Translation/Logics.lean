@@ -15,8 +15,8 @@ private def Constructor.Message.logicFun
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
   check h : msg.id == .classMember (Label.MemberId.constructorId constrId)
-  let argsData := cast (by simp! [eq_of_beq h]) msg.args
-  let signatures := cast (by grind only) msg.signatures
+  let argsData : constrId.Args.type := cast (by simp! [eq_of_beq h]) msg.args
+  let signatures : constrId.Signatures argsData := cast (by grind only) msg.signatures
   let try vals : (constr.body argsData).params.Product := tryCast msg.vals
   let newObjData := constr.body argsData |>.value vals
   let consumedResObjs := Logic.selectObjectResources args.consumed

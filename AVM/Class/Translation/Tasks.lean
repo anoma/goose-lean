@@ -2,6 +2,7 @@ import Mathlib.Control.Random
 import Anoma
 import AVM.Tasks
 import AVM.Ecosystem
+import AVM.Scope
 import AVM.Class.Translation.Messages
 import AVM.Action
 
@@ -53,44 +54,49 @@ private partial def Body.tasks'
   (adjust : AdjustFun)
   {α β : Type 1}
   [Inhabited β]
-  {lab : Ecosystem.Label}
-  (eco : Ecosystem lab)
+  {lab : Scope.Label}
+  (scope : Scope lab)
   (body : Program lab α)
   (cont : α → AdjustFun → Tasks (TasksResult .empty β))
   : Tasks (TasksResult body.params β) :=
   match body with
-  | .constructor classId constrId args signatures next =>
+  | .constructor ecoId classId constrId args signatures next =>
+    let eco := scope.ecosystems ecoId
     let constr := eco.classes classId |>.constructors constrId
     Tasks.rand fun newId => Tasks.rand fun r =>
       let task := constr.task' adjust eco newId r args signatures
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) eco (next newId) cont
+        Body.tasks' (task.adjust vals) scope (next newId) cont
         |>.map (fun res => ⟨res.value, res.adjust, ⟨newId, res.bodyParameterValues⟩⟩)
-  | .destructor classId destrId selfId args signatures next =>
+  | .destructor ecoId classId destrId selfId args signatures next =>
+    let eco := scope.ecosystems ecoId
     let destr := eco.classes classId |>.destructors destrId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := destr.task' adjust eco r (adjust self) args signatures
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) eco next cont
-  | .method classId methodId selfId args signatures next =>
+        Body.tasks' (task.adjust vals) scope next cont
+  | .method ecoId classId methodId selfId args signatures next =>
+    let eco := scope.ecosystems ecoId
     let method := eco.classes classId |>.methods methodId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := method.task' adjust eco r (adjust self) args signatures
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) eco next cont
-  | .multiMethod multiId selvesIds args signatures next =>
+        Body.tasks' (task.adjust vals) scope next cont
+  | .multiMethod ecoId multiId selvesIds args signatures next =>
+    let eco := scope.ecosystems ecoId
     Tasks.fetchSelves selvesIds fun selves =>
       let task := multiId.task' adjust eco (fun x => adjust (selves x)) args signatures
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) eco next cont
-  | .upgrade classId selfId objData next =>
+        Body.tasks' (task.adjust vals) scope next cont
+  | .upgrade ecoId classId selfId objData next =>
+    let eco := scope.ecosystems ecoId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := Class.Upgrade.task' (classId := classId) adjust eco r (adjust self) objData
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) eco next cont
+        Body.tasks' (task.adjust vals) scope next cont
   | .fetch objId next =>
     Tasks.fetch objId fun obj =>
-      Body.tasks' adjust eco (next (adjust obj)) cont
+      Body.tasks' adjust scope (next (adjust obj)) cont
       |>.map (fun res => ⟨res.value, res.adjust, ⟨adjust obj, res.bodyParameterValues⟩⟩)
   | .return val =>
     cont val adjust
@@ -99,15 +105,15 @@ private partial def Body.task'
   {α β : Type 1}
   [i : Inhabited β]
   (adjust : AdjustFun)
-  {lab : Ecosystem.Label}
-  (eco : Ecosystem lab)
+  {lab : Scope.Label}
+  (scope : Scope lab)
   (body : Program lab α)
   (cont : α → AdjustFun → Tasks (TasksResult .empty β))
   (mkActionData : β → ActionData)
   (mkMessage : body.params.Product → β → SomeMessage)
   : Task' :=
   let tasks : Tasks (TasksResult body.params β) :=
-    Body.tasks' adjust eco body cont
+    Body.tasks' adjust scope body cont
   let task :=
     Tasks.composeWithMessage
       tasks
@@ -141,7 +147,7 @@ private partial def Class.Constructor.task'
   (args : constrId.Args.type)
   (signatures : constrId.Signatures args)
   : Task' :=
-  let body : Program.{1} lab (ULift (ObjectData classId)) := constr.body args |>.lift
+  let body : Program.{1} lab.toScope (ULift (ObjectData classId)) := constr.body args |>.lift
   let mkActionData (newObjectData : ULift (ObjectData classId)) : ActionData :=
     let newObj : SomeObject :=
       let obj : Object classId :=
@@ -156,7 +162,7 @@ private partial def Class.Constructor.task'
       created := createdObjects }
   let mkMessage (vals : body.params.Product) _ : SomeMessage :=
     constr.message ⟨body.params.Product⟩ vals newId args signatures
-  Body.task' adjust eco body mkReturn mkActionData mkMessage
+  Body.task' adjust eco.toScope body mkReturn mkActionData mkMessage
 
 /-- Creates a Task for a given object destructor. -/
 private partial def Class.Destructor.task'
@@ -171,7 +177,7 @@ private partial def Class.Destructor.task'
   (args : destructorId.Args.type)
   (signatures : destructorId.Signatures args)
   : Task' :=
-  let body : Program.{1} lab (ULift Unit) := destructor.body self args |>.lift
+  let body : Program.{1} lab.toScope (ULift Unit) := destructor.body self args |>.lift
   let mkActionData (_ : ULift Unit) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let createdObjects : List CreatedObject :=
@@ -183,7 +189,7 @@ private partial def Class.Destructor.task'
       created := createdObjects }
   let mkMessage (vals : body.params.Product) _ : SomeMessage :=
     destructor.message ⟨body.params.Product⟩ vals self.uid args signatures
-  Body.task' adjust eco body mkReturn mkActionData mkMessage
+  Body.task' adjust eco.toScope body mkReturn mkActionData mkMessage
 
 /-- Creates a Task for a given method. -/
 private partial def Class.Method.task'
@@ -198,7 +204,7 @@ private partial def Class.Method.task'
   (args : methodId.Args.type)
   (signatures : methodId.Signatures args)
   : Task' :=
-  let body : Program.{1} lab (ULift (Object classId)) := method.body self args |>.lift
+  let body : Program.{1} lab.toScope (ULift (Object classId)) := method.body self args |>.lift
   let mkActionData (lobj : ULift (Object classId)) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let obj : Object classId := lobj.down
@@ -211,7 +217,7 @@ private partial def Class.Method.task'
       created := [createdObject] }
   let mkMessage (vals : body.params.Product) _ : SomeMessage :=
     method.message ⟨body.params.Product⟩ vals self.uid args signatures
-  Body.task' adjust eco body mkReturn mkActionData mkMessage
+  Body.task' adjust eco.toScope body mkReturn mkActionData mkMessage
 
 private partial def Class.Upgrade.task'
   (adjust : AdjustFun)
@@ -233,7 +239,7 @@ private partial def Class.Upgrade.task'
       created := [createdObject] }
   let mkMessage (_ : PUnit) _ : SomeMessage :=
     Class.Upgrade.message classId self.uid
-  Body.task' adjust eco (.return PUnit.unit) mkReturn mkActionData mkMessage
+  Body.task' adjust eco.toScope (.return PUnit.unit) mkReturn mkActionData mkMessage
 
 partial def Ecosystem.Label.MultiMethodId.task'
   (adjust : AdjustFun)
@@ -304,7 +310,7 @@ partial def Ecosystem.Label.MultiMethodId.task'
   let mkMessage (vals : body.params.Product) (tasksRes : MultiTasksResult multiId) : SomeMessage :=
     ⟨(eco.multiMethods multiId).message selves args signatures vals tasksRes.res.data tasksRes.rands⟩
 
-  Body.task' adjust eco body mkResult mkActionData mkMessage
+  Body.task' adjust eco.toScope body mkResult mkActionData mkMessage
 
 end -- mutual
 
@@ -312,8 +318,8 @@ end -- mutual
 def Member.Body.tasks
   {α : Type 1}
   [Inhabited α]
-  {lab : Ecosystem.Label}
-  (eco : Ecosystem lab)
+  {lab : Scope.Label}
+  (scope : Scope lab)
   (prog : Program lab α)
   : Tasks α :=
-  Body.tasks' id eco prog mkReturn |>.map TasksResult.value
+  Body.tasks' id scope prog mkReturn |>.map TasksResult.value
