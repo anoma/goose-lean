@@ -57,15 +57,15 @@ The Anoma Virtual Machine (AVM) data structures provide an object-oriented abstr
 
 The translation from AVM to the Resource Machine (RM) relies on the static nature of AVM programs. Each object is compiled to a single resource, tagged with its class and ecosystem metadata. Constructor, destructor, method and multi-method calls are translated into message sends. Each message is implemented with a single message resource. The transactions generated for each call consist of a number of actions, one per object. The messages received by the object are consumed in the action, the messages sent by it are created. The Resource Logics (RLs) of the message resources implement the checks corresponding to the code of the class member operations and multi-methods.
 
-Because all class member operations and multi-methods are known statically, appropriate RL for the message resources can be automatically generated the code. In addition to RLs for messages, a single Resource Logic is generated for each class and associated with each object of the class - it checks if the messages sent to the object correspond to statically known member operations or multi-methods.
+Because all class member operations and multi-methods are known statically, appropriate RLs for the message resources can be automatically generated from the code. In addition to RLs for messages, a Resource Logic is generated for each class (the class logic) and associated with each object of the class - it checks if the messages sent to the object correspond to statically known member operations or multi-methods.
 
 ## Anoma Programs
 
 Anoma programs are an abstraction that reifies the local domain, solver and controller (see [related forum post](https://forum.anoma.net/t/reifying-the-local-domain-solver-and-controller-in-the-avm)). Anoma programs deal with Resource Machine data structures (resources, transactions, etc.). Anoma programs are a low-level compilation target for the AVM programs which deal with higher-level AVM data structures - objects, methods, classes, etc.
 
 An Anoma program consists of a list of statements of the following form.
+- `submitTransaction : Transaction -> Unit`. Submit an Anoma transaction to the Anoma Resource Machine.
 - `queryResource : ObjectId -> Resource`. Queries a resource by ID from the Anoma Resource Machine. This is an abstraction over the Resource Machine - we elide how / where resources are stored exactly.
-- `submitTransaction : Transaction -> Unit`. Submit an Anoma transaction to the Resource Machine.
 - `genRand : Unit -> Nat`. Generate a random number.
 
 Relevant file: `Anoma/Program.lean`.
@@ -87,17 +87,61 @@ Relevant files: `Applib/Surface/Program.lean`, `AVM/Program.lean`.
 
 Example - mutual increment program:
 ```
-def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
-  x := fetch rx
-  y := fetch ry
-  call Counter.Incr rx (x.count * n + y.count)
-  call Counter.Incr ry (y.count * n + x.count)
+def mutualIncrement (rc1 rc2 : Reference Counter) (n : Nat) : Program Unit := ⟪
+  c1 := fetch rc1
+  c2 := fetch rc2
+  call Counter.Incr rc1 (c1.count * n + c2.count)
+  call Counter.Incr rc2 (c2.count * n + c1.count)
   return ()
 ⟫
 ```
 `Reference` is a typed wrapper over `ObjectId`.
 
 ## Translation overview
+
+The translation from AVM programs to Anoma programs can be summarized by the following phases.
+1. Move all object fetches and object id generation to the beginning of the program.
+2. For each class member or multi-method call create an action implementing the manipulations on `self` objects in the body. For example, a method `Counter.Incr` defined by
+```
+method Counter.Incr (self : Counter) (n : Nat) : Program Counter := ⟪
+  return {self with count := self.count + n}
+⟫
+```
+would result in an action with:
+  - one consumed object resource corresponding to `self`,
+  - one created object resource corresponding to `self` with the `count` field increased by `n`,
+  - one consumed message resource for `Counter.Incr` containing the `n` argument,
+  - created message resources for all nested calls.
+3. The previous points are applied recursively, resulting in a set of actions dependent on parameter values (fetched objects and generated object ids).
+4. The fetches and id generation at the beginning of the program are translated to `queryResource` and `genRand` Anoma program commands.
+5. The actions are grouped into a single transaction, together with an action that sends the messages corresponding to the calls in the program. The `submitTransaction` command submits this transaction in the resulting Anoma program.
+
+The message RLs check.
+
+For example, the AVM program `mutualIncrement` from the previous section is translated to the Anoma program performing the following.
+1. `c1 := queryResource rc1.id`
+2. `c2 := queryResource rc2.id`
+3. `submitTransaction tx` where `tx` consists of two actions corresponding to the two calls and an action sending the call messages.
+
+Action for the first call:
+- Consumed resources:
+  - object resource for `c1`,
+  - message resource for `Counter.Incr` with recipient `c1.id` and argument `c1.count * n + c2.count`.
+- Created resources:
+  - object resource for `{c1 with count := c1.count + c1.count * n + c2.count}`.
+
+Action for the second call:
+- Consumed resources:
+  - object resource for `c2`,
+  - message resource for `Counter.Incr` with recipient `c2.id` and argument `c2.count * n + c1.count`.
+- Created resources:
+  - object resource for `{c2 with count := c2.count + c2.count * n + c1.count}`.
+
+Action sending the call messages:
+- Consumed resources: none.
+- Created resources:
+  - message resource for `Counter.Incr` with recipient `c1.id` and argument `c1.count * n + c2.count`.
+  - message resource for `Counter.Incr` with recipient `c2.id` and argument `c2.count * n + c1.count`.
 
 ## AVM data structures
 
