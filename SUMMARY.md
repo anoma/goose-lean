@@ -16,8 +16,8 @@ A high-level summary description of GOOSE v0.3.0. The description intentionally 
 		- [Constructor](#constructor)
 		- [Destructor](#destructor)
 		- [Method](#method)
-		- [Class](#class)
 		- [MultiMethod](#multimethod)
+		- [Class](#class)
 		- [Ecosystem](#ecosystem)
 	- [AVM -\> RM translation](#avm---rm-translation)
 		- [Object](#object-1)
@@ -237,16 +237,6 @@ Action sending the call messages:
 	- `body : (self : Object) -> Args -> Program Object`. Method body program. The return value is the updated `self`.
 	- `invariant : (self : Object) -> Args -> Bool`. Extra method logic. The method message logic is a conjunction of auto-generated method logic and the extra method logic.
 
-### Class
-- `Class` in `AVM/Class.lean`
-- Represents a class of objects.
-- Consists of:
-	- `label : Class.Label`. Unique class label.
-	- `constructors : Set Class.Constructor`. Set of constructors. There is one constructor for each element of `label.ConstructorId`.
-	- `destructors : Set Class.Destructor`. Set of destructors. There is one destructor for each element of `label.DestructorId`.
-	- `methods : Set Class.Method`. Set of methods. There is one method for each element of `label.MethodId`.
-	- `invariant : (self : Object) -> Logic.Args -> Bool`. Extra class-specific logic. The class logic is the conjunction of the extra class logic and the member logics. `Logic.Args` is the type of Resource Logic arguments in the Anoma Resource Machine.
-
 ### MultiMethod
 - `MultiMethod` in `AVM/Ecosystem/Member.lean`
 - Represents a multi-method in an ecosystem. A multi-method operates on multiple `self` arguments – objects of classes in the ecosystem. The `self` arguments are consumed by the multi-method. There may be other arguments provided beside the `self` arguments.
@@ -263,6 +253,16 @@ Action sending the call messages:
 	- `invariant : (selves : List Object) -> Args -> Bool`. Extra multi-method logic. The multi-method message logic is a conjunction of the auto-generated multi-method logic and the extra multi-method logic.
 - `selves : List Object` in `body` and `invariant` above is a list of `self` arguments - objects whose classes are described by `label.MultiMethodSelves id`.
 - `selves = disassembled ++ destroyed`.
+
+### Class
+- `Class` in `AVM/Class.lean`
+- Represents a class of objects.
+- Consists of:
+	- `label : Class.Label`. Unique class label.
+	- `constructors : Set Class.Constructor`. Set of constructors. There is one constructor for each element of `label.ConstructorId`.
+	- `destructors : Set Class.Destructor`. Set of destructors. There is one destructor for each element of `label.DestructorId`.
+	- `methods : Set Class.Method`. Set of methods. There is one method for each element of `label.MethodId`.
+	- `invariant : (self : Object) -> Logic.Args -> Bool`. Extra class-specific logic. The class logic is the conjunction of the extra class logic and the member logics. `Logic.Args` is the type of Resource Logic arguments in the Anoma Resource Machine.
 
 ### Ecosystem
 - `Ecosystem` in `AVM/Ecosystem.lean`
