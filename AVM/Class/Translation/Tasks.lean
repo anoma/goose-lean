@@ -80,7 +80,8 @@ private partial def Body.tasks'
         Body.tasks' (task.adjust vals) eco next cont
   | .multiMethod multiId selvesIds args signatures next =>
     Tasks.fetchSelves selvesIds fun selves =>
-      let task := multiId.task' adjust eco (fun x => adjust (selves x)) args signatures
+      let method := eco.multiMethods multiId
+      let task := method.task' adjust eco (fun x => adjust (selves x)) args signatures
       Tasks.task task.task fun vals =>
         Body.tasks' (task.adjust vals) eco next cont
   | .upgrade classId selfId objData next =>
@@ -235,16 +236,16 @@ private partial def Class.Upgrade.task'
     Class.Upgrade.message classId self.uid
   Body.task' adjust eco (.return PUnit.unit) mkReturn mkActionData mkMessage
 
-partial def Ecosystem.Label.MultiMethodId.task'
+partial def Ecosystem.MultiMethod.task'
   (adjust : AdjustFun)
   {lab : Ecosystem.Label}
   (eco : Ecosystem lab)
   {multiId : lab.MultiMethodId}
+  (method : Ecosystem.MultiMethod multiId)
   (selves : multiId.Selves)
   (args : multiId.Args.type)
   (signatures : multiId.Signatures args)
   : Task' :=
-  let method := eco.multiMethods multiId
   let body := method.body selves args
 
   let mkResult (res : MultiMethodResult multiId) (adjust : AdjustFun) : Tasks (TasksResult .empty (MultiTasksResult multiId)) :=
@@ -302,7 +303,7 @@ partial def Ecosystem.Label.MultiMethodId.task'
         ensureUnique := rands.reassembledNewUidNonces.toList }
 
   let mkMessage (vals : body.params.Product) (tasksRes : MultiTasksResult multiId) : SomeMessage :=
-    ⟨(eco.multiMethods multiId).message selves args signatures vals tasksRes.res.data tasksRes.rands⟩
+    ⟨method.message selves args signatures vals tasksRes.res.data tasksRes.rands⟩
 
   Body.task' adjust eco body mkResult mkActionData mkMessage
 
