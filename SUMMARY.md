@@ -44,10 +44,10 @@ A high-level summary description of GOOSE v0.3.0. The description intentionally 
 		- [Upgrade](#upgrade)
 			- [Upgrade call](#upgrade-call)
 			- [Upgrade message logic](#upgrade-message-logic)
-		- [Class logic](#class-logic)
 		- [Multi-method](#multi-method)
 			- [Multi-method call](#multi-method-call)
 			- [Multi-method message logic](#multi-method-message-logic)
+		- [Class logic](#class-logic)
 	- [Translation issues and limitations](#translation-issues-and-limitations)
 	- [Implemented example apps](#implemented-example-apps)
 
@@ -539,24 +539,6 @@ Upgrade message logic performs the following checks.
 - `obj.id = self.id` and the class of `obj` is the same as the class of `self` but with higher version.
 - `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
 
-### Class logic
-Class logic is the logic associated with a class. Class logic is implemented in `Class.logic` in `AVM/Class/Translation/Logics.lean`.
-
-Class logic has access to RL arguments `logicArgs : Logic.Args` which contain the following.
-
-- `selfRes` consumed resource corresponding to the `self` object of this class.
-- `consumed : List Resource`. List of resources consumed in the action.
-- `created : List Resource`. List of resources created in the action.
-
-The `self` object is re-created from `selfRes`.
-
-Class logic for a class `cls` performs the following checks.
-
-- `consumed` contains exactly one message resource corresponding to a message `msg` in the ecosystem of the class.
-- `self.id` is in `msg.recipients`.
-- `msg.recipients.length` is equal to the number of object resources in `consumed`.
-- `cls.invariant self logicArgs` holds.
-
 ### Multi-method
 
 #### Multi-method call
@@ -615,6 +597,24 @@ Multi-method message logic for a multi-method `multiMethod` performs the followi
 - resources in `destroyedEph` are ephemeral.
 - resources in `constructed` are persistent.
 - `multiMethod.invariant selves msg.args` holds.
+
+### Class logic
+Class logic is the logic associated with a class. Class logic is implemented in `Class.logic` in `AVM/Class/Translation/Logics.lean`.
+
+Class logic has access to RL arguments `logicArgs : Logic.Args` which contain the following.
+
+- `selfRes` consumed resource corresponding to the `self` object of this class.
+- `consumed : List Resource`. List of resources consumed in the action.
+- `created : List Resource`. List of resources created in the action.
+
+The `self` object is re-created from `selfRes`.
+
+Class logic for a class `cls` performs the following checks.
+
+- `consumed` contains exactly one message resource corresponding to a message `msg` in the ecosystem of the class.
+- `self.id` is in `msg.recipients`.
+- `msg.recipients.length` is equal to the number of object resources in `consumed`.
+- `cls.invariant self logicArgs` holds.
 
 ## Translation issues and limitations
 
