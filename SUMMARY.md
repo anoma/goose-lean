@@ -48,7 +48,7 @@ A high-level summary description of GOOSE v0.3.0. The description intentionally 
 		- [Multi-method](#multi-method)
 			- [Multi-method call](#multi-method-call)
 			- [Multi-method message logic](#multi-method-message-logic)
-	- [Translation issues and limitaton](#translation-issues-and-limitaton)
+	- [Translation issues and limitations](#translation-issues-and-limitations)
 	- [Implemented example apps](#implemented-example-apps)
 
 ## Overview
@@ -157,7 +157,10 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
   - `vals : Vals`. Message parameter values. The message parameters are object resources and generated random values that are used in the body of the call associated with the message. These need to be provided in the message, because the associated Resource Logic cannot fetch object resources from the Anoma system or generate new object identifiers.
   - `id : MessageId`. The message ID.
   - `args : id.Args`. The arguments of the message, where `id.Args` is the type of arguments based on the message id. The message arguments are the non-self arguments of the corresponding member or multi-method call.
-  - `data : Option MultiMethodData`. Extra data for multi-methods which consists of lists of random values to be used as nonces and new object identifiers.
+  - `data : Option MultiMethodData`. Extra data for multi-methods which contains the numbers of:
+    - disassembled selves,
+    - destroyed selves,
+    - constructed objects.
   - `recipients : List ObjectId`. The recipients of the message.
 
 ### Constructor
@@ -203,6 +206,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 ### MultiMethod
 - `MultiMethod` in `AVM/Ecosystem/Member.lean`
 - Represents a multi-method in an ecosystem. A multi-method operates on multiple `self` arguments – objects of classes in the ecosystem. The `self` arguments are consumed by the multi-method. There may be other arguments provided beside the `self` arguments.
+- A multi-method can modify / re-assemble selves (disassemble and then assemble) or destroy them, and also construct new objects.
 - Consists of:
 	- `label : Ecosystem.Label` determines the multi-method's ecosystem.
 	- `id : label.MultiMethodId` determines the unique id of the funtion.
@@ -210,7 +214,7 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Unit := ⟪
 	- `body : (selves : List Object) -> Args -> Program MultiMethodResult`. The body of the multi-method. `MultiMethodResult` is a record which consists of:
 		- `disassembled : List Object`. List of disassembles selves. Disassembled object resources are balanced with the newly assembled objects (see `assembled` below). The `disassembled` list must be a sublist of `selves`.
 		- `destroyed : List Object`. List of destroyed selves. Destroyed object resources are balanced with automatically generated created ephemeral resources. The `destroyed` list must be a sublist of `selves`.
-		- `assembled : List Object`. List of assembled objects which are created as a result of the multi-method call. It is the responsibility of the user to ensure that assembled object resources balance with the disassembled selves.
+		- `assembled : List Object`. List of assembled objects into which disassembled objects are transformed as a result of the multi-method call. It is the responsibility of the user to ensure that assembled object resources balance with the disassembled selves.
 		- `constructed : List Object`. List of constructed objects. Constructed object resources are balanced with automatically generated consumed ephemeral resources.
 	- `invariant : (selves : List Object) -> Args -> Bool`. Extra multi-method logic. The multi-method message logic is a conjunction of the auto-generated multi-method logic and the extra multi-method logic.
 - `selves : List Object` in `body` and `invariant` above is a list of `self` arguments - objects whose classes are described by `label.MultiMethodSelves id`.
@@ -516,87 +520,84 @@ Multi-method calls are translated to Tasks. The task for a call to a multi-metho
 
 - `Ecosystem.MultiMethod.task'` in `AVM/Ecosystem/Translation/Tasks.lean`
 - Consumed resources:
-	- persistent resources corresponding to `selves`,
-	- persistent resources corresponding to the destroyed objects `(fun.body selves args).destroyed`,
-	- ephemeral resources corresponding to the constructed objects `(fun.body selves args).constructed`.
+	- persistent object resources corresponding to `selves` (these consist of disassmbled and destroyed object resources),
+	- ephemeral object resources corresponding to the constructed objects `(multiMethod.body selves args).result.constructed`.
+	- one ephemeral message resource for the received multi-method message, with message arguments set to `args`.
 - Created resources:
-	- persistent resources corresponding to the assembled objects `(fun.body selves args).assembled`,
-	- ephemeral resources corresponding to the destroyed objects `(fun.body selves args).destroyed`,
-	- persistent resources corresponding to the constructed objects `(fun.body selves args).constructed`,
-	- ephemeral resources corresponding to the destructed selves `(fun.body selves args).destructed`.
+	- persistent object resources corresponding to the assembled objects `(multiMethod.body selves args).result.assembled`,
+	- ephemeral object resources corresponding to the destroyed objects `(multiMethod.body selves args).result.destroyed`,
+	- persistent object resources corresponding to the constructed objects `(multiMethod.body selves args).result.constructed`,
+	- ephemeral message resources for all messages sent in the multi-method body (corresponding to nested calls).
 
 #### Multi-method message logic
-Function member logic is the member logic associated with a function. Function member logic is implemented in `Function.logic` in `AVM/Ecosystem/Translation.lean`.
+Multi-method message logic is the logic associated with the multi-method message. Multi-method message logic is implemented in `Ecosystem.MultiMethod.logic` in `AVM/Class/Translation/Logics.lean`.
 
-Function member logic has access to RL arguments which contain the following.
+Multi-method message logic has access to RL arguments which contain the following.
 
 - `consumed : List Resource`. List of resources consumed in the transaction.
 - `created : List Resource`. List of resources created in the transaction.
-- App Data containing the method call arguments `args` and the numbers of:
-  - selves,
-  - constructed objects,
-  - destroyed objects,
-  - destructed selves.
+- `msgRes : Resource`. The resource of the method message `msg`, which contains the method call arguments `args` and the `data` field with the numbers of:
+  - disassembled selves,
+  - destroyed selves,
+  - constructed objects.
 
-For a given function `fun`, we use the numbers stored in App Data to partition `consumed` into:
+For a given multi-method, we use the numbers stored in `msg.data` to partition the object resources in `consumed` into:
 
-- `assembledSelves` list of persistent resources corresponding to reassembled selves,
-- `destructedSelves` list of persistent resources corresponding to destructed selves,
-- `constructedEph` list of ephemeral resources corresponding to constructed objects,
-- `destroyed` list of persistent resources corresponding to destroyed obects.
+- `disassembledSelves` list of persistent object resources corresponding to disassembled selves,
+- `destroyedSelves` list of persistent object resources corresponding to destroyed selves,
+- `constructedEph` list of ephemeral object resources corresponding to constructed objects.
 
-We re-create the `selves` objects from `assembledSelves` and `destructedSelves`.
+We re-create the `selves` objects from `disassembledSelves` and `destroyedSelves`.
 
 Similarly, the `created` list is partitioned into:
 
-- `assembled` list of persistent resources corresponding to the selves reassembled in the function body,
-- `destructedEph` list of ephemeral resources corresponding to the selves destructed by the function,
-- `constructed` list of persistent resources corresponding to the objects constructed in the function body,
-- `destroyedEph` list of ephemeral resources corresponding to the objects destroyed in the function body.
+- `assembled` list of persistent object resources corresponding to the selves reassembled in the function body,
+- `destroyedEph` list of ephemeral object resources corresponding to the selves destroyed by the function,
+- `constructed` list of persistent object resources corresponding to the objects constructed in the function body.
 
-Function member logic for a function `fun` performs the following checks.
+Multi-method message logic for a multi-method `multiMethod` performs the following checks.
 
-- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip assembled (fun.body selves args).assembled`.
-- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destructedEph (fun.body selves args).destructed`.
-- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip constructed (fun.body selves args).constructed`.
-- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip constructedEph (fun.body selves args).constructed`.
-- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyed (fun.body selves args).destroyed`.
-- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyedEph (fun.body selves args).destroyed`.
+- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip assembled (multiMethod.body selves msg.args).result.assembled`.
+- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyedEph (multiMethod.body selves msg.args).result.destroyed`.
+- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip constructed (multiMethod.body selves msg.args).result.constructed`.
+- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip constructedEph (multiMethod.body selves msg.args).result.constructed`.
+- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyed (multiMethod.body selves args).result.destroyed`.
+- `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyedEph (multiMethod.body selves args).result.destroyed`.
 - resources in `assembledSelves` are persistent.
-- resources in `destructedSelves` are persistent.
+- resources in `destroyedSelves` are persistent.
 - resources in `constructedEph` are ephemeral.
 - resources in `destroyed` are persistent.
 - resources in `assembled` are persistent.
-- resources in `destructedEph` are ephemeral.
-- resources in `constructed` are persistent.
 - resources in `destroyedEph` are ephemeral.
-- `fun.invariant selves args` holds.
+- resources in `constructed` are persistent.
+- `multiMethod.invariant selves msg.args` holds.
 
-## Translation issues and limitaton
+## Translation issues and limitations
 
-TODO
-
+- The high-level object interface is not fully enforced:
+  - https://github.com/anoma/goose-lean/issues/103
+  - https://github.com/anoma/goose-lean/issues/104
 - Objects can be upgraded by anyone and no data preservation is checked on upgrade, except that the class version increases and the id is preserved. Hence, someone could upgrade an object to one with different essential fields, e.g., owner. We need some form of access control to limit object upgrade to the object owner or other authorized principals.
 
 ## Implemented example apps
 
 - Counter: `Apps/UniversalCounter.lean`.
 	- A universal counter which can be created with zero count and incremented by anyone.
-	- Demonstrates the use of ecosystem functions:
-		- mutual increment,
-		- absorption of a counter into another counter.
+	- Demonstrates the use of multi-methods:
+		- merging two counters to create a new one.
 - Owned counter: `Apps/OwnerCounter.lean`.
 	- Counter with ownership.
 	- Constructor: create with count zero.
 	- Destructor: destroy when count $\ge 10$.
 	- Methods: increment, transfer ownership.
+- TwoCounter: `Apps/TwoCounter.lean`
+    - TwoCounter is an object with two Counter sub-objects.
+    - Demonstrates the use of sub-objects and nested calls:
+        - incrementing both sub-object Counters in a TwoCounter.
 - Kudos: `Apps/Kudos.lean`.
 	- Kudos with ownership.
 	- Kudos token has: quantity, originator, owner.
-	- Operations: mint, burn, transfer, split, merge.
+	- Operations: mint, burn, transfer.
 - Kudos bank: `Apps/KudosBank.lean`.
 	- Kudos app implemented with a single object KudosBank which tracks all kudo balances.
 	- Operations: open, close, mint, burn, transfer.
-	- Functions:
-    	- cheques: issue, deposit.
-    	- auctions: new, bid, end.
