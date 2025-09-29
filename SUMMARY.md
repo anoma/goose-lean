@@ -116,7 +116,7 @@ would result in an action with:
 4. The fetches and id generation at the beginning of the program are translated to `queryResource` and `genRand` Anoma program commands.
 5. The actions are grouped into a single transaction, together with an action that sends the messages corresponding to the calls in the program. The `submitTransaction` command submits this transaction in the resulting Anoma program.
 
-The message RLs check.
+The message RLs check that the created object resources correspond to modifications of consumed object resources speficied by the bodies of corresponding class members or multi-methods, e.g., for methods the consumed object resource `self` is correctly updated into the created object resource.
 
 For example, the AVM program `mutualIncrement` from the previous section is translated to the Anoma program performing the following.
 1. `c1 := queryResource rc1.id`
