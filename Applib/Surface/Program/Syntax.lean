@@ -10,11 +10,8 @@ open Elab Tactic
 
 def elabClosedNat (t : Syntax) : TacticM Nat := do
   let e : Expr ← elabTermEnsuringType t (mkConst ``Nat)
-  let e ← instantiateMVars e
   Lean.Elab.Tactic.liftMetaMAtMain fun _ => do
-    let r ← Lean.Meta.reduceEval e
-    -- logInfo ("Reduced nat : " ++ toString r)
-    pure r
+    Lean.Meta.reduceEval e
 
 -- TODO rename and clean
 elab "solve" s:term : tactic => do
@@ -27,22 +24,16 @@ elab "solve" s:term : tactic => do
     let t ← `(tactic| try exact ⟨$labelId, by rfl⟩)
     evalTactic t
   for x in possibleIndices do
-    -- logInfo ("Attempt solve for i = " ++ toString x)
     solveN x
 
 -- TODO rename and clean
 elab "scoper" : tactic => do
    let tgt ← getMainTarget
-   let tgt ← instantiateMVars tgt
    let s ← Lean.Elab.Tactic.liftMetaMAtMain (α := Term) fun _ => do
      let tgt ← Lean.Meta.reduce tgt
      let x ← match tgt.getAppArgs with
-       | #[_label, scope] => do
-            -- logInfo ("Good goal:" ++ toString scope)
-            let tscope : Term ← (Elab.Term.exprToSyntax scope).run'
-            pure tscope
-       | e =>
-           throwError "Goal with the wrong shape: {e}"
+       | #[_label, scope] => (Elab.Term.exprToSyntax scope).run'
+       | e => throwError "Goal should be of the form `InScope label scope`: {e}"
    evalTactic (← `(tactic| solve $s))
 
 declare_syntax_cat program
