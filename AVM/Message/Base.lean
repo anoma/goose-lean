@@ -25,8 +25,7 @@ structure Message (lab : Ecosystem.Label) : Type 1 where
   recipients : List ObjectId
 
 def Message.rawSignatures {lab : Ecosystem.Label} (msg : Message lab) : List Nat :=
-  match msg with
-  | {id := id, signatures := signatures, ..} =>
+  let {id := id, signatures := signatures, ..} := msg
   match id with
   | .multiMethodId m => lab.MultiMethodSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
   | .classMember (classId := clab) c => match c with
@@ -40,9 +39,8 @@ instance Message.hasTypeRep (lab : Ecosystem.Label) : TypeRep (Message lab) wher
 
 instance Message.hasBEq {lab : Ecosystem.Label} : BEq (Message lab) where
   beq a b :=
-    match a, b with
-    | {id := aid, args := aargs, signatures := asigs, ..},
-      {id := bid, args := bargs, signatures := bsigs, ..} =>
+    let {id := aid, args := aargs, signatures := asigs, ..} := a
+    let {id := bid, args := bargs, signatures := bsigs, ..} := b
     check h : aid == bid
     let h' := eq_of_beq h
     check a.vals === b.vals
