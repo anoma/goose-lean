@@ -81,6 +81,7 @@ AVM programs provide an object-oriented abstraction over Anoma programs to which
 - `obj := fetch objId`. Fetch an object with a given ID.
 - `invoke fn args`. Invoke a function, i.e., a sub-program.
 - `return a`. Return a given value `a : A`.
+
 AVM Programs can also contain conditionals, matches and other Lean control structures - they are implemented as a DSL embedded in Lean.
 
 Relevant files: `Applib/Surface/Program.lean`, `AVM/Program.lean`.
