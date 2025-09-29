@@ -111,16 +111,16 @@ def Program.map {lab : Scope.Label} {A B : Type} (f : A → B) (prog : Program l
 def Program.create'
   {α}
   {lab : Scope.Label}
-  {eid : lab.EcosystemId}
   (C : Type)
   [i : IsObject C]
-  (inScope : eid.label = i.label := by rfl)
+  (inScope : i.label ∈ lab)
   (constrId : i.classId.label.ConstructorId)
   (args : constrId.Args.type)
   (signatures : constrId.Signatures args)
   (next : Reference C → Program lab α)
   : Program lab α := by
   -- TODO simplify
+  rcases inScope with ⟨eid, _⟩
   refine Program.create eid ?_ ?_ ?_ ?_ (fun objId => next ⟨objId⟩)
   exact cast (by grind) i.classId;
   exact cast (by grind) constrId
@@ -130,16 +130,16 @@ def Program.create'
 def Program.destroy'
   {α}
   {lab : Scope.Label}
-  {eid : lab.EcosystemId}
   {C : Type}
   (r : Reference C)
   [i : IsObject C]
-  (inScope : eid.label = i.label := by rfl)
+  (inScope : i.label ∈ lab)
   (destrId : i.classId.label.DestructorId)
   (args : destrId.Args.type)
   (signatures : destrId.Signatures args)
   (next : Program lab α)
   : Program lab α := by
+  rcases inScope with ⟨eid, _⟩
   refine Program.destroy eid ?_ ?_ r.objId ?_ ?_ next
   exact cast (by grind) i.classId;
   exact cast (by grind) destrId
@@ -158,7 +158,7 @@ def Program.call'
   (signatures : methodId.Signatures args)
   (next : Program lab α)
   : Program lab α := by
-  rcases inScope with ⟨eid, p⟩
+  rcases inScope with ⟨eid, _⟩
   refine Program.call eid ?_ ?_ r.objId ?_ ?_ next
   exact cast (by grind) i.classId;
   exact cast (by grind) methodId
@@ -169,14 +169,14 @@ def Program.upgrade'
   {α}
   {C C' : Type}
   {lab : Scope.Label}
-  {eid : lab.EcosystemId}
   (r : Reference C)
   [i : IsObject C]
   [i' : IsObject C']
-  (inScope : eid.label = i.label := by rfl)
+  (inScope : i.label ∈ lab)
   (c' : C')
   (next : Program lab α)
   : Program lab α := by
+  rcases inScope with ⟨eid, _⟩
   refine Program.upgrade eid ?_ r.objId (i'.toObject c' |>.toSomeObjectData) next
   exact cast (by grind) i.classId;
 

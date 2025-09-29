@@ -147,5 +147,5 @@ example (rx ry : Reference Counter) : Applib.Program label.toScope Unit := ⟪
                            unfold label
                            infer_instance
                          ref := ry }
-  multiCall Counter.MultiMethods.Merge selves .unit
+  multiCall[ .unit ] Counter.MultiMethods.Merge selves .unit
 ⟫

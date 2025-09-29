@@ -6,7 +6,9 @@ namespace TwoCounterApp
 
 open Applib
 
-example (rx ry : Reference Counter) : Program Eco.label Counter := ⟪
+abbrev scope := Eco.label.toScope
+
+example (rx ry : Reference Counter) : Program scope Counter := ⟪
   x := fetch rx
   y := fetch ry
   call Counter.Methods.Incr rx (x.count * 2 + y.count)
@@ -14,7 +16,7 @@ example (rx ry : Reference Counter) : Program Eco.label Counter := ⟪
   return {x with count := x.count + y.count}
 ⟫
 
-def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Eco.label Unit := ⟪
+def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program scope Unit := ⟪
   x := fetch rx
   y := fetch ry
   call Counter.Methods.Incr rx (x.count * n + y.count)
@@ -22,13 +24,13 @@ def mutualIncrement (rx ry : Reference Counter) (n : Nat) : Program Eco.label Un
   return ()
 ⟫
 
-def createCounter : Program Eco.label (Reference Counter) := ⟪
+def createCounter : Program scope (Reference Counter) := ⟪
   r := create Counter Counter.Constructors.Zero ()
   call Counter.Methods.Incr r (7 : Nat)
   return r
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope TwoCounter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -40,7 +42,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
   return self
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope TwoCounter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -55,7 +57,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
   return self
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope TwoCounter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -67,7 +69,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
   return self
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -78,7 +80,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
     return c2
 ⟫
 
-example : Program Eco.label (Reference TwoCounter) := ⟪
+example : Program scope (Reference TwoCounter) := ⟪
   rx := create Counter Counter.Constructors.Zero ()
   ry := create Counter Counter.Constructors.Zero ()
   call Counter.Methods.Incr rx (2 : Nat)
@@ -87,7 +89,7 @@ example : Program Eco.label (Reference TwoCounter) := ⟪
   return tc
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope TwoCounter := ⟪
   c1 := fetch self.c1
   c2 := fetch self.c2
   call Counter.Methods.Incr self.c1 (c2.count * n + c1.count)
@@ -95,7 +97,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label TwoCounter := ⟪
   return self
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   cRef := invoke createCounter
@@ -114,7 +116,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
       return c2
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label Unit := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope Unit := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -131,7 +133,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label Unit := ⟪
   call Counter.Methods.Incr self.c2 n
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -150,7 +152,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
         return c1
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -171,7 +173,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
     ⟫
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -191,7 +193,7 @@ example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
         return c1
 ⟫
 
-example (self : TwoCounter) (n : Nat) : Program Eco.label Counter := ⟪
+example (self : TwoCounter) (n : Nat) : Program scope Counter := ⟪
   invoke mutualIncrement self.c1 self.c2 n
   invoke mutualIncrement self.c2 self.c1 n
   c1 := fetch self.c1
@@ -215,7 +217,9 @@ namespace OwnedCounter
 
 open Applib
 
-example (r : Reference OwnedCounter) (newOwner : PublicKey) : Program label (Reference OwnedCounter) := ⟪
+abbrev scope := label.toScope
+
+example (r : Reference OwnedCounter) (newOwner : PublicKey) : Program scope (Reference OwnedCounter) := ⟪
   c := fetch r
   call OwnedCounter.Methods.Transfer r newOwner
   r' := create OwnedCounter OwnedCounter.Constructors.Zero ()
@@ -224,7 +228,7 @@ example (r : Reference OwnedCounter) (newOwner : PublicKey) : Program label (Ref
   return r'
 ⟫
 
-example (n : Nat) : Program label (Reference OwnedCounter) := ⟪
+example (n : Nat) : Program scope (Reference OwnedCounter) := ⟪
   r := create OwnedCounter OwnedCounter.Constructors.Zero ()
   call OwnedCounter.Methods.Incr r n
   create OwnedCounter OwnedCounter.Constructors.Zero ()
