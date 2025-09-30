@@ -112,7 +112,7 @@ would result in an action with:
   - one consumed object resource corresponding to `self`,
   - one created object resource corresponding to `self` with the `count` field increased by `n`,
   - one consumed message resource for `Counter.Incr` containing the `n` argument,
-  - created message resources for all nested calls.
+  - created message resources for all nested calls (none in this case).
 3. The previous points are applied recursively, resulting in a set of actions dependent on parameter values (fetched objects and generated object ids).
 4. The fetches and id generation at the beginning of the program are translated to `queryResource` and `genRand` Anoma program commands.
 5. The actions are grouped into a single transaction, together with an action that sends the messages corresponding to the calls in the program. The `submitTransaction` command submits this transaction in the resulting Anoma program.
