@@ -6,35 +6,37 @@ namespace Applib
 
 open Lean
 
-open Elab Tactic
+namespace Tactic.Scoper
+
+open Elab.Tactic Meta
 
 def elabClosedNat (t : Syntax) : TacticM Nat := do
   let e : Expr ← elabTermEnsuringType t (mkConst ``Nat)
-  Lean.Elab.Tactic.liftMetaMAtMain fun _ => do
-    Lean.Meta.reduceEval e
+  liftMetaMAtMain fun _ => do
+    reduceEval e
 
--- TODO rename and clean
-elab "solve" s:term : tactic => do
-  let card <- elabClosedNat (← `(term| (AVM.Scope.Label.EcosystemIdEnum $s).1))
-  let f ← `(term| AVM.Scope.Label.fin $s)
+def findProof (scope : Term) : TacticM Unit := do
+  let card <- elabClosedNat (← `(term| (AVM.Scope.Label.EcosystemIdEnum $scope).1))
+  let f ← `(term| ($scope).EcosystemIdEnum.equiv.invFun)
   let possibleIndices : List (Fin card) := List.finRange card
-  let solveN (n : Fin card) : TacticM Unit := do
+  let tryN (n : Fin card) : TacticM Unit := do
     let sn := Syntax.mkNumLit (toString n)
     let labelId ← `(term| $f $sn)
     let t ← `(tactic| try exact ⟨$labelId, by rfl⟩)
     evalTactic t
   for x in possibleIndices do
-    solveN x
+    tryN x
 
--- TODO rename and clean
 elab "scoper" : tactic => do
    let tgt ← getMainTarget
-   let s ← Lean.Elab.Tactic.liftMetaMAtMain (α := Term) fun _ => do
-     let tgt ← Lean.Meta.reduce tgt
+   let s : Term ← liftMetaMAtMain fun _ => do
+     let tgt ← reduce tgt
      let x ← match tgt.getAppArgs with
        | #[_label, scope] => (Elab.Term.exprToSyntax scope).run'
-       | e => throwError "Goal should be of the form `InScope label scope`: {e}"
-   evalTactic (← `(tactic| solve $s))
+       | e => throwError "Goal should be of the form `InScope label scope`. Actual goal: {e}"
+   findProof s
+
+end Tactic.Scoper
 
 declare_syntax_cat program
 declare_syntax_cat branch_body

@@ -12,9 +12,6 @@ structure Label where
 
 namespace Label
 
--- TODO rename/remove
-abbrev fin (s : Label) : Fin s.EcosystemIdEnum.card → s.EcosystemId := s.EcosystemIdEnum.equiv.invFun
-
 abbrev EcosystemId.label {lab : Label} (e : lab.EcosystemId) : Ecosystem.Label :=
   lab.ecosystem e
 

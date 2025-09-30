@@ -118,14 +118,15 @@ def Program.create'
   (args : constrId.Args.type)
   (signatures : constrId.Signatures args)
   (next : Reference C → Program lab α)
-  : Program lab α := by
-  -- TODO simplify
-  rcases inScope with ⟨eid, _⟩
-  refine Program.create eid ?_ ?_ ?_ ?_ (fun objId => next ⟨objId⟩)
-  exact cast (by grind) i.classId;
-  exact cast (by grind) constrId
-  exact cast (by grind) args
-  exact cast (by grind) signatures
+  : Program lab α :=
+  let ⟨eid, _⟩ := inScope
+  Program.create
+    eid
+    (cast (by grind) i.classId)
+    (cast (by grind) constrId)
+    (cast (by grind) args)
+    (cast (by grind) signatures)
+    (fun objId => next ⟨objId⟩)
 
 def Program.destroy'
   {α}
@@ -138,13 +139,16 @@ def Program.destroy'
   (args : destrId.Args.type)
   (signatures : destrId.Signatures args)
   (next : Program lab α)
-  : Program lab α := by
-  rcases inScope with ⟨eid, _⟩
-  refine Program.destroy eid ?_ ?_ r.objId ?_ ?_ next
-  exact cast (by grind) i.classId;
-  exact cast (by grind) destrId
-  exact cast (by grind) args
-  exact cast (by grind) signatures
+  : Program lab α :=
+  let ⟨eid, _⟩ := inScope
+  Program.destroy
+    eid
+    (cast (by grind) i.classId)
+    (cast (by grind) destrId)
+    r.objId
+    (cast (by grind) args)
+    (cast (by grind) signatures)
+    next
 
 def Program.call'
   {α}
@@ -157,13 +161,16 @@ def Program.call'
   (args : methodId.Args.type)
   (signatures : methodId.Signatures args)
   (next : Program lab α)
-  : Program lab α := by
-  rcases inScope with ⟨eid, _⟩
-  refine Program.call eid ?_ ?_ r.objId ?_ ?_ next
-  exact cast (by grind) i.classId;
-  exact cast (by grind) methodId
-  exact cast (by grind) args
-  exact cast (by grind) signatures
+  : Program lab α :=
+  let ⟨eid, _⟩ := inScope
+  Program.call
+    eid
+    (cast (by grind) i.classId)
+    (cast (by grind) methodId)
+    r.objId
+    (cast (by grind) args)
+    (cast (by grind) signatures)
+    next
 
 def Program.upgrade'
   {α}
