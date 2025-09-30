@@ -193,7 +193,11 @@ def MultiMethod.Message.logicFun
   let consumedUid (arg : multiId.ObjectArgNames) : Anoma.ObjectId := argsConsumedObjects arg |>.uid
   let mkObjectValue {classId : lab.ClassId} (arg : multiId.ObjectArgNames) (d : ObjectData classId) : ObjectValue := ⟨consumedUid arg, d⟩
   let reassembled : List ObjectValue := res.assembled.withOldUidList.map (fun x => mkObjectValue x.arg x.objectData)
-  let constructedObjects : List ObjectValue := res.constructed
+  let constructedObjects : List ObjectValue :=
+    List.zipWithExact
+      (fun objData res => objData.toObjectValue res.nonce.value)
+      res.constructed
+      argsConstructedEph.toList
   let consumedDestroyedObjects : List ObjectValue :=
     multiId.objectArgNamesVec.toList.filterMap
       (fun arg =>

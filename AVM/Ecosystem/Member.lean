@@ -69,7 +69,7 @@ structure MultiMethodResult {lab : Ecosystem.Label} (multiId : lab.MultiMethodId
     object arguments (selves) that are disassembled -/
   assembled : Assembled argDeconstruction
   /-- List of constructed objects. Constructed objects will be balanced with automatically generated ephemeral resources -/
-  constructed : List ObjectValue := []
+  constructed : List SomeObjectData := []
   deriving Inhabited
 
 namespace MultiMethodResult

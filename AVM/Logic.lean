@@ -19,13 +19,13 @@ def checkResourceValues (objectValues : List ObjectValue) (resources : List Anom
   objectValues.length == resources'.length
     && List.and (List.zipWith resourceValueEq objectValues resources')
   where
-    resourceValueEq (sdata : ObjectValue) (res : Anoma.Resource) : Bool :=
-      sdata.label === res.label &&
-      sdata.classId.label.logicRef == res.logicRef &&
-      sdata.data.quantity == res.quantity &&
-        let try resVal : Object.Resource.Value sdata.classId := tryCast res.value
-        resVal.privateFields == sdata.data.privateFields &&
-        resVal.uid == sdata.uid
+    resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Bool :=
+      objValue.label === res.label &&
+      objValue.classId.label.logicRef == res.logicRef &&
+      objValue.data.quantity == res.quantity &&
+        let try resVal : Object.Resource.Value objValue.classId := tryCast res.value
+        resVal.privateFields == objValue.data.privateFields &&
+        resVal.uid == objValue.uid
 
 def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
   Logic.filterOutDummy resources |>.all Anoma.Resource.isEphemeral
