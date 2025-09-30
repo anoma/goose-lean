@@ -2,9 +2,9 @@ import Applib.Surface.Program.Syntax
 import Apps.TwoCounter
 import Apps.OwnedCounter
 
-namespace TwoCounterApp
-
 open Applib
+
+namespace TwoCounterApp
 
 abbrev scope := Eco.label.toScope
 
@@ -215,8 +215,6 @@ end TwoCounterApp
 
 namespace OwnedCounter
 
-open Applib
-
 abbrev scope := label.toScope
 
 example (r : Reference OwnedCounter) (newOwner : PublicKey) : Program scope (Reference OwnedCounter) := ⟪
@@ -237,3 +235,34 @@ example (n : Nat) : Program scope (Reference OwnedCounter) := ⟪
 ⟫
 
 end OwnedCounter
+
+namespace MultiEcosystem
+
+open TwoCounterApp
+
+abbrev scope : AVM.Scope.Label where
+  EcosystemId := Fin 2
+  EcosystemIdEnum :=
+    { card := 2
+      equiv := {
+        toFun := id
+        invFun := id
+        right_inv := congrFun rfl }}
+  ecosystem
+   | 0 => TwoCounterApp.Eco.label
+   | 1 => OwnedCounter.label
+
+example (n : Nat) (self : Reference TwoCounter) : Program scope (Reference OwnedCounter) := ⟪
+  -- This block calls Methods from OwnedCounter
+  r := create OwnedCounter OwnedCounter.Constructors.Zero ()
+  call OwnedCounter.Methods.Incr r n
+  create OwnedCounter OwnedCounter.Constructors.Zero ()
+  create OwnedCounter OwnedCounter.Constructors.Zero ()
+
+  -- This block calls a Method from TwoCounter
+  call TwoCounter.Methods.IncrementBoth self n
+
+  return r
+⟫
+
+end MultiEcosystem
