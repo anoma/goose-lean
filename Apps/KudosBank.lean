@@ -265,6 +265,95 @@ def BankLabel : Class.Label where
     | Destructors.Close => ⟨PUnit⟩
   DestructorSignatureId := Destructors.SignatureId
 
+inductive MultiMethods where
+  | IssueCheck
+  | DepositCheck
+  | NewAuction
+  | Bid
+  | EndAuction
+  deriving Repr, DecidableEq, FinEnum
+
+namespace IssueCheck
+
+structure Args where
+  denomination : Denomination
+  owner : PublicKey
+  key : PrivateKey
+  quantity : Nat
+  deriving BEq
+
+inductive ClassArgNames where
+  | bank
+  deriving Repr, BEq, DecidableEq, FinEnum
+
+instance Args.hasTypeRep : TypeRep Args where
+  rep := Rep.atomic "IssueCheck.Args"
+
+end IssueCheck
+
+namespace DepositCheck
+
+structure Args where
+  key : PrivateKey
+  deriving BEq
+
+instance Args.hasTypeRep : TypeRep Args where
+  rep := Rep.atomic "DepositCheck.Args"
+
+inductive ClassArgNames where
+  | bank
+  | check
+  deriving Repr, BEq, DecidableEq, FinEnum
+
+end DepositCheck
+
+namespace NewAuction
+
+structure Args where
+  biddingDenomination : Denomination
+  key : PrivateKey
+  deriving BEq
+
+instance Args.hasTypeRep : TypeRep Args where
+  rep := Rep.atomic "NewAuction.Args"
+
+inductive ClassArgNames where
+  | check
+  deriving Repr, BEq, DecidableEq, FinEnum
+
+end NewAuction
+
+namespace Bid
+
+structure Args where
+  key : PrivateKey
+  deriving BEq
+
+instance Args.hasTypeRep : TypeRep Args where
+  rep := Rep.atomic "Bid.Args"
+
+inductive ClassArgNames where
+  | check
+  | auction
+  deriving Repr, BEq, DecidableEq, FinEnum
+
+end Bid
+
+namespace EndAuction
+
+structure Args where
+  key : PrivateKey
+  deriving BEq
+
+instance Args.hasTypeRep : TypeRep Args where
+  rep := Rep.atomic "EndAuction.Args"
+
+inductive ClassArgNames where
+  | auction
+  deriving Repr, BEq, DecidableEq, FinEnum
+
+end EndAuction
+
 inductive Classes where
   | Bank
   | Check
@@ -278,7 +367,35 @@ def label : AVM.Ecosystem.Label where
     | Classes.Bank => BankLabel
     | Classes.Check => Check.Label
     | Classes.Auction => Auction.Label
-  MultiMethodObjectArgClass {f : Empty} := f.elim
+
+  MultiMethodId := MultiMethods
+  MultiMethodArgs := fun
+    | .IssueCheck => ⟨IssueCheck.Args⟩
+    | .DepositCheck => ⟨DepositCheck.Args⟩
+    | .NewAuction => ⟨NewAuction.Args⟩
+    | .Bid => ⟨Bid.Args⟩
+    | .EndAuction => ⟨EndAuction.Args⟩
+  MultiMethodObjectArgNames := fun
+    | .IssueCheck => IssueCheck.ClassArgNames
+    | .DepositCheck => DepositCheck.ClassArgNames
+    | .NewAuction => NewAuction.ClassArgNames
+    | .Bid => Bid.ClassArgNames
+    | .EndAuction => EndAuction.ClassArgNames
+  MultiMethodObjectArgClass {f : MultiMethods} := match f with
+   | MultiMethods.IssueCheck => fun
+     | .bank => Classes.Bank
+   | MultiMethods.DepositCheck => fun
+     | .bank => Classes.Bank
+     | .check => Classes.Check
+   | MultiMethods.NewAuction => fun
+     | .check => Classes.Check
+   | MultiMethods.Bid => fun
+     | .check => Classes.Check
+     | .auction => Classes.Auction
+   | MultiMethods.EndAuction => fun
+     | .auction => Classes.Auction
+  ObjectArgNamesBEq (f : MultiMethods) := by cases f <;> exact inferInstance
+  ObjectArgNamesEnum (f : MultiMethods) := by cases f <;> exact inferInstance
 
 instance Auction.instIsObject : IsObject Auction where
   label := label
@@ -380,3 +497,123 @@ def auctionClass : @Class label Classes.Auction where
   constructors := noConstructors
   methods := noMethods
   destructors := noDestructors
+
+def issueCheck : @Ecosystem.MultiMethod label .IssueCheck :=
+  defFunction lab Functions.IssueCheck
+  (argsInfo := fun
+    | .bank => { type := KudosBank })
+  (body := fun selves args =>
+    { created :=
+      [(selves .bank).overBalances (fun b => b
+        |> Balances.subTokens args.owner args.denomination args.quantity)]
+
+      constructed := [{ denomination := args.denomination
+                        owner := args.owner
+                        quantity := args.quantity
+                        : Check }]})
+  (invariant := fun selves args =>
+    checkKey args.owner args.key
+    && 0 < args.quantity
+    && args.quantity <= (selves IssueCheck.ClassArgNames.bank
+                         |>.getBalance args.owner args.denomination))
+
+def depositCheck : @Function lab .DepositCheck :=
+  defFunction lab .DepositCheck
+  (argsInfo := fun
+    | .bank => { type := KudosBank }
+    | .check => { type := Check })
+  (body := fun selves args =>
+    { created :=
+        let bank := selves .bank
+        let check := selves .check
+        [bank.overBalances (fun b => b
+          |> Balances.addTokens check.owner check.denomination check.quantity)]
+      argDeconstruction arg :=
+        match arg with
+        | .bank => .Disassembled
+        | .check => .Destroyed })
+  (invariant := fun selves args =>
+    checkKey (selves .check).owner args.key)
+
+def newAuction : @Function lab .NewAuction :=
+  defFunction lab .NewAuction
+  (argsInfo := fun
+    | .check => { type := Check })
+  (body := fun selves args =>
+    { created :=
+        let check := selves .check
+        [ { owner := check.owner
+            auctionedDenomination := check.denomination
+            auctionedQuantity := check.quantity
+            biddingDenomination := args.biddingDenomination
+            highestBidder := check.owner
+            highestBid := 0 : Auction} ]
+      argDeconstruction arg :=
+        match arg with
+        | .check => .Destroyed })
+  (invariant := fun selves args =>
+    checkKey (selves .check).owner args.key)
+
+def bid : @Function lab .Bid :=
+  defFunction lab .Bid
+  (argsInfo := fun
+    | .check => { type := Check }
+    | .auction => { type := Auction })
+  (body := fun selves args =>
+    let check := selves .check
+    let auction := selves .auction
+    { created :=
+        [{ auction with
+          highestBid := check.quantity
+          highestBidder := check.owner
+         : Auction }]
+      constructed :=
+        [{ denomination := auction.biddingDenomination
+           owner := auction.highestBidder
+           quantity := auction.highestBid : Check }]
+      argDeconstruction arg :=
+        match arg with
+        | .check => .Destroyed
+        | .auction => .Disassembled })
+  (invariant := fun selves args =>
+    let bid := selves .check
+    let auction := selves .auction
+    checkKey bid.owner args.key
+    && bid.denomination == auction.biddingDenomination
+    && bid.quantity > auction.highestBid)
+
+def endAuction : @Function lab .EndAuction :=
+  defFunction lab .EndAuction
+  (argsInfo := fun
+    | .auction => { type := Auction })
+  (body := fun selves args =>
+    let auction := selves .auction
+    { created := []
+      constructed :=
+        let winnerCheck : Check :=
+          { owner := auction.highestBidder
+            denomination := auction.auctionedDenomination
+            quantity := auction.auctionedQuantity }
+        let ownerCheck : Check :=
+          { owner := auction.owner
+            quantity := auction.highestBid
+            denomination := auction.biddingDenomination }
+        [winnerCheck, ownerCheck]
+      argDeconstruction arg :=
+        match arg with
+        | .auction => .Destroyed })
+  (invariant := fun selves args =>
+    let auction := selves .auction
+    checkKey auction.owner args.key)
+
+def kudosEcosystem : Ecosystem label where
+  classes := fun
+    | .Bank => kudosClass
+    | .Check => checkClass
+    | .Auction => auctionClass
+  multiMethods := fun
+    | .IssueCheck => issueCheck
+    | .DepositCheck => depositCheck
+    | .NewAuction => newAuction
+    | .Bid => bid
+    | .EndAuction => endAuction
