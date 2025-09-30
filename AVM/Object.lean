@@ -51,6 +51,9 @@ def ObjectData.toSomeObjectData {lab : Ecosystem.Label} {c : lab.ClassId} (data 
 def ObjectData.toObjectValue {lab : Ecosystem.Label} {c : lab.ClassId} (uid : ObjectId) (data : ObjectData c) : ObjectValue :=
   ⟨uid, data⟩
 
+def SomeObjectData.toObjectValue (uid : ObjectId) (data : SomeObjectData) : ObjectValue :=
+  ⟨uid, data.data⟩
+
 /-- Represents a concrete object, translated into a resource. For class
     represetation (object description), see `AVM.Class`. -/
 structure Object {lab : Ecosystem.Label} (c : lab.ClassId) : Type where
