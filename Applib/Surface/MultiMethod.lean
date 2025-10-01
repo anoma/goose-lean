@@ -10,8 +10,7 @@ structure ObjectArgInfo
   (argName : label.MultiMethodObjectArgNames multiId)
   : Type 1 where
   type : Type
-  [isObject : IsObject type]
---  withLabel : isObject.label = (label.MultiMethodObjectArgClass argName).label := by rfl
+  [isObjectOf : IsObjectOf (label.MultiMethodObjectArgClass argName) type]
 
 def ObjectArgs
   (lab : AVM.Ecosystem.Label)
@@ -19,10 +18,6 @@ def ObjectArgs
   (argsInfo : (a : multiId.ObjectArgNames) → ObjectArgInfo lab multiId a)
   : Type
   := (a : multiId.ObjectArgNames) → (argsInfo a).type
-
-structure DestroyableObject where
-  object : AnObject
-  key : Anoma.NullifierKey := Anoma.NullifierKey.universal
 
 structure Assembled
   {label : AVM.Ecosystem.Label}
@@ -46,7 +41,7 @@ def Assembled.toAVM
         (a.withOldUid arg disassembled).map (·.toObjectData),
        withNewUid := a.withNewUid.map (·.toSomeObjectData) }
 
-structure MultiMethodResult {lab : AVM.Ecosystem.Label} (multiId : lab.MultiMethodId) where
+structure MultiMethodResult {lab : AVM.Ecosystem.Label} (multiId : lab.MultiMethodId) : Type 1 where
   argDeconstruction : multiId.ObjectArgNames → AVM.DeconstructionKind := fun _ => .Disassembled
   assembled : Assembled argDeconstruction := default
   constructed : List AnObject := []
@@ -59,23 +54,17 @@ def MultiMethodResult.toAVM {lab : AVM.Ecosystem.Label} {multiId : lab.MultiMeth
   assembled := r.assembled.toAVM
   constructed := r.constructed.map (·.toSomeObjectData)
 
-def defFunction
-  (lab : Ecosystem.Label)
-  (funId : lab.FunctionId)
-  (argsInfo : (a : funId.ObjectArgNames) → ObjectArgInfo lab funId a)
-  (body : ObjectArgs lab funId argsInfo → funId.Args.type → FunctionResult funId)
-  (invariant : ObjectArgs lab funId argsInfo → funId.Args.type → Bool := fun _ _ => true)
-  : Function funId where
-  body (selves : funId.Selves) (args : funId.Args.type) : AVM.FunctionResult funId :=
-    match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
-    | none => FunctionResult.empty funId |>.toAVM
-    | some (p : (argName : funId.ObjectArgNames) → (argsInfo argName).type) => (body p args).toAVM
-  invariant (selves : funId.Selves) (args : funId.Args.type) : Bool :=
-    match FinEnum.decImageOption' (enum := lab.objectArgNamesEnum funId) (getArg selves) with
-    | none => false
-    | some (p : (argName : funId.ObjectArgNames) → (argsInfo argName).type) => invariant p args
+def defMultiMethod
+  (lab : AVM.Ecosystem.Label)
+  (multiId : lab.MultiMethodId)
+  (argsInfo : (a : multiId.ObjectArgNames) → ObjectArgInfo lab multiId a)
+  (body : ObjectArgs lab multiId argsInfo → multiId.Args.type → Program lab (MultiMethodResult multiId))
+  (invariant : ObjectArgs lab multiId argsInfo → (args : multiId.Args.type) → (signatures : multiId.Signatures args) → Bool := fun _ _ _ => true)
+  : AVM.Ecosystem.MultiMethod multiId where
+  body (selves : multiId.Selves) (args : multiId.Args.type) : AVM.Program lab (AVM.MultiMethodResult multiId) :=
+    (body (getArg selves) args).map (MultiMethodResult.toAVM) |>.toAVM
+  invariant (selves : multiId.Selves) (args : multiId.Args.type) (signatures : multiId.Signatures args) : Bool :=
+    invariant (getArg selves) args signatures
   where
-  getArg (selves : funId.Selves) (argName : funId.ObjectArgNames) : Option (argsInfo argName).type :=
-    (argsInfo argName).isObject.fromObject
-    (by rw [(argsInfo argName).withLabel]
-        exact selves argName)
+    getArg (selves : multiId.Selves) (argName : multiId.ObjectArgNames) : (argsInfo argName).type :=
+      (argsInfo argName).isObjectOf.fromObject (selves argName).data

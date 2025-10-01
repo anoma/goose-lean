@@ -44,7 +44,7 @@ def decImage {A : Type u} [enum : FinEnum A] {B : (a : A) → Type v} {P : {a : 
     rw [← enum.equiv.left_inv a]; exact (p (toFun a)).down
   | .inr ⟨n, ⟨p⟩⟩ => by right; refine ⟨inv n, ?_⟩; constructor; intro; contradiction
 
-def IsSomeDec {a : A} {B : (a : A) → Type u} (m : Option (B a)) : Decidable m.isSome :=
+def IsSomeDec {A} {a : A} {B : (a : A) → Type u} (m : Option (B a)) : Decidable m.isSome :=
   match m with
   | none => isFalse (fun _ => by contradiction)
   | some _ => isTrue rfl

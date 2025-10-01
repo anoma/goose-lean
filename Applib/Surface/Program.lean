@@ -86,7 +86,7 @@ def Program.toAVM {lab ReturnType} (prog : Program lab ReturnType) : AVM.Program
   | .return val =>
     .return val
 
-def Program.map {lab : Ecosystem.Label} {A B : Type} (f : A → B) (prog : Program lab A) : Program lab B :=
+def Program.map {lab : Ecosystem.Label} {A B : Type u} (f : A → B) (prog : Program.{u} lab A) : Program.{u} lab B :=
   match prog with
   | .create C cid constrId args signatures next =>
     .create C cid constrId args signatures (fun x => map f (next x))

@@ -497,7 +497,7 @@ def auctionClass : @Class label Classes.Auction where
   constructors := noConstructors
   methods := noMethods
   destructors := noDestructors
-
+/-
 def issueCheck : @Ecosystem.MultiMethod label .IssueCheck :=
   defFunction lab Functions.IssueCheck
   (argsInfo := fun
@@ -617,3 +617,4 @@ def kudosEcosystem : Ecosystem label where
     | .NewAuction => newAuction
     | .Bid => bid
     | .EndAuction => endAuction
+-/
