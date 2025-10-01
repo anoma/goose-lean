@@ -120,6 +120,7 @@ def clab : Class.Label where
 
 inductive MultiMethods where
   | Merge
+  | Split
   deriving Repr, DecidableEq, FinEnum
 
 export MultiMethods (Merge)
@@ -133,17 +134,47 @@ inductive ArgNames where
 
 export ArgNames (Kudos1 Kudos2)
 
+structure Args where
+  deriving BEq
+
+instance Args.hasTypeRep : TypeRep Args where
+  rep := Rep.atomic "Kudos.Merge.Args"
+
 end Merge
+
+namespace Split
+
+inductive ArgNames where
+  | Kudos
+  deriving DecidableEq, Repr, FinEnum
+
+export ArgNames (Kudos)
+
+structure Args where
+  quantities : List Nat
+  deriving BEq
+
+instance Args.hasTypeRep : TypeRep Args where
+  rep := Rep.atomic "Kudos.Split.Args"
+
+end Split
 
 def label : Ecosystem.Label where
   name := "Kudos"
   ClassId := PUnit
   classLabel := fun _ => clab
   MultiMethodId := MultiMethods
+  MultiMethodArgs := fun
+    | .Merge => ⟨Merge.Args⟩
+    | .Split => ⟨Split.Args⟩
   MultiMethodObjectArgClass {f : MultiMethods} (_a : _) := match f with
-   | Merge => PUnit.unit
+    | .Merge => PUnit.unit
+    | .Split => PUnit.unit
   MultiMethodObjectArgNames : MultiMethods → Type := fun
-   | Merge => Merge.ArgNames
+    | .Merge => Merge.ArgNames
+    | .Split => Split.ArgNames
+  ObjectArgNamesBEq (f : MultiMethods) := by cases f <;> exact inferInstance
+  ObjectArgNamesEnum (f : MultiMethods) := by cases f <;> exact inferInstance
 
 def toObject (c : Kudos) : @ObjectData label .unit where
   quantity := c.quantity
@@ -219,3 +250,23 @@ def kudosEcosystem : Ecosystem label where
                   let k2 := kudos .Kudos2
                   k1.originator == k2.originator
                   && k1.owner == k2.owner)
+
+    | .Split =>
+      let splitArgsInfo (a : label.MultiMethodObjectArgNames .Split)
+      : ObjectArgInfo label .Split a :=
+      match a with
+      | .Kudos => { type := Kudos, isObjectOf := Kudos.instIsObjectOf }
+
+      defMultiMethod label .Split
+        (argsInfo := splitArgsInfo)
+        (body := fun kudos args => ⟪
+                  let k := kudos .Kudos
+                  return {
+                    assembled := {
+                      withOldUid _ _ := none
+                      withNewUid :=
+                        let mk (q : Nat) : Kudos := {k with quantity := q}
+                        List.map (IsObject.toAnObject ∘ mk) args.quantities
+                    }
+                  }
+                ⟫)

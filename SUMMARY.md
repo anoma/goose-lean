@@ -643,6 +643,7 @@ Class logic for a class `cls` performs the following checks.
 	- Kudos with ownership.
 	- Kudos token has: quantity, originator, owner.
 	- Operations: mint, burn, transfer.
+	- Multi-methods: split, merge.
 - Kudos bank: `Apps/KudosBank.lean`.
 	- Kudos app implemented with a single object KudosBank which tracks all kudo balances.
 	- Operations: open, close, mint, burn, transfer.
