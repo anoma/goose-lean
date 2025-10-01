@@ -109,24 +109,24 @@ def counterClass : @Class label .unit where
     | Methods.Incr => counterIncr
   destructors := noDestructors
 
-def mergeMethod : @Ecosystem.MultiMethod label .Merge where
-  invariant _ _ _ := true
-  body selves (_args : Unit) :=
-    let prog : _ := ⟪
-         let c1 : Counter := selves .Counter1 |>.data |> fromObject
-         let c2 : Counter := selves .Counter2 |>.data |> fromObject
-         let c3 : Counter := { count := c1.count + c2.count : Counter }
-         return {
-           assembled := {
-             withOldUid _ _ := none
-             withNewUid := [c3.toObject.toSomeObjectData]
-             : Assembled _ }
-           argDeconstruction := fun
-             | .Counter1 => .Disassembled
-             | .Counter2 => .Disassembled
-            : @MultiMethodResult label .Merge
-         }⟫.toAVM
-    prog
+def mergeMethod : @Ecosystem.MultiMethod label .Merge :=
+  defMultiMethod label MultiMethods.Merge
+    (argsInfo := fun
+      | .Counter1 => { type := Counter, isObjectOf := Counter.instIsObjectOf }
+      | .Counter2 => { type := Counter, isObjectOf := Counter.instIsObjectOf } )
+    (body := fun selves (_args : Unit) => ⟪
+      let c1 : Counter := selves .Counter1
+      let c2 : Counter := selves .Counter2
+      let c3 : Counter := { count := c1.count + c2.count : Counter }
+      return {
+        assembled := {
+          withOldUid _ _ := none
+          withNewUid := [c3] }
+        argDeconstruction := fun
+          | .Counter1 => .Disassembled
+          | .Counter2 => .Disassembled
+      }
+    ⟫)
 
 def counterEcosystem : Ecosystem label where
   classes _ := counterClass
@@ -138,14 +138,10 @@ example (rx ry : Reference Counter) : Applib.Program label Unit := ⟪
       @Ecosystem.Label.MultiMethodId.SelvesReferences label
       Counter.MultiMethods.Merge := fun
         | .Counter1 => { type := Counter
-                         isObjectOf := by
-                           unfold label
-                           infer_instance
+                         isObjectOf := Counter.instIsObjectOf
                          ref := rx }
         | .Counter2 => { type := Counter
-                         isObjectOf := by
-                           unfold label
-                           infer_instance
+                         isObjectOf := Counter.instIsObjectOf
                          ref := ry }
   multiCall Counter.MultiMethods.Merge selves .unit
 ⟫

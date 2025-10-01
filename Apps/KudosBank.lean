@@ -82,7 +82,6 @@ inductive Methods where
 
 structure TransferArgs where
   newOwner : PublicKey
-  key : PrivateKey
   deriving DecidableEq
 
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
@@ -211,7 +210,6 @@ instance hasTypeRep : TypeRep KudosBank where
 
 structure MintArgs where
   denom : Denomination
-  key : PrivateKey
   quantity : Nat
   deriving BEq
 
@@ -230,7 +228,6 @@ structure TransferArgs where
   newOwner : PublicKey
   denom : Denomination
   quantity : Nat
-  key : PrivateKey
   deriving DecidableEq
 
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
@@ -278,9 +275,12 @@ namespace IssueCheck
 structure Args where
   denomination : Denomination
   owner : PublicKey
-  key : PrivateKey
   quantity : Nat
   deriving BEq
+
+inductive SignatureId : Type where
+  | owner
+  deriving DecidableEq, FinEnum
 
 inductive ClassArgNames where
   | bank
@@ -294,8 +294,11 @@ end IssueCheck
 namespace DepositCheck
 
 structure Args where
-  key : PrivateKey
   deriving BEq
+
+inductive SignatureId : Type where
+  | owner
+  deriving DecidableEq, FinEnum
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "DepositCheck.Args"
@@ -311,8 +314,11 @@ namespace NewAuction
 
 structure Args where
   biddingDenomination : Denomination
-  key : PrivateKey
   deriving BEq
+
+inductive SignatureId : Type where
+  | owner
+  deriving DecidableEq, FinEnum
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "NewAuction.Args"
@@ -326,11 +332,14 @@ end NewAuction
 namespace Bid
 
 structure Args where
-  key : PrivateKey
   deriving BEq
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "Bid.Args"
+
+inductive SignatureId : Type where
+  | owner
+  deriving DecidableEq, FinEnum
 
 inductive ClassArgNames where
   | check
@@ -342,8 +351,11 @@ end Bid
 namespace EndAuction
 
 structure Args where
-  key : PrivateKey
   deriving BEq
+
+inductive SignatureId : Type where
+  | owner
+  deriving DecidableEq, FinEnum
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "EndAuction.Args"
@@ -394,26 +406,36 @@ def label : AVM.Ecosystem.Label where
      | .auction => Classes.Auction
    | MultiMethods.EndAuction => fun
      | .auction => Classes.Auction
+  MultiMethodSignatureId := fun
+    | .IssueCheck => IssueCheck.SignatureId
+    | .DepositCheck => DepositCheck.SignatureId
+    | .NewAuction => NewAuction.SignatureId
+    | .Bid => Bid.SignatureId
+    | .EndAuction => EndAuction.SignatureId
   ObjectArgNamesBEq (f : MultiMethods) := by cases f <;> exact inferInstance
   ObjectArgNamesEnum (f : MultiMethods) := by cases f <;> exact inferInstance
+
+instance Auction.instIsObjectOf : @IsObjectOf label Classes.Auction Auction where
+  toObject := fun (c : Auction) =>
+    { quantity := 1
+      privateFields := c }
+  fromObject := fun (o : @ObjectData label Classes.Auction) => o.privateFields
 
 instance Auction.instIsObject : IsObject Auction where
   label := label
   classId := Classes.Auction
-  isObjectOf :=
-    { toObject := fun (c : Auction) =>
-       { quantity := 1
-         privateFields := c }
-      fromObject := fun (o : @ObjectData label Classes.Auction) => o.privateFields }
+  isObjectOf := inferInstance
+
+instance Check.instIsObjectOf : @IsObjectOf label Classes.Check Check where
+  toObject := fun (c : Check) =>
+    { quantity := 1
+      privateFields := c }
+  fromObject := fun (o : @ObjectData label Classes.Check) => o.privateFields
 
 instance Check.instIsObject : IsObject Check where
   label := label
   classId := Classes.Check
-  isObjectOf :=
-    { toObject := fun (c : Check) =>
-       { quantity := 1
-         privateFields := c }
-      fromObject := fun (o : @ObjectData label Classes.Check) => o.privateFields }
+  isObjectOf := inferInstance
 
 namespace KudosBank
 
@@ -424,12 +446,14 @@ def toObject (c : KudosBank) : @ObjectData label .Bank where
 def fromObject (o : @ObjectData label .Bank) : KudosBank :=
   o.privateFields
 
+instance instIsObjectOf : @IsObjectOf label .Bank KudosBank where
+  toObject := KudosBank.toObject
+  fromObject := KudosBank.fromObject
+
 instance instIsObject : IsObject KudosBank where
   label := label
   classId := Classes.Bank
-  isObjectOf :=
-    { toObject := KudosBank.toObject
-      fromObject := KudosBank.fromObject }
+  isObjectOf := inferInstance
 
 end KudosBank
 
@@ -497,114 +521,152 @@ def auctionClass : @Class label Classes.Auction where
   constructors := noConstructors
   methods := noMethods
   destructors := noDestructors
-/-
+
 def issueCheck : @Ecosystem.MultiMethod label .IssueCheck :=
-  defFunction lab Functions.IssueCheck
+  defMultiMethod label MultiMethods.IssueCheck
   (argsInfo := fun
-    | .bank => { type := KudosBank })
-  (body := fun selves args =>
-    { created :=
-      [(selves .bank).overBalances (fun b => b
-        |> Balances.subTokens args.owner args.denomination args.quantity)]
-
-      constructed := [{ denomination := args.denomination
-                        owner := args.owner
-                        quantity := args.quantity
-                        : Check }]})
-  (invariant := fun selves args =>
-    checkKey args.owner args.key
+    | .bank => { type := KudosBank, isObjectOf := KudosBank.instIsObjectOf } )
+  (body := fun selves args => ⟪
+    return
+      { assembled := {
+          withOldUid arg _ :=
+            match arg with
+            | .bank =>
+              let bank' :=
+                (selves .bank).overBalances
+                  (fun b => b
+                    |> Balances.subTokens args.owner args.denomination args.quantity)
+              some { obj := bank', isObjectOf := KudosBank.instIsObjectOf }
+          withNewUid := [] }
+        argDeconstruction := fun
+          | .bank => .Disassembled
+        constructed := [{ denomination := args.denomination
+                          owner := args.owner
+                          quantity := args.quantity
+                          : Check }]}
+    ⟫)
+  (invariant := fun selves args signatures =>
+    let bank := selves .bank
+    checkSignature (signatures .owner) bank.owner
     && 0 < args.quantity
-    && args.quantity <= (selves IssueCheck.ClassArgNames.bank
-                         |>.getBalance args.owner args.denomination))
+    && args.quantity <= bank.getBalance args.owner args.denomination)
 
-def depositCheck : @Function lab .DepositCheck :=
-  defFunction lab .DepositCheck
+def depositCheck : @Ecosystem.MultiMethod label .DepositCheck :=
+  defMultiMethod label .DepositCheck
   (argsInfo := fun
-    | .bank => { type := KudosBank }
-    | .check => { type := Check })
-  (body := fun selves args =>
-    { created :=
-        let bank := selves .bank
-        let check := selves .check
-        [bank.overBalances (fun b => b
-          |> Balances.addTokens check.owner check.denomination check.quantity)]
-      argDeconstruction arg :=
-        match arg with
-        | .bank => .Disassembled
-        | .check => .Destroyed })
-  (invariant := fun selves args =>
-    checkKey (selves .check).owner args.key)
+    | .bank => { type := KudosBank, isObjectOf := KudosBank.instIsObjectOf }
+    | .check => { type := Check, isObjectOf := Check.instIsObjectOf } )
+  (body := fun selves _args => ⟪
+    return
+      { assembled :=
+          { withOldUid arg _ :=
+              let bank := selves .bank
+              let chk := selves .check
+              let bank' := bank.overBalances (fun b => b
+                  |> Balances.addTokens chk.owner chk.denomination chk.quantity)
+              match arg with
+              | .bank => some { obj := bank', isObjectOf := KudosBank.instIsObjectOf }
+              | .check => none
+            withNewUid := [] }
+        argDeconstruction arg :=
+          match arg with
+          | .bank => .Disassembled
+          | .check => .Destroyed }
+    ⟫)
+  (invariant := fun selves _args signatures =>
+    checkSignature (signatures .owner) (selves .check).owner)
 
-def newAuction : @Function lab .NewAuction :=
-  defFunction lab .NewAuction
+def newAuction : @Ecosystem.MultiMethod label .NewAuction :=
+  defMultiMethod label .NewAuction
   (argsInfo := fun
-    | .check => { type := Check })
-  (body := fun selves args =>
-    { created :=
-        let check := selves .check
-        [ { owner := check.owner
-            auctionedDenomination := check.denomination
-            auctionedQuantity := check.quantity
-            biddingDenomination := args.biddingDenomination
-            highestBidder := check.owner
-            highestBid := 0 : Auction} ]
-      argDeconstruction arg :=
-        match arg with
-        | .check => .Destroyed })
-  (invariant := fun selves args =>
-    checkKey (selves .check).owner args.key)
+    | .check => { type := Check, isObjectOf := Check.instIsObjectOf } )
+  (body := fun selves args => ⟪
+    return
+      { assembled := {
+          withOldUid _ _ := none
+          withNewUid := [] }
+        constructed :=
+            let chk := selves .check
+            [ { owner := chk.owner
+                auctionedDenomination := chk.denomination
+                auctionedQuantity := chk.quantity
+                biddingDenomination := args.biddingDenomination
+                highestBidder := chk.owner
+                highestBid := 0 : Auction} ]
+        argDeconstruction arg :=
+          match arg with
+          | .check => .Destroyed }
+    ⟫)
+  (invariant := fun selves _args signatures =>
+    checkSignature (signatures .owner) (selves .check).owner)
 
-def bid : @Function lab .Bid :=
-  defFunction lab .Bid
+def bid : @Ecosystem.MultiMethod label .Bid :=
+  defMultiMethod label .Bid
   (argsInfo := fun
-    | .check => { type := Check }
-    | .auction => { type := Auction })
-  (body := fun selves args =>
-    let check := selves .check
+    | .check => { type := Check, isObjectOf := Check.instIsObjectOf }
+    | .auction => { type := Auction, isObjectOf := Auction.instIsObjectOf } )
+  (body := fun selves _args => ⟪
+    let chk := selves .check
     let auction := selves .auction
-    { created :=
-        [{ auction with
-          highestBid := check.quantity
-          highestBidder := check.owner
-         : Auction }]
-      constructed :=
-        [{ denomination := auction.biddingDenomination
-           owner := auction.highestBidder
-           quantity := auction.highestBid : Check }]
-      argDeconstruction arg :=
-        match arg with
-        | .check => .Destroyed
-        | .auction => .Disassembled })
-  (invariant := fun selves args =>
+    return
+      { assembled := {
+          withOldUid arg _ :=
+            match arg with
+            | .check => none
+            | .auction =>
+              some {
+                obj :=
+                  { auction with
+                      highestBid := chk.quantity
+                      highestBidder := chk.owner
+                  },
+                isObjectOf := Auction.instIsObjectOf
+              }
+          withNewUid := []
+          }
+        constructed :=
+          [{ denomination := auction.biddingDenomination
+             owner := auction.highestBidder
+             quantity := auction.highestBid : Check }]
+        argDeconstruction arg :=
+          match arg with
+          | .check => .Destroyed
+          | .auction => .Disassembled }
+    ⟫)
+  (invariant := fun selves _args signatures =>
     let bid := selves .check
     let auction := selves .auction
-    checkKey bid.owner args.key
+    checkSignature (signatures .owner) bid.owner
     && bid.denomination == auction.biddingDenomination
     && bid.quantity > auction.highestBid)
 
-def endAuction : @Function lab .EndAuction :=
-  defFunction lab .EndAuction
+def endAuction : @Ecosystem.MultiMethod label .EndAuction :=
+  defMultiMethod label .EndAuction
   (argsInfo := fun
-    | .auction => { type := Auction })
-  (body := fun selves args =>
+    | .auction => { type := Auction, isObjectOf := Auction.instIsObjectOf } )
+  (body := fun selves _args => ⟪
     let auction := selves .auction
-    { created := []
-      constructed :=
-        let winnerCheck : Check :=
-          { owner := auction.highestBidder
-            denomination := auction.auctionedDenomination
-            quantity := auction.auctionedQuantity }
-        let ownerCheck : Check :=
-          { owner := auction.owner
-            quantity := auction.highestBid
-            denomination := auction.biddingDenomination }
-        [winnerCheck, ownerCheck]
-      argDeconstruction arg :=
-        match arg with
-        | .auction => .Destroyed })
-  (invariant := fun selves args =>
+    return
+      { assembled := {
+          withOldUid _ _ := none
+          withNewUid := [] }
+        constructed :=
+          let winnerCheck : Check :=
+            { owner := auction.highestBidder
+              denomination := auction.auctionedDenomination
+              quantity := auction.auctionedQuantity }
+          let ownerCheck : Check :=
+            { owner := auction.owner
+              quantity := auction.highestBid
+              denomination := auction.biddingDenomination }
+          [winnerCheck, ownerCheck]
+        argDeconstruction arg :=
+          match arg with
+          | .auction => .Destroyed }
+    ⟫)
+  (invariant := fun selves _args signatures =>
     let auction := selves .auction
-    checkKey auction.owner args.key)
+    checkSignature (signatures .owner) auction.owner)
 
 def kudosEcosystem : Ecosystem label where
   classes := fun
@@ -617,4 +679,3 @@ def kudosEcosystem : Ecosystem label where
     | .NewAuction => newAuction
     | .Bid => bid
     | .EndAuction => endAuction
--/
