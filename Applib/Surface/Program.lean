@@ -89,7 +89,7 @@ def Program.toAVM {lab : Scope.Label} {α} (prog : Program lab α) : AVM.Program
   | .return val =>
     .return val
 
-def Program.map {lab : Scope.Label} {A B : Type} (f : A → B) (prog : Program.{u} lab A) : Program.{u} lab B :=
+def Program.map {lab : Scope.Label} {A B : Type u} (f : A → B) (prog : Program.{u} lab A) : Program.{u} lab B :=
   match prog with
   | .create eid cid constrId args signatures next =>
     .create eid cid constrId args signatures (fun x => map f (next x))

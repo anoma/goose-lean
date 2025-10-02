@@ -58,10 +58,10 @@ def defMultiMethod
   (lab : AVM.Ecosystem.Label)
   (multiId : lab.MultiMethodId)
   (argsInfo : (a : multiId.ObjectArgNames) → ObjectArgInfo lab multiId a)
-  (body : ObjectArgs lab multiId argsInfo → multiId.Args.type → Program lab (MultiMethodResult multiId))
+  (body : ObjectArgs lab multiId argsInfo → multiId.Args.type → Program lab.toScope (MultiMethodResult multiId))
   (invariant : ObjectArgs lab multiId argsInfo → (args : multiId.Args.type) → (signatures : multiId.Signatures args) → Bool := fun _ _ _ => true)
   : AVM.Ecosystem.MultiMethod multiId where
-  body (selves : multiId.Selves) (args : multiId.Args.type) : AVM.Program lab (AVM.MultiMethodResult multiId) :=
+  body (selves : multiId.Selves) (args : multiId.Args.type) : AVM.Program lab.toScope (AVM.MultiMethodResult multiId) :=
     (body (getArg selves) args).map (MultiMethodResult.toAVM) |>.toAVM
   invariant (selves : multiId.Selves) (args : multiId.Args.type) (signatures : multiId.Signatures args) : Bool :=
     invariant (getArg selves) args signatures
