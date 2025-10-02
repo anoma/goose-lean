@@ -61,7 +61,7 @@ inductive Program (lab : Scope.Label) : (α : Type u) → Type (u + 1) where
     (next : C → Program lab α)
     : Program lab α
   | invoke
-    {α : Type u}
+    {α β : Type u}
     (prog : Program lab β)
     (next : β → Program lab α)
     : Program lab α

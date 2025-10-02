@@ -64,7 +64,7 @@ syntax colGe withPosition("destroy " ident term) optSemicolon(program) : program
 syntax colGe withPosition("destroy " ident term " signed " term) optSemicolon(program) : program
 syntax colGe "call " ident term : program
 syntax colGe "call " ident term " signed " term : program
-syntax colGe withPosition("call" ident term) optSemicolon(program) : program
+syntax colGe withPosition("call " ident term) optSemicolon(program) : program
 syntax colGe withPosition("call " ident term " signed " term) optSemicolon(program) : program
 syntax colGe "multiCall[ " term "] " ident term : program
 syntax colGe "multiCall[ " term "] " ident term " signed " term : program
