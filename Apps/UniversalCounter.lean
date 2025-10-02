@@ -133,7 +133,7 @@ def counterEcosystem : Ecosystem label where
   multiMethods := fun
     | .Merge => mergeMethod
 
-example (rx ry : Reference Counter) : Applib.Program label Unit := ⟪
+example (rx ry : Reference Counter) : Applib.Program label.toScope Unit := ⟪
   let selves :
       @Ecosystem.Label.MultiMethodId.SelvesReferences label
       Counter.MultiMethods.Merge := fun
@@ -143,5 +143,5 @@ example (rx ry : Reference Counter) : Applib.Program label Unit := ⟪
         | .Counter2 => { type := Counter
                          isObjectOf := Counter.instIsObjectOf
                          ref := ry }
-  multiCall Counter.MultiMethods.Merge selves .unit
+  multiCall[ .unit ] Counter.MultiMethods.Merge selves .unit
 ⟫

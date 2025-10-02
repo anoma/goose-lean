@@ -6,8 +6,8 @@ import AVM.Class.Translation.Tasks
 
 namespace AVM
 
-def Program.compile {lab : Ecosystem.Label} (eco : Ecosystem lab) (prog : Program lab Unit) : Anoma.Program :=
-  Member.Body.tasks eco prog.lift
+def Program.compile {lab : Scope.Label} (scope : Scope lab) (prog : Program lab Unit) : Anoma.Program :=
+  Member.Body.tasks scope prog.lift
     |>.void
     |>.compose
     |>.toProgram
