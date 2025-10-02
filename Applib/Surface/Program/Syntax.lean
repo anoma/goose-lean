@@ -1,9 +1,42 @@
 import Applib.Surface.Program
 import Applib.Surface.Member
+import AVM.Scope.Label
 
 namespace Applib
 
 open Lean
+
+namespace Tactic.Scoper
+
+open Elab.Tactic Meta
+
+def elabClosedNat (t : Syntax) : TacticM Nat := do
+  let e : Expr ← elabTermEnsuringType t (mkConst ``Nat)
+  liftMetaMAtMain fun _ => do
+    reduceEval e
+
+def findProof (scope : Term) : TacticM Unit := do
+  let card <- elabClosedNat (← `(term| (AVM.Scope.Label.EcosystemIdEnum $scope).1))
+  let f ← `(term| ($scope).EcosystemIdEnum.equiv.invFun)
+  let possibleIndices : List (Fin card) := List.finRange card
+  let tryN (n : Fin card) : TacticM Unit := do
+    let sn := Syntax.mkNumLit (toString n)
+    let labelId ← `(term| $f $sn)
+    let t ← `(tactic| try exact ⟨$labelId, by rfl⟩)
+    evalTactic t
+  for x in possibleIndices do
+    tryN x
+
+elab "scoper" : tactic => do
+   let tgt ← getMainTarget
+   let s : Term ← liftMetaMAtMain fun _ => do
+     let tgt ← reduce tgt
+     let x ← match tgt.getAppArgs with
+       | #[_label, scope] => (Elab.Term.exprToSyntax scope).run'
+       | e => throwError "Goal should be of the form `InScope label scope`. Actual goal: {e}"
+   findProof s
+
+end Tactic.Scoper
 
 declare_syntax_cat program
 declare_syntax_cat branch_body
@@ -33,10 +66,10 @@ syntax colGe "call " ident term : program
 syntax colGe "call " ident term " signed " term : program
 syntax colGe withPosition("call " ident term) optSemicolon(program) : program
 syntax colGe withPosition("call " ident term " signed " term) optSemicolon(program) : program
-syntax colGe "multiCall " ident term : program
-syntax colGe "multiCall " ident term " signed " term : program
-syntax colGe withPosition("multiCall " ident term) optSemicolon(program) : program
-syntax colGe withPosition("multiCall " ident term " signed " term) optSemicolon(program) : program
+syntax colGe "multiCall[ " term "] " ident term : program
+syntax colGe "multiCall[ " term "] " ident term " signed " term : program
+syntax colGe withPosition("multiCall[ " term "] " ident term) optSemicolon(program) : program
+syntax colGe withPosition("multiCall[ " term "] " ident term " signed " term) optSemicolon(program) : program
 syntax colGe "upgrade " term " to " term : program
 syntax colGe withPosition("upgrade " term " to " term) optSemicolon(program) : program
 syntax colGe "invoke " term : program
@@ -67,45 +100,45 @@ macro_rules
   | `(⟪if $cond:term then $thenProg:program ; $p:program⟫) =>
     `(let next := fun () => ⟪$p⟫; if $cond then Program.invoke ⟪$thenProg⟫ next else next ())
   | `(⟪create $c:ident $m:ident $e:term ⟫) =>
-    `(Program.create' $c $m $e unsigned Program.return)
+    `(Program.create' (inScope := by scoper) $c $m $e unsigned Program.return)
   | `(⟪create $c:ident $m:ident $e:term signed $signatures:term⟫) =>
-    `(Program.create' $c $m $e $signatures Program.return)
+    `(Program.create' (inScope := by scoper) $c $m $e $signatures Program.return)
   | `(⟪create $c:ident $m:ident $e:term; $p:program⟫) =>
-    `(Program.create' $c $m $e unsigned (fun _ => ⟪$p⟫))
+    `(Program.create' (inScope := by scoper) $c $m $e unsigned (fun _ => ⟪$p⟫))
   | `(⟪create $c:ident $m:ident $e:term signed $signatures:term; $p:program⟫) =>
-    `(Program.create' $c $m $e $signatures (fun _ => ⟪$p⟫))
+    `(Program.create' (inScope := by scoper) $c $m $e $signatures (fun _ => ⟪$p⟫))
   | `(⟪$x:ident := create $c:ident $m:ident $e:term; $p:program⟫) =>
-    `(Program.create' $c $m $e unsigned (fun $x => ⟪$p⟫))
+    `(Program.create' (inScope := by scoper) $c $m $e unsigned (fun $x => ⟪$p⟫))
   | `(⟪$x:ident := create $c:ident $m:ident $e:term signed $signatures:term; $p:program⟫) =>
-    `(Program.create' $c $m $e $signatures (fun $x => ⟪$p⟫))
+    `(Program.create' (inScope := by scoper) $c $m $e $signatures (fun $x => ⟪$p⟫))
   | `(⟪destroy $m:ident $e:term $args:term⟫) =>
-    `(Program.destroy' $e $m $args unsigned (Program.return ()))
+    `(Program.destroy' (inScope := by scoper) $e $m $args unsigned (Program.return ()))
   | `(⟪destroy $m:ident $e:term $args:term signed $signatures:term⟫) =>
-    `(Program.destroy' $e $m $args $signatures (Program.return ()))
+    `(Program.destroy' (inScope := by scoper) $e $m $args $signatures (Program.return ()))
   | `(⟪destroy $m:ident $e:term $args:term; $p:program⟫) =>
-    `(Program.destroy' $e $m $args unsigned (⟪$p⟫))
+    `(Program.destroy' (inScope := by scoper) $e $m $args unsigned (⟪$p⟫))
   | `(⟪destroy $m:ident $e:term $args:term signed $signatures:term; $p:program⟫) =>
-    `(Program.destroy' $e $m $args $signatures (⟪$p⟫))
+    `(Program.destroy' (inScope := by scoper) $e $m $args $signatures (⟪$p⟫))
   | `(⟪call $m:ident $e:term $args:term⟫) =>
-    `(Program.call' $e $m $args unsigned (Program.return ()))
+    `(Program.call' (inScope := by scoper) $e $m $args unsigned (Program.return ()))
   | `(⟪call $m:ident $e:term $args:term signed $signatures⟫) =>
-    `(Program.call' $e $m $args $signatures (Program.return ()))
+    `(Program.call' (inScope := by scoper) $e $m $args $signatures (Program.return ()))
   | `(⟪call $m:ident $e:term $args:term ; $p:program⟫) =>
-    `(Program.call' $e $m $args unsigned (⟪$p⟫))
+    `(Program.call' (inScope := by scoper) $e $m $args unsigned (⟪$p⟫))
   | `(⟪call $m:ident $e:term $args:term signed $signatures ; $p:program⟫) =>
-    `(Program.call' $e $m $args $signatures (⟪$p⟫))
-  | `(⟪multiCall $m:ident $selves:term $args:term⟫) =>
-    `(Program.multiCall' $m $selves $args unsigned (Program.return ()))
-  | `(⟪multiCall $m:ident $selves:term $args:term signed $signatures:term; $p:program⟫) =>
-    `(Program.multiCall' $m $selves $args $signatures $signatures (⟪$p⟫))
-  | `(⟪multiCall $m:ident $selves:term $args:term; $p:program⟫) =>
-    `(Program.multiCall' $m $selves $args unsigned (⟪$p⟫))
-  | `(⟪multiCall $m:ident $selves:term $args:term signed $signatures:term⟫) =>
-    `(Program.multiCall' $m $selves $args $signatures (Program.return ()))
+    `(Program.call' (inScope := by scoper) $e $m $args $signatures (⟪$p⟫))
+  | `(⟪multiCall[ $eid:term ] $m:ident $selves:term $args:term⟫) =>
+    `(Program.multiCall' (eid := $eid) $m $selves $args unsigned (Program.return ()))
+  | `(⟪multiCall[ $eid:term ] $m:ident $selves:term $args:term signed $signatures:term; $p:program⟫) =>
+    `(Program.multiCall' (eid := $eid) $m $selves $args $signatures $signatures (⟪$p⟫))
+  | `(⟪multiCall[ $eid:term ] $m:ident $selves:term $args:term; $p:program⟫) =>
+    `(Program.multiCall' (eid := $eid) $m $selves $args unsigned (⟪$p⟫))
+  | `(⟪multiCall[ $eid:term  ] $m:ident $selves:term $args:term signed $signatures:term⟫) =>
+    `(Program.multiCall' (eid := $eid) $m $selves $args $signatures (Program.return ()))
   | `(⟪upgrade $e:term to $e':term⟫) =>
-    `(Program.upgrade' $e $e' Program.return)
+    `(Program.upgrade' (inScope := by scoper) $e $e' Program.return)
   | `(⟪upgrade $e:term to $e':term ; $p:program⟫) =>
-    `(Program.upgrade' $e $e' (⟪$p⟫))
+    `(Program.upgrade' (inScope := by scoper) $e $e' (⟪$p⟫))
   | `(⟪invoke $e:term⟫) =>
     `(Program.invoke $e Program.return)
   | `(⟪invoke $e:term ; $p:program⟫) =>
