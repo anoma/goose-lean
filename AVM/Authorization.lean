@@ -19,11 +19,11 @@ def PrivateKey.universal : PrivateKey where
   key := 0
 
 -- mock function
-def checkKey (pub : PublicKey) (priv : PrivateKey) : Bool := pub.key == priv.key
+private def checkKey (pub : PublicKey) (priv : PrivateKey) : Bool := pub.key == priv.key
 
 structure Signature {A : Type u} (msg : A) : Type u where
   msg : A
-  signature : PrivateKey
+  private signature : PrivateKey
 
 -- Mock function that returns the `raw` bytes of the signature
 def Signature.raw {A : Type u} (msg : A) (_s : Signature msg ) : Nat := 0

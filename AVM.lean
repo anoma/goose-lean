@@ -1,3 +1,4 @@
+import AVM.Ecosystem
 import AVM.Class
 import AVM.Class.Translation
 import AVM.Object
