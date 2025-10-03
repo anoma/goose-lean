@@ -47,6 +47,7 @@ A high-level summary description of GOOSE v0.3.0. The description intentionally 
 		- [Multi-method](#multi-method)
 			- [Multi-method call](#multi-method-call)
 			- [Multi-method message logic](#multi-method-message-logic)
+		- [Function invocation](#function-invocation)
 		- [Class logic](#class-logic)
 	- [Translation issues and limitations](#translation-issues-and-limitations)
 	- [Implemented example apps](#implemented-example-apps)
@@ -112,12 +113,12 @@ would result in an action with:
   - one consumed object resource corresponding to `self`,
   - one created object resource corresponding to `self` with the `count` field increased by `n`,
   - one consumed message resource for `Counter.Incr` containing the `n` argument,
-  - created message resources for all nested calls.
+  - created message resources for all nested calls (none in this case).
 3. The previous points are applied recursively, resulting in a set of actions dependent on parameter values (fetched objects and generated object ids).
 4. The fetches and id generation at the beginning of the program are translated to `queryResource` and `genRand` Anoma program commands.
 5. The actions are grouped into a single transaction, together with an action that sends the messages corresponding to the calls in the program. The `submitTransaction` command submits this transaction in the resulting Anoma program.
 
-The message RLs check that the created object resources correspond to modifications of consumed object resources speficied by the bodies of corresponding class members or multi-methods, e.g., for methods the consumed object resource `self` is correctly updated into the created object resource.
+The message RLs check that the created object resources correspond to modifications of consumed object resources specified by the bodies of corresponding class members or multi-methods, e.g., for methods the consumed object resource `self` is correctly updated into the created object resource.
 
 For example, the AVM program `mutualIncrement` from the previous section is translated to the Anoma program performing the following.
 1. `c1 := queryResource rc1.id`
@@ -598,6 +599,12 @@ Multi-method message logic for a multi-method `multiMethod` performs the followi
 - resources in `destroyedEph` are ephemeral.
 - resources in `constructed` are persistent.
 - `multiMethod.invariant selves msg.args` holds.
+
+### Function invocation
+
+Invoking functions (sub-programs) is handled by simply recursively processing the invoked sub-program, i.e., by program composition.
+- `AVM.Program.invoke` in `AVM/Program.lean`.
+- Thanks to the use of continuations to represent program sequencing, compilation is interleaved with object fetching and object id generation. At the point of compiling a function invocation, all arguments to the invocation are known and we can process the function body program recursively. The arguments to the invocation may depend on the fetched objects and ids generated, but these have been already resolved.
 
 ### Class logic
 Class logic is the logic associated with a class. Class logic is implemented in `Class.logic` in `AVM/Class/Translation/Logics.lean`.
