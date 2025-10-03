@@ -105,7 +105,7 @@ def invoke
   | .return val =>
     next val
 
-/-- Parameters (generated random values and fetched obejcts) of the program,
+/-- Parameters (generated random values and fetched objects) of the program,
   *not* including the parameters of the sub-programs (the bodies of called
   methods, constructors, destructors). In general, values of type
   `prog.params.Product` are assumed to be adjusted (see
