@@ -1,7 +1,7 @@
-# GOOSE v0.3.0 Summary
-A high-level summary description of GOOSE v0.3.0. The description intentionally simplifies some data structures in comparison to the actual Lean implementation. The aim is to provide a high-level overview of the essential features of the model and its translation to the Anoma Resource Machine.
+# GOOSE v0.3.1 Summary
+A high-level summary description of GOOSE v0.3.1. The description intentionally simplifies some data structures in comparison to the actual Lean implementation. The aim is to provide a high-level overview of the essential features of the model and its translation to the Anoma Resource Machine.
 
-- [GOOSE v0.3.0 Summary](#goose-v030-summary)
+- [GOOSE v0.3.1 Summary](#goose-v031-summary)
 	- [Overview](#overview)
 	- [Anoma Programs](#anoma-programs)
 	- [AVM Programs](#avm-programs)
@@ -112,7 +112,7 @@ would result in an action with:
   - one consumed object resource corresponding to `self`,
   - one created object resource corresponding to `self` with the `count` field increased by `n`,
   - one consumed message resource for `Counter.Incr` containing the `n` argument,
-  - created message resources for all nested calls.
+  - created message resources for all nested calls (none in this case).
 3. The previous points are applied recursively, resulting in a set of actions dependent on parameter values (fetched objects and generated object ids).
 4. The fetches and id generation at the beginning of the program are translated to `queryResource` and `genRand` Anoma program commands.
 5. The actions are grouped into a single transaction, together with an action that sends the messages corresponding to the calls in the program. The `submitTransaction` command submits this transaction in the resulting Anoma program.
@@ -643,6 +643,10 @@ Class logic for a class `cls` performs the following checks.
 	- Kudos with ownership.
 	- Kudos token has: quantity, originator, owner.
 	- Operations: mint, burn, transfer.
+	- Multi-methods: split, merge.
 - Kudos bank: `Apps/KudosBank.lean`.
 	- Kudos app implemented with a single object KudosBank which tracks all kudo balances.
 	- Operations: open, close, mint, burn, transfer.
+	- Multi-methods:
+    	- cheques: issue, deposit.
+        - auctions: new, bid, end.

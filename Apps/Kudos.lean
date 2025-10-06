@@ -118,7 +118,63 @@ def clab : Class.Label where
     | Destructors.Burn => ⟨PUnit⟩
   DestructorSignatureId := Destructors.SignatureId
 
-def label : Ecosystem.Label := Ecosystem.Label.singleton clab
+inductive MultiMethods where
+  | Merge
+  | Split
+  deriving Repr, DecidableEq, FinEnum
+
+export MultiMethods (Merge)
+
+namespace Merge
+
+inductive ArgNames where
+  | Kudos1
+  | Kudos2
+  deriving DecidableEq, Repr, FinEnum
+
+export ArgNames (Kudos1 Kudos2)
+
+structure Args where
+  deriving BEq
+
+instance Args.hasTypeRep : TypeRep Args where
+  rep := Rep.atomic "Kudos.Merge.Args"
+
+end Merge
+
+namespace Split
+
+inductive ArgNames where
+  | Kudos
+  deriving DecidableEq, Repr, FinEnum
+
+export ArgNames (Kudos)
+
+structure Args where
+  quantities : List Nat
+  deriving BEq
+
+instance Args.hasTypeRep : TypeRep Args where
+  rep := Rep.atomic "Kudos.Split.Args"
+
+end Split
+
+def label : Ecosystem.Label where
+  name := "Kudos"
+  ClassId := PUnit
+  classLabel := fun _ => clab
+  MultiMethodId := MultiMethods
+  MultiMethodArgs := fun
+    | .Merge => ⟨Merge.Args⟩
+    | .Split => ⟨Split.Args⟩
+  MultiMethodObjectArgClass {f : MultiMethods} (_a : _) := match f with
+    | .Merge => PUnit.unit
+    | .Split => PUnit.unit
+  MultiMethodObjectArgNames : MultiMethods → Type := fun
+    | .Merge => Merge.ArgNames
+    | .Split => Split.ArgNames
+  ObjectArgNamesBEq (f : MultiMethods) := by cases f <;> exact inferInstance
+  ObjectArgNamesEnum (f : MultiMethods) := by cases f <;> exact inferInstance
 
 def toObject (c : Kudos) : @ObjectData label .unit where
   quantity := c.quantity
@@ -129,12 +185,14 @@ def fromObject (o : @ObjectData label .unit) : Kudos :=
     quantity := o.quantity
     originator := o.privateFields.originator }
 
-instance hasIsObject : IsObject Kudos where
+instance instIsObjectOf : @IsObjectOf label () Kudos where
+  toObject := Kudos.toObject
+  fromObject := Kudos.fromObject
+
+instance instIsObject : IsObject Kudos where
   label := label
   classId := .unit
-  isObjectOf :=
-    { toObject := Kudos.toObject
-      fromObject := Kudos.fromObject }
+  isObjectOf := inferInstance
 
 def kudosMint : @Class.Constructor label .unit Constructors.Mint := defConstructor
   (body := fun (args : MintArgs) => ⟪
@@ -163,3 +221,52 @@ def kudosClass : @Class label .unit where
     | Methods.Transfer => kudosTransfer
   destructors := fun
     | Destructors.Burn => kudosBurn
+
+def kudosEcosystem : Ecosystem label where
+  classes := fun _ => kudosClass
+  multiMethods (f : MultiMethods) := match f with
+    | .Merge =>
+      let mergeArgsInfo (a : label.MultiMethodObjectArgNames Merge)
+      : ObjectArgInfo label Merge a :=
+      match a with
+      | .Kudos1 => { type := Kudos, isObjectOf := Kudos.instIsObjectOf }
+      | .Kudos2 => { type := Kudos, isObjectOf := Kudos.instIsObjectOf }
+
+      defMultiMethod label Merge
+        (argsInfo := mergeArgsInfo)
+        (body := fun kudos _args => ⟪
+                  let k1 := kudos .Kudos1
+                  let k2 := kudos .Kudos2
+                  return {
+                    assembled := {
+                      withOldUid _ _ := none
+                      withNewUid :=
+                        [{k1 with quantity := k1.quantity + k2.quantity : Kudos}]
+                    }
+                  }
+                ⟫)
+        (invariant := fun kudos _args _signatures =>
+                  let k1 := kudos .Kudos1
+                  let k2 := kudos .Kudos2
+                  k1.originator == k2.originator
+                  && k1.owner == k2.owner)
+
+    | .Split =>
+      let splitArgsInfo (a : label.MultiMethodObjectArgNames .Split)
+      : ObjectArgInfo label .Split a :=
+      match a with
+      | .Kudos => { type := Kudos, isObjectOf := Kudos.instIsObjectOf }
+
+      defMultiMethod label .Split
+        (argsInfo := splitArgsInfo)
+        (body := fun kudos args => ⟪
+                  let k := kudos .Kudos
+                  return {
+                    assembled := {
+                      withOldUid _ _ := none
+                      withNewUid :=
+                        let mk (q : Nat) : Kudos := {k with quantity := q}
+                        List.map (IsObject.toAnObject ∘ mk) args.quantities
+                    }
+                  }
+                ⟫)
