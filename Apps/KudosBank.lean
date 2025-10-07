@@ -547,7 +547,7 @@ def issueCheck : @Ecosystem.MultiMethod label .IssueCheck :=
     ⟫)
   (invariant := fun selves args signatures =>
     let bank := selves .bank
-    checkSignature (signatures .owner) bank.owner
+    checkSignature (signatures .owner) args.owner
     && 0 < args.quantity
     && args.quantity <= bank.getBalance args.owner args.denomination)
 
