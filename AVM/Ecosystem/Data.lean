@@ -7,7 +7,7 @@ structure MultiMethodData : Type where
   numSelvesDestroyed : Nat
   numReassembledNewUid : Nat
   numReassembledOldUid : Nat
-  deriving BEq
+  deriving BEq, Repr
 
 instance Nonce.hasTypeRep : TypeRep MultiMethodData where
   rep := Rep.atomic "AVM.MultiMethodData"

@@ -29,6 +29,4 @@ def Message.fromResource {lab : Ecosystem.Label} (res : Anoma.Resource) : Option
   tryCast smsg.message
 
 def Resource.isSomeMessage (res : Anoma.Resource) : Bool :=
-  match SomeMessage.fromResource res with
-  | some _ => true
-  | none => false
+  Option.isSome (SomeMessage.fromResource res)
