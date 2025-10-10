@@ -110,7 +110,7 @@ private partial def Body.task'
   (scope : Scope lab)
   (body : Program lab α)
   (cont : α → AdjustFun → Tasks (TasksResult .empty β))
-  (mkActionData : β → ActionData)
+  (mkActionData : body.params.Product → β → ActionData)
   (mkMessage : body.params.Product → β → SomeMessage)
   : Task' :=
   let tasks : Tasks (TasksResult body.params β) :=
@@ -119,10 +119,10 @@ private partial def Body.task'
     Tasks.composeWithMessage
       tasks
       (fun res => mkMessage res.bodyParameterValues res.value)
-      (fun res => mkActionData res.value)
+      (fun res => mkActionData res.bodyParameterValues res.value)
   let mkAdjust (vals : task.params.Product) : AdjustFun :=
     let res := tasks.value (Tasks.coerce vals)
-    let actionData := mkActionData res.value
+    let actionData := mkActionData res.bodyParameterValues res.value
     let adjust' : AdjustFun := fun obj =>
       -- NOTE: This doesn't take into account objects that are destroyed. If an
       -- object is fetched after being destroyed, the program behaviour is
@@ -149,7 +149,7 @@ private partial def Class.Constructor.task'
   (signatures : constrId.Signatures args)
   : Task' :=
   let body : Program.{1} lab.toScope (ULift (ObjectData classId)) := constr.body args |>.lift
-  let mkActionData (newObjectData : ULift (ObjectData classId)) : ActionData :=
+  let mkActionData (vals : body.params.Product) (newObjectData : ULift (ObjectData classId)) : ActionData :=
     let newObj : SomeObject :=
       let obj : Object classId :=
         { uid := newId,
@@ -157,8 +157,11 @@ private partial def Class.Constructor.task'
           data := newObjectData.down }
       obj.toSomeObject
     let consumedObj := newObj.toConsumable (ephemeral := true)
+    let valsObjs := body.objects vals
     let createdObjects : List CreatedObject :=
-      [CreatedObject.fromSomeObject newObj (ephemeral := false) (rand := r)]
+      CreatedObject.fromSomeObject newObj (ephemeral := false) (rand := r) ::
+        -- TODO: new rand for each created object
+        valsObjs.map (fun c => CreatedObject.fromSomeObject c (ephemeral := false) (rand := r))
     { consumed := [consumedObj]
       created := createdObjects }
   let mkMessage (vals : body.params.Product) _ : SomeMessage :=
@@ -179,7 +182,7 @@ private partial def Class.Destructor.task'
   (signatures : destructorId.Signatures args)
   : Task' :=
   let body : Program.{1} lab.toScope (ULift Unit) := destructor.body self args |>.lift
-  let mkActionData (_ : ULift Unit) : ActionData :=
+  let mkActionData (vals : body.params.Product) (_ : ULift Unit) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let createdObjects : List CreatedObject :=
       [{ uid := self.uid,
@@ -206,7 +209,7 @@ private partial def Class.Method.task'
   (signatures : methodId.Signatures args)
   : Task' :=
   let body : Program.{1} lab.toScope (ULift (Object classId)) := method.body self args |>.lift
-  let mkActionData (lobj : ULift (Object classId)) : ActionData :=
+  let mkActionData (vals : body.params.Product) (lobj : ULift (Object classId)) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let obj : Object classId := lobj.down
     let createdObject : CreatedObject :=
@@ -229,7 +232,7 @@ private partial def Class.Upgrade.task'
   (self : Object classId)
   (objData : SomeObjectData)
   : Task' :=
-  let mkActionData (_ : PUnit) : ActionData :=
+  let mkActionData _ (_ : PUnit) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let createdObject : CreatedObject :=
       { uid := self.uid,
@@ -259,6 +262,7 @@ partial def Ecosystem.MultiMethod.task'
       mkReturn ⟨res, rands⟩ adjust
 
   let mkActionData
+      (vals : body.params.Product)
       (tasksRes : MultiTasksResult multiId)
       : ActionData :=
       let res := tasksRes.res
