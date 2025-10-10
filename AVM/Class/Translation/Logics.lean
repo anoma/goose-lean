@@ -3,6 +3,93 @@ import AVM.Message
 import AVM.Logic
 import AVM.Ecosystem
 
+namespace AVM.Logic
+
+def classLogicRef {lab : Ecosystem.Label} (classId : lab.ClassId) : Anoma.LogicRef :=
+  classId.label.logicRef
+
+def constructorLogicRef {lab : Ecosystem.Label} {classId : lab.ClassId} (constrId : classId.label.ConstructorId) : Anoma.LogicRef :=
+  ⟨s!"AVM.Class.{classId.label.name}.Constructor.{@repr _ classId.label.constructorsRepr constrId}"⟩
+
+def destructorLogicRef {lab : Ecosystem.Label} {classId : lab.ClassId} (destrId : classId.label.DestructorId) : Anoma.LogicRef :=
+  ⟨s!"AVM.Class.{classId.label.name}.Destructor.{@repr _ classId.label.destructorsRepr destrId}"⟩
+
+def methodLogicRef {lab : Ecosystem.Label} {classId : lab.ClassId} (methodId : classId.label.MethodId) : Anoma.LogicRef :=
+  ⟨s!"AVM.Class.{classId.label.name}.Method.{@repr _ classId.label.methodsRepr methodId}"⟩
+
+def upgradeLogicRef {lab : Ecosystem.Label} (classId : lab.ClassId) : Anoma.LogicRef :=
+  ⟨s!"AVM.Class.{classId.label.name}.Upgrade"⟩
+
+def multiMethodLogicRef {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Anoma.LogicRef :=
+  ⟨s!"AVM.MultiMethod.{@repr _ lab.multiMethodsRepr multiId}"⟩
+
+end AVM.Logic
+
+namespace AVM.Program
+
+structure MessageValue (lab : Ecosystem.Label) where
+  id : lab.MemberId
+  args : id.Args.type
+  logicRef : Anoma.LogicRef
+
+def messageValues
+  {lab : Ecosystem.Label}
+  {α : Type u}
+  (prog : Program lab.toScope α)
+  (vals : prog.params.Product)
+  : List (MessageValue lab) :=
+  match prog with
+  | .constructor _ _ constrId args _ next =>
+    let msgData : MessageValue lab :=
+      { id := .classMember (.constructorId constrId)
+        args := args,
+        logicRef := Logic.constructorLogicRef constrId }
+    let ⟨objId, vals'⟩ := vals
+    msgData :: Program.messageValues (next objId) vals'
+  | .destructor _ _ destrId _ args _ next =>
+    let msgData : MessageValue lab :=
+      { id := .classMember (.destructorId destrId)
+        args := args,
+        logicRef := Logic.destructorLogicRef destrId }
+    msgData :: Program.messageValues next vals
+  | .method _ _ methodId _ args _ next =>
+    let msgData : MessageValue lab :=
+      { id := .classMember (.methodId methodId)
+        args := args,
+        logicRef := Logic.methodLogicRef methodId }
+    msgData :: Program.messageValues next vals
+  | .multiMethod _ mid _ args _ next =>
+    let msgData : MessageValue lab :=
+      { id := .multiMethodId mid
+        args := args,
+        logicRef := Logic.multiMethodLogicRef mid }
+    msgData :: Program.messageValues next vals
+  | .upgrade _ cid _ _ next =>
+    let msgData : MessageValue lab :=
+      { id := .classMember (classId := cid) .upgradeId
+        args := PUnit.unit,
+        logicRef := Logic.upgradeLogicRef cid }
+    msgData :: Program.messageValues next vals
+  | .fetch _ next =>
+    let ⟨obj, vals'⟩ := vals
+    Program.messageValues (next obj) vals'
+  | .return _ => []
+
+end AVM.Program
+
+namespace AVM.Logic
+
+def checkMessageResourceValues {lab : Ecosystem.Label} (vals : List (Program.MessageValue lab)) (resMsgs : List Anoma.Resource) : Bool :=
+  vals.length == resMsgs.length &&
+  List.all₂
+    (fun val res =>
+      let try msg : Message lab := Message.fromResource res
+      msg.id == val.id && msg.args === val.args && msg.logicRef == val.logicRef)
+    vals
+    resMsgs
+
+end AVM.Logic
+
 namespace AVM.Class
 
 /-- Creates a message logic function for a given constructor. -/
@@ -17,13 +104,17 @@ private def Constructor.Message.logicFun
   check h : msg.id == .classMember (Label.MemberId.constructorId constrId)
   let argsData : constrId.Args.type := cast (by simp! [eq_of_beq h]) msg.args
   let signatures : constrId.Signatures argsData := cast (by grind only) msg.signatures
-  let try vals : (constr.body argsData).params.Product := tryCast msg.vals
-  let newObjData := constr.body argsData |>.value vals
+  let body := constr.body argsData
+  let try vals : body.params.Product := tryCast msg.vals
+  let newObjData := body.value vals
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
   let! [newObjRes] := createdResObjs
   let uid : ObjectId := newObjRes.nonce.value
-  Logic.checkResourceValues [newObjData.toObjectValue uid] consumedResObjs
+  let messageValues := Program.messageValues body vals
+  let createdResMsgs := Logic.selectMessageResources args.created
+  Logic.checkMessageResourceValues messageValues createdResMsgs
+    && Logic.checkResourceValues [newObjData.toObjectValue uid] consumedResObjs
     && Logic.checkResourceValues [newObjData.toObjectValue uid] createdResObjs
     && Logic.checkResourcesEphemeral consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
@@ -45,7 +136,12 @@ private def Destructor.Message.logicFun
   let createdResObjs := Logic.selectObjectResources args.created
   let! [selfRes] := consumedResObjs
   let try selfObj : Object classId := Object.fromResource selfRes
-  Logic.checkResourceValues [selfObj.toObjectValue] createdResObjs
+  let body := destructor.body selfObj argsData
+  let try vals : body.params.Product := tryCast msg.vals
+  let messageValues := Program.messageValues body vals
+  let createdResMsgs := Logic.selectMessageResources args.created
+  Logic.checkMessageResourceValues messageValues createdResMsgs
+    && Logic.checkResourceValues [selfObj.toObjectValue] createdResObjs
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesEphemeral createdResObjs
     && destructor.invariant selfObj argsData signatures
@@ -69,7 +165,10 @@ private def Method.Message.logicFun
   let signatures : methodId.Signatures argsData := cast (by grind only) msg.signatures
   check method.invariant selfObj argsData signatures
   let createdObject : Object classId := body |>.value vals
-  Logic.checkResourceValues [createdObject.toObjectValue] createdResObjs
+  let messageValues := Program.messageValues body vals
+  let createdResMsgs := Logic.selectMessageResources args.created
+  Logic.checkMessageResourceValues messageValues createdResMsgs
+    && Logic.checkResourceValues [createdObject.toObjectValue] createdResObjs
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
 
@@ -136,7 +235,7 @@ def Constructor.Message.logic
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor classId constrId)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.Class.{classId.label.name}.Constructor.{@repr _ classId.label.constructorsRepr constrId}"⟩,
+  { reference := Logic.constructorLogicRef constrId,
     function := Constructor.Message.logicFun constr }
 
 def Destructor.Message.logic
@@ -145,7 +244,7 @@ def Destructor.Message.logic
   {destrId : classId.label.DestructorId}
   (destr : Class.Destructor classId destrId)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.Class.{classId.label.name}.Destructor.{@repr _ classId.label.destructorsRepr destrId}"⟩,
+  { reference := Logic.destructorLogicRef destrId,
     function := Destructor.Message.logicFun destr }
 
 def Method.Message.logic
@@ -154,14 +253,14 @@ def Method.Message.logic
   {methodId : classId.label.MethodId}
   (method : Class.Method classId methodId)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.Class.{classId.label.name}.Method.{@repr _ classId.label.methodsRepr methodId}"⟩,
+  { reference := Logic.methodLogicRef methodId,
     function := Method.Message.logicFun method }
 
 def Upgrade.Message.logic
   {lab : Ecosystem.Label}
   (classId : lab.ClassId)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.Class.{classId.label.name}.Upgrade"⟩,
+  { reference := Logic.upgradeLogicRef classId,
     function := Upgrade.Message.logicFun classId }
 
 end AVM.Class
@@ -173,23 +272,23 @@ def MultiMethod.Message.logicFun
   {multiId : lab.MultiMethodId}
   (method : MultiMethod multiId)
   (args : Logic.Args)
-  (data : MultiMethodData)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
   check h : msg.id == .multiMethodId multiId
   let fargs : multiId.Args.type := cast (by simp! [eq_of_beq h]) msg.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  let try (argsConsumedSelves, argsConstructedEph, .unit) :=
-      consumedResObjs
-      |> Logic.filterOutDummy
-      |>.splitsExact [multiId.numObjectArgs, data.numConstructed]
-  let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves.toList
+  let argsConsumedSelves := consumedResObjs.take multiId.numObjectArgs
+  let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves
+  let argsConstructedEph := consumedResObjs.drop multiId.numObjectArgs
   let prog := method.body argsConsumedObjects fargs
   let signatures := cast (by grind only) msg.signatures
   check method.invariant argsConsumedObjects fargs signatures
   let try vals : prog.params.Product := tryCast msg.vals
   let res : MultiMethodResult multiId := prog |>.value vals
+  let data := res.data
+  check argsConsumedSelves.length == multiId.numObjectArgs
+  check argsConstructedEph.length == data.numConstructed
   let consumedUid (arg : multiId.ObjectArgNames) : Anoma.ObjectId := argsConsumedObjects arg |>.uid
   let mkObjectValue {classId : lab.ClassId} (arg : multiId.ObjectArgNames) (d : ObjectData classId) : ObjectValue := ⟨consumedUid arg, d⟩
   let reassembled : List ObjectValue := res.assembled.withOldUidList.map (fun x => mkObjectValue x.arg x.objectData)
@@ -197,7 +296,7 @@ def MultiMethod.Message.logicFun
     List.zipWithExact
       (fun objData res => objData.toObjectValue res.nonce.value)
       res.constructed
-      argsConstructedEph.toList
+      argsConstructedEph
   let consumedDestroyedObjects : List ObjectValue :=
     multiId.objectArgNamesVec.toList.filterMap
       (fun arg =>
@@ -209,23 +308,25 @@ def MultiMethod.Message.logicFun
     createdResObjs
     |> Logic.filterOutDummy
     |>.splitsExact [reassembled.length, data.numConstructed, data.numSelvesDestroyed]
-  Logic.checkResourceValues reassembled argsCreated.toList
+  let messageValues := Program.messageValues prog vals
+  let createdResMsgs := Logic.selectMessageResources args.created
+  Logic.checkMessageResourceValues messageValues createdResMsgs
+    && Logic.checkResourceValues reassembled argsCreated.toList
     && Logic.checkResourceValues constructedObjects argsConstructed.toList
-    && Logic.checkResourceValues constructedObjects argsConstructedEph.toList
+    && Logic.checkResourceValues constructedObjects argsConstructedEph
     && Logic.checkResourceValues consumedDestroyedObjects argsSelvesDestroyedEph.toList
-    && Logic.checkResourcesPersistent argsConsumedSelves.toList
+    && Logic.checkResourcesPersistent argsConsumedSelves
     && Logic.checkResourcesPersistent argsCreated.toList
     && Logic.checkResourcesPersistent argsConstructed.toList
-    && Logic.checkResourcesEphemeral argsConstructedEph.toList
+    && Logic.checkResourcesEphemeral argsConstructedEph
     && Logic.checkResourcesEphemeral argsSelvesDestroyedEph.toList
 
 def MultiMethod.Message.logic
   {lab : Ecosystem.Label}
   {multiId : lab.MultiMethodId}
   (method : MultiMethod multiId)
-  (data : MultiMethodData)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.MultiMethod.{@repr _ lab.multiMethodsRepr multiId}"⟩,
-    function args := MultiMethod.Message.logicFun method args data }
+  { reference := Logic.multiMethodLogicRef multiId,
+    function args := MultiMethod.Message.logicFun method args }
 
 end AVM.Ecosystem

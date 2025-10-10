@@ -19,8 +19,6 @@ structure Message (lab : Ecosystem.Label) : Type 1 where
   args : id.Args.type
   /-- The signature of the arguments -/
   signatures : id.Signatures args
-  /-- Extra data. -/
-  data : id.Data
   /-- The recipients of the message. -/
   recipients : List ObjectId
 
@@ -64,7 +62,6 @@ instance : Inhabited SomeMessage where
                 { id := .classMember (classId := .unit) (.constructorId PUnit.unit)
                   Vals := ⟨PUnit⟩
                   vals := PUnit.unit
-                  data := .unit
                   logicRef := default
                   signatures f := nomatch f
                   args := PUnit.unit
