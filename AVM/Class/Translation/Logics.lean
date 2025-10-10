@@ -81,11 +81,12 @@ namespace AVM.Logic
 
 def checkMessageResourceValues {lab : Ecosystem.Label} (vals : List (Program.MessageValue lab)) (resMsgs : List Anoma.Resource) : Bool :=
   vals.length == resMsgs.length &&
-  List.all
-    (List.zip vals resMsgs)
-    (fun (val, res) =>
+  List.all₂
+    (fun val res =>
       let try msg : Message lab := Message.fromResource res
       msg.id == val.id && msg.args === val.args && msg.logicRef == val.logicRef)
+    vals
+    resMsgs
 
 end AVM.Logic
 
