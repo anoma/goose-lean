@@ -3,11 +3,34 @@ import AVM.Message
 import AVM.Logic
 import AVM.Ecosystem
 
+namespace AVM.Logic
+
+def classLogicRef {lab : Ecosystem.Label} (classId : lab.ClassId) : Anoma.LogicRef :=
+  classId.label.logicRef
+
+def constructorLogicRef {lab : Ecosystem.Label} {classId : lab.ClassId} (constrId : classId.label.ConstructorId) : Anoma.LogicRef :=
+  ⟨s!"AVM.Class.{classId.label.name}.Constructor.{@repr _ classId.label.constructorsRepr constrId}"⟩
+
+def destructorLogicRef {lab : Ecosystem.Label} {classId : lab.ClassId} (destrId : classId.label.DestructorId) : Anoma.LogicRef :=
+  ⟨s!"AVM.Class.{classId.label.name}.Destructor.{@repr _ classId.label.destructorsRepr destrId}"⟩
+
+def methodLogicRef {lab : Ecosystem.Label} {classId : lab.ClassId} (methodId : classId.label.MethodId) : Anoma.LogicRef :=
+  ⟨s!"AVM.Class.{classId.label.name}.Method.{@repr _ classId.label.methodsRepr methodId}"⟩
+
+def upgradeLogicRef {lab : Ecosystem.Label} (classId : lab.ClassId) : Anoma.LogicRef :=
+  ⟨s!"AVM.Class.{classId.label.name}.Upgrade"⟩
+
+def multiMethodLogicRef {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) (data : MultiMethodData) : Anoma.LogicRef :=
+  ⟨s!"AVM.MultiMethod.{@repr _ lab.multiMethodsRepr multiId}.{repr data}"⟩
+
+end AVM.Logic
+
 namespace AVM.Program
 
 structure MessageValue (lab : Ecosystem.Label) where
   id : lab.MemberId
   args : id.Args.type
+  logicRef : Anoma.LogicRef
 
 def messageValues
   {lab : Ecosystem.Label}
@@ -19,28 +42,34 @@ def messageValues
   | .constructor _ _ constrId args _ next =>
     let msgData : MessageValue lab :=
       { id := .classMember (.constructorId constrId)
-        args := args }
+        args := args,
+        logicRef := Logic.constructorLogicRef constrId }
     let ⟨objId, vals'⟩ := vals
     msgData :: Program.messageValues (next objId) vals'
   | .destructor _ _ destrId _ args _ next =>
     let msgData : MessageValue lab :=
       { id := .classMember (.destructorId destrId)
-        args := args }
+        args := args,
+        logicRef := Logic.destructorLogicRef destrId }
     msgData :: Program.messageValues next vals
   | .method _ _ methodId _ args _ next =>
     let msgData : MessageValue lab :=
       { id := .classMember (.methodId methodId)
-        args := args }
+        args := args,
+        logicRef := Logic.methodLogicRef methodId }
     msgData :: Program.messageValues next vals
   | .multiMethod _ mid _ args _ next =>
     let msgData : MessageValue lab :=
       { id := .multiMethodId mid
-        args := args }
+        args := args,
+        -- TODO: fix data
+        logicRef := Logic.multiMethodLogicRef mid (MultiMethodData.mk 0 0 0 0) }
     msgData :: Program.messageValues next vals
   | .upgrade _ cid _ _ next =>
     let msgData : MessageValue lab :=
       { id := .classMember (classId := cid) .upgradeId
-        args := PUnit.unit }
+        args := PUnit.unit,
+        logicRef := Logic.upgradeLogicRef cid }
     msgData :: Program.messageValues next vals
   | .fetch _ next =>
     let ⟨obj, vals'⟩ := vals
@@ -57,7 +86,7 @@ def checkMessageResourceValues {lab : Ecosystem.Label} (vals : List (Program.Mes
     (List.zip vals resMsgs)
     (fun (val, res) =>
       let try msg : Message lab := Message.fromResource res
-      msg.id == val.id && msg.args === val.args)
+      msg.id == val.id && msg.args === val.args && msg.logicRef == val.logicRef)
 
 end AVM.Logic
 
@@ -206,7 +235,7 @@ def Constructor.Message.logic
   {constrId : classId.label.ConstructorId}
   (constr : Class.Constructor classId constrId)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.Class.{classId.label.name}.Constructor.{@repr _ classId.label.constructorsRepr constrId}"⟩,
+  { reference := Logic.constructorLogicRef constrId,
     function := Constructor.Message.logicFun constr }
 
 def Destructor.Message.logic
@@ -215,7 +244,7 @@ def Destructor.Message.logic
   {destrId : classId.label.DestructorId}
   (destr : Class.Destructor classId destrId)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.Class.{classId.label.name}.Destructor.{@repr _ classId.label.destructorsRepr destrId}"⟩,
+  { reference := Logic.destructorLogicRef destrId,
     function := Destructor.Message.logicFun destr }
 
 def Method.Message.logic
@@ -224,14 +253,14 @@ def Method.Message.logic
   {methodId : classId.label.MethodId}
   (method : Class.Method classId methodId)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.Class.{classId.label.name}.Method.{@repr _ classId.label.methodsRepr methodId}"⟩,
+  { reference := Logic.methodLogicRef methodId,
     function := Method.Message.logicFun method }
 
 def Upgrade.Message.logic
   {lab : Ecosystem.Label}
   (classId : lab.ClassId)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.Class.{classId.label.name}.Upgrade"⟩,
+  { reference := Logic.upgradeLogicRef classId,
     function := Upgrade.Message.logicFun classId }
 
 end AVM.Class
@@ -298,7 +327,7 @@ def MultiMethod.Message.logic
   (method : MultiMethod multiId)
   (data : MultiMethodData)
   : Anoma.Logic :=
-  { reference := ⟨s!"AVM.MultiMethod.{@repr _ lab.multiMethodsRepr multiId}.{repr data}"⟩,
+  { reference := Logic.multiMethodLogicRef multiId data,
     function args := MultiMethod.Message.logicFun method args data }
 
 end AVM.Ecosystem
