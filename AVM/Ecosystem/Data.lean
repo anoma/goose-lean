@@ -21,7 +21,3 @@ structure MultiMethodRandoms (d : MultiMethodData) where
   reassembledOldUidRands : List.Vector Nat d.numReassembledOldUid
   selvesDestroyedEphRands : List.Vector Nat d.numSelvesDestroyed
   deriving Inhabited
-
-def Ecosystem.Label.MemberId.Data {lab : Ecosystem.Label} : lab.MemberId → Type
-  | .multiMethodId _ => MultiMethodData
-  | _ => Unit

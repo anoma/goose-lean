@@ -20,8 +20,8 @@ def methodLogicRef {lab : Ecosystem.Label} {classId : lab.ClassId} (methodId : c
 def upgradeLogicRef {lab : Ecosystem.Label} (classId : lab.ClassId) : Anoma.LogicRef :=
   ⟨s!"AVM.Class.{classId.label.name}.Upgrade"⟩
 
-def multiMethodLogicRef {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) (data : MultiMethodData) : Anoma.LogicRef :=
-  ⟨s!"AVM.MultiMethod.{@repr _ lab.multiMethodsRepr multiId}.{repr data}"⟩
+def multiMethodLogicRef {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Anoma.LogicRef :=
+  ⟨s!"AVM.MultiMethod.{@repr _ lab.multiMethodsRepr multiId}"⟩
 
 end AVM.Logic
 
@@ -62,8 +62,7 @@ def messageValues
     let msgData : MessageValue lab :=
       { id := .multiMethodId mid
         args := args,
-        -- TODO: fix data
-        logicRef := Logic.multiMethodLogicRef mid (MultiMethodData.mk 0 0 0 0) }
+        logicRef := Logic.multiMethodLogicRef mid }
     msgData :: Program.messageValues next vals
   | .upgrade _ cid _ _ next =>
     let msgData : MessageValue lab :=
@@ -272,23 +271,23 @@ def MultiMethod.Message.logicFun
   {multiId : lab.MultiMethodId}
   (method : MultiMethod multiId)
   (args : Logic.Args)
-  (data : MultiMethodData)
   : Bool :=
   let try msg : Message lab := Message.fromResource args.self
   check h : msg.id == .multiMethodId multiId
   let fargs : multiId.Args.type := cast (by simp! [eq_of_beq h]) msg.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  let try (argsConsumedSelves, argsConstructedEph, .unit) :=
-      consumedResObjs
-      |> Logic.filterOutDummy
-      |>.splitsExact [multiId.numObjectArgs, data.numConstructed]
-  let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves.toList
+  let argsConsumedSelves := consumedResObjs.take multiId.numObjectArgs
+  let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves
+  let argsConstructedEph := consumedResObjs.drop multiId.numObjectArgs
   let prog := method.body argsConsumedObjects fargs
   let signatures := cast (by grind only) msg.signatures
   check method.invariant argsConsumedObjects fargs signatures
   let try vals : prog.params.Product := tryCast msg.vals
   let res : MultiMethodResult multiId := prog |>.value vals
+  let data := res.data
+  check argsConsumedSelves.length == multiId.numObjectArgs
+  check argsConstructedEph.length == data.numConstructed
   let consumedUid (arg : multiId.ObjectArgNames) : Anoma.ObjectId := argsConsumedObjects arg |>.uid
   let mkObjectValue {classId : lab.ClassId} (arg : multiId.ObjectArgNames) (d : ObjectData classId) : ObjectValue := ⟨consumedUid arg, d⟩
   let reassembled : List ObjectValue := res.assembled.withOldUidList.map (fun x => mkObjectValue x.arg x.objectData)
@@ -296,7 +295,7 @@ def MultiMethod.Message.logicFun
     List.zipWithExact
       (fun objData res => objData.toObjectValue res.nonce.value)
       res.constructed
-      argsConstructedEph.toList
+      argsConstructedEph
   let consumedDestroyedObjects : List ObjectValue :=
     multiId.objectArgNamesVec.toList.filterMap
       (fun arg =>
@@ -313,21 +312,20 @@ def MultiMethod.Message.logicFun
   Logic.checkMessageResourceValues messageValues createdResMsgs
     && Logic.checkResourceValues reassembled argsCreated.toList
     && Logic.checkResourceValues constructedObjects argsConstructed.toList
-    && Logic.checkResourceValues constructedObjects argsConstructedEph.toList
+    && Logic.checkResourceValues constructedObjects argsConstructedEph
     && Logic.checkResourceValues consumedDestroyedObjects argsSelvesDestroyedEph.toList
-    && Logic.checkResourcesPersistent argsConsumedSelves.toList
+    && Logic.checkResourcesPersistent argsConsumedSelves
     && Logic.checkResourcesPersistent argsCreated.toList
     && Logic.checkResourcesPersistent argsConstructed.toList
-    && Logic.checkResourcesEphemeral argsConstructedEph.toList
+    && Logic.checkResourcesEphemeral argsConstructedEph
     && Logic.checkResourcesEphemeral argsSelvesDestroyedEph.toList
 
 def MultiMethod.Message.logic
   {lab : Ecosystem.Label}
   {multiId : lab.MultiMethodId}
   (method : MultiMethod multiId)
-  (data : MultiMethodData)
   : Anoma.Logic :=
-  { reference := Logic.multiMethodLogicRef multiId data,
-    function args := MultiMethod.Message.logicFun method args data }
+  { reference := Logic.multiMethodLogicRef multiId,
+    function args := MultiMethod.Message.logicFun method args }
 
 end AVM.Ecosystem

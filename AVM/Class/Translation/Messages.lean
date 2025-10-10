@@ -17,7 +17,6 @@ def Constructor.message
   (signatures : Class.Label.MemberId.constructorId constrId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.constructorId constrId)
-    data := .unit
     logicRef := Constructor.Message.logic.{0, 0} constr |>.reference
     vals
     args
@@ -36,7 +35,6 @@ def Destructor.message
   (signatures : Class.Label.MemberId.destructorId destrId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.destructorId destrId)
-    data := .unit
     logicRef := Destructor.Message.logic.{0, 0} destr |>.reference
     vals
     args
@@ -55,7 +53,6 @@ def Method.message
   (signatures : Class.Label.MemberId.methodId methodId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.methodId methodId)
-    data := .unit
     logicRef := Method.Message.logic.{0, 0} method |>.reference
     vals
     args
@@ -68,7 +65,6 @@ def Upgrade.message
   (selfId : ObjectId)
   : Message lab :=
   { id := .classMember (classId := classId) .upgradeId
-    data := .unit
     logicRef := Upgrade.Message.logic.{0, 0} classId |>.reference
     Vals := ⟨PUnit⟩
     vals := PUnit.unit
@@ -92,8 +88,7 @@ def MultiMethod.message
   (rands : MultiMethodRandoms data)
   : Message lab :=
   { id := .multiMethodId multiId
-    logicRef := MultiMethod.Message.logic.{0, 0} method data |>.reference
-    data
+    logicRef := MultiMethod.Message.logic.{0, 0} method |>.reference
     Vals := ⟨(method.body selves args).params.Product⟩
     vals
     args
