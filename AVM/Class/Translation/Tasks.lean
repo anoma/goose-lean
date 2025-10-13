@@ -156,13 +156,14 @@ private partial def Class.Constructor.task'
           nonce := ⟨newId⟩,
           data := newObjectData.down }
       obj.toSomeObject
-    let consumedObj := newObj.toConsumable (ephemeral := true)
     let valsObjs := body.objects vals
+    let consumedObj := newObj.toConsumable (ephemeral := true)
+    let consumedObjects := consumedObj :: valsObjs.map (fun c => c.toConsumable (ephemeral := false))
     let createdObjects : List CreatedObject :=
       CreatedObject.fromSomeObject newObj (ephemeral := false) (rand := r) ::
         -- TODO: new rand for each created object
         valsObjs.map (fun c => CreatedObject.fromSomeObject c (ephemeral := false) (rand := r))
-    { consumed := [consumedObj]
+    { consumed := consumedObjects
       created := createdObjects }
   let mkMessage (vals : body.params.Product) _ : SomeMessage :=
     constr.message ⟨body.params.Product⟩ vals newId args signatures
@@ -184,12 +185,16 @@ private partial def Class.Destructor.task'
   let body : Program.{1} lab.toScope (ULift Unit) := destructor.body self args |>.lift
   let mkActionData (vals : body.params.Product) (_ : ULift Unit) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
+    let valsObjs := body.objects vals
+    let consumedObjects := consumedObj :: valsObjs.map (fun c => c.toConsumable (ephemeral := false))
     let createdObjects : List CreatedObject :=
-      [{ uid := self.uid,
+      { uid := self.uid,
          data := self.data,
          ephemeral := true,
-         rand := r }]
-    { consumed := [consumedObj]
+         rand := r } ::
+      -- TODO: new rand for each created object
+      valsObjs.map (fun c => CreatedObject.fromSomeObject c (ephemeral := false) (rand := r))
+    { consumed := consumedObjects
       created := createdObjects }
   let mkMessage (vals : body.params.Product) _ : SomeMessage :=
     destructor.message ⟨body.params.Product⟩ vals self.uid args signatures
@@ -212,13 +217,19 @@ private partial def Class.Method.task'
   let mkActionData (vals : body.params.Product) (lobj : ULift (Object classId)) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let obj : Object classId := lobj.down
+    let valsObjs := body.objects vals
+    let consumedObjects := consumedObj :: valsObjs.map (fun c => c.toConsumable (ephemeral := false))
     let createdObject : CreatedObject :=
       { uid := obj.uid,
          data := obj.data,
          ephemeral := false,
          rand := r }
-    { consumed := [consumedObj]
-      created := [createdObject] }
+    let createdObjects : List CreatedObject :=
+      createdObject ::
+      -- TODO: new rand for each created object
+      valsObjs.map (fun c => CreatedObject.fromSomeObject c (ephemeral := false) (rand := r))
+    { consumed := consumedObjects
+      created := createdObjects }
   let mkMessage (vals : body.params.Product) _ : SomeMessage :=
     method.message ⟨body.params.Product⟩ vals self.uid args signatures
   Body.task' adjust eco.toScope body mkReturn mkActionData mkMessage
@@ -265,6 +276,11 @@ partial def Ecosystem.MultiMethod.task'
       (vals : body.params.Product)
       (tasksRes : MultiTasksResult multiId)
       : ActionData :=
+      let valsObjs := body.objects vals
+      let consumedFetchedObjects := valsObjs.map (fun c => c.toConsumable (ephemeral := false))
+      let createdFetchedObjects : List CreatedObject :=
+        -- TODO: new rand for each created object
+        valsObjs.map (fun c => CreatedObject.fromSomeObject c (ephemeral := false) (rand := 0))
       let res := tasksRes.res
       let rands := tasksRes.rands
       let consumedSelves := Ecosystem.Label.MultiMethodId.SelvesToVector selves (fun x => x.toSomeObject.toConsumable (ephemeral := false)) |>.toList
@@ -308,8 +324,8 @@ partial def Ecosystem.MultiMethod.task'
                       some (fun r => consumable.balanceDestroyed (rand := r))
                     | .Disassembled => none)
           |>.zipWith rands.selvesDestroyedEphRands.toList (f := fun mk r => mk r)
-      { consumed := consumedSelves ++ constructedEph
-        created := reassembled ++ constructed ++ selvesDestroyedEph
+      { consumed := consumedSelves ++ constructedEph ++ consumedFetchedObjects
+        created := reassembled ++ constructed ++ selvesDestroyedEph ++ createdFetchedObjects
         ensureUnique := rands.reassembledNewUidNonces.toList }
 
   let mkMessage (vals : body.params.Product) (tasksRes : MultiTasksResult multiId) : SomeMessage :=

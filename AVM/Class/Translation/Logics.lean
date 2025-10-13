@@ -109,15 +109,20 @@ private def Constructor.Message.logicFun
   let newObjData := body.value vals
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  let! [newObjRes] := createdResObjs
+  let! (newObjRes :: _) := createdResObjs
+  let! (consumedObjRes :: consumedFetchedResObjs) := consumedResObjs
   let uid : ObjectId := newObjRes.nonce.value
   let messageValues := Program.messageValues body vals
   let createdResMsgs := Logic.selectMessageResources args.created
+  let valsObjs := body.objects vals
+  let fetchedObjValues := valsObjs.map (·.toObjectValue)
+  let newObjValue := newObjData.toObjectValue uid
   Logic.checkMessageResourceValues messageValues createdResMsgs
-    && Logic.checkResourceValues [newObjData.toObjectValue uid] consumedResObjs
-    && Logic.checkResourceValues [newObjData.toObjectValue uid] createdResObjs
-    && Logic.checkResourcesEphemeral consumedResObjs
+    && Logic.checkResourceValues (newObjValue :: fetchedObjValues) consumedResObjs
+    && Logic.checkResourceValues (newObjValue :: fetchedObjValues) createdResObjs
+    && Logic.checkResourcesEphemeral [consumedObjRes]
     && Logic.checkResourcesPersistent createdResObjs
+    && Logic.checkResourcesPersistent consumedFetchedResObjs
     && constr.invariant argsData signatures
 
 /-- Creates a message logic function for a given destructor. -/
@@ -134,16 +139,22 @@ private def Destructor.Message.logicFun
   let signatures : destructorId.Signatures argsData := cast (by grind only) msg.signatures
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  let! [selfRes] := consumedResObjs
+  let! (selfRes :: _) := consumedResObjs
+  let! (createdResObj :: createdFetchedResObjs) := createdResObjs
   let try selfObj : Object classId := Object.fromResource selfRes
   let body := destructor.body selfObj argsData
   let try vals : body.params.Product := tryCast msg.vals
   let messageValues := Program.messageValues body vals
   let createdResMsgs := Logic.selectMessageResources args.created
+  let valsObjs := body.objects vals
+  let fetchedObjValues := valsObjs.map (·.toObjectValue)
+  let selfObjValue := selfObj.toObjectValue
   Logic.checkMessageResourceValues messageValues createdResMsgs
-    && Logic.checkResourceValues [selfObj.toObjectValue] createdResObjs
+    && Logic.checkResourceValues (selfObjValue :: fetchedObjValues) createdResObjs
+    && Logic.checkResourceValues (selfObjValue :: fetchedObjValues) consumedResObjs
     && Logic.checkResourcesPersistent consumedResObjs
-    && Logic.checkResourcesEphemeral createdResObjs
+    && Logic.checkResourcesEphemeral [createdResObj]
+    && Logic.checkResourcesPersistent createdFetchedResObjs
     && destructor.invariant selfObj argsData signatures
 
 private def Method.Message.logicFun
@@ -158,7 +169,7 @@ private def Method.Message.logicFun
   let argsData : methodId.Args.type := cast (by simp! [eq_of_beq h]) msg.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  let! [selfRes] := consumedResObjs
+  let! (selfRes :: _) := consumedResObjs
   let try selfObj : Object classId := Object.fromResource selfRes
   let body := method.body selfObj argsData
   let try vals : body.params.Product := tryCast msg.vals
@@ -167,8 +178,11 @@ private def Method.Message.logicFun
   let createdObject : Object classId := body |>.value vals
   let messageValues := Program.messageValues body vals
   let createdResMsgs := Logic.selectMessageResources args.created
+  let valsObjs := body.objects vals
+  let fetchedObjValues := valsObjs.map (·.toObjectValue)
   Logic.checkMessageResourceValues messageValues createdResMsgs
-    && Logic.checkResourceValues [createdObject.toObjectValue] createdResObjs
+    && Logic.checkResourceValues (createdObject.toObjectValue :: fetchedObjValues) createdResObjs
+    && Logic.checkResourceValues (selfObj.toObjectValue :: fetchedObjValues) consumedResObjs
     && Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
 
@@ -280,15 +294,18 @@ def MultiMethod.Message.logicFun
   let createdResObjs := Logic.selectObjectResources args.created
   let argsConsumedSelves := consumedResObjs.take multiId.numObjectArgs
   let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves
-  let argsConstructedEph := consumedResObjs.drop multiId.numObjectArgs
   let prog := method.body argsConsumedObjects fargs
   let signatures := cast (by grind only) msg.signatures
   check method.invariant argsConsumedObjects fargs signatures
   let try vals : prog.params.Product := tryCast msg.vals
-  let res : MultiMethodResult multiId := prog |>.value vals
+  let res : MultiMethodResult multiId := prog.value vals
+  let valsObjs := prog.objects vals
+  let fetchedObjValues := valsObjs.map (·.toObjectValue)
   let data := res.data
   check argsConsumedSelves.length == multiId.numObjectArgs
-  check argsConstructedEph.length == data.numConstructed
+  let try (argsConstructedEph, consumedFetchedResObjs, .unit) :=
+    consumedResObjs.drop multiId.numObjectArgs
+    |>.splitsExact [data.numConstructed, valsObjs.length]
   let consumedUid (arg : multiId.ObjectArgNames) : Anoma.ObjectId := argsConsumedObjects arg |>.uid
   let mkObjectValue {classId : lab.ClassId} (arg : multiId.ObjectArgNames) (d : ObjectData classId) : ObjectValue := ⟨consumedUid arg, d⟩
   let reassembled : List ObjectValue := res.assembled.withOldUidList.map (fun x => mkObjectValue x.arg x.objectData)
@@ -296,7 +313,7 @@ def MultiMethod.Message.logicFun
     List.zipWithExact
       (fun objData res => objData.toObjectValue res.nonce.value)
       res.constructed
-      argsConstructedEph
+      argsConstructedEph.toList
   let consumedDestroyedObjects : List ObjectValue :=
     multiId.objectArgNamesVec.toList.filterMap
       (fun arg =>
@@ -304,21 +321,25 @@ def MultiMethod.Message.logicFun
         match res.argDeconstruction arg with
         | .Destroyed => argObject |>.data.toObjectValue argObject.uid
         | .Disassembled => none)
-  let try (argsCreated, argsConstructed, argsSelvesDestroyedEph, .unit) :=
+  let try (argsCreated, argsConstructed, argsSelvesDestroyedEph, createdFetchedResObjs, .unit) :=
     createdResObjs
     |> Logic.filterOutDummy
-    |>.splitsExact [reassembled.length, data.numConstructed, data.numSelvesDestroyed]
+    |>.splitsExact [reassembled.length, data.numConstructed, data.numSelvesDestroyed, valsObjs.length]
   let messageValues := Program.messageValues prog vals
   let createdResMsgs := Logic.selectMessageResources args.created
   Logic.checkMessageResourceValues messageValues createdResMsgs
     && Logic.checkResourceValues reassembled argsCreated.toList
     && Logic.checkResourceValues constructedObjects argsConstructed.toList
-    && Logic.checkResourceValues constructedObjects argsConstructedEph
+    && Logic.checkResourceValues constructedObjects argsConstructedEph.toList
     && Logic.checkResourceValues consumedDestroyedObjects argsSelvesDestroyedEph.toList
+    && Logic.checkResourceValues fetchedObjValues consumedFetchedResObjs.toList
+    && Logic.checkResourceValues fetchedObjValues createdFetchedResObjs.toList
     && Logic.checkResourcesPersistent argsConsumedSelves
     && Logic.checkResourcesPersistent argsCreated.toList
     && Logic.checkResourcesPersistent argsConstructed.toList
-    && Logic.checkResourcesEphemeral argsConstructedEph
+    && Logic.checkResourcesPersistent consumedFetchedResObjs.toList
+    && Logic.checkResourcesPersistent createdFetchedResObjs.toList
+    && Logic.checkResourcesEphemeral argsConstructedEph.toList
     && Logic.checkResourcesEphemeral argsSelvesDestroyedEph.toList
 
 def MultiMethod.Message.logic
