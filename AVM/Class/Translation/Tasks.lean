@@ -30,6 +30,8 @@ private structure TasksResult (params : Program.Parameters) (α : Type u) : Type
   adjust : AdjustFun
   /-- Body parameter values adjusted by preceding modifications in the program. -/
   bodyParameterValues : params.Product
+  /-- Random numbers for fetched objects -/
+  fetchedObjectsRands : List Nat
   deriving Inhabited
 
 private structure MultiTasksResult {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) where
@@ -37,8 +39,17 @@ private structure MultiTasksResult {lab : Ecosystem.Label} (multiId : lab.MultiM
   rands : MultiMethodRandoms res.data
   deriving Inhabited
 
-private def mkReturn {α} (val : α) (adjust : AdjustFun) : Tasks (TasksResult .empty α) :=
-  .result ⟨val, adjust, ⟨⟩⟩
+private def mkReturn {α} (rands : List Nat) (val : α) (adjust : AdjustFun) : Tasks (TasksResult .empty α) :=
+  .result { value := val
+            adjust := adjust
+            bodyParameterValues := .unit
+            fetchedObjectsRands := rands }
+
+private def mkFetchedCreatedObjects (valsObjs : List SomeObject) (rands : List Nat) : List CreatedObject :=
+  List.zipWithExact
+    (fun c r => CreatedObject.fromSomeObject c (ephemeral := false) (rand := r))
+    valsObjs
+    rands
 
 mutual
 
@@ -51,13 +62,14 @@ mutual
  3. The adjusted values of body parameters (adjusted values in
     `body.params.Product`). -/
 private partial def Body.tasks'
+  (cnt : Nat)
   (adjust : AdjustFun)
   {α β : Type 1}
   [Inhabited β]
   {lab : Scope.Label}
   (scope : Scope lab)
   (body : Program lab α)
-  (cont : α → AdjustFun → Tasks (TasksResult .empty β))
+  (cont : List Nat → α → AdjustFun → Tasks (TasksResult .empty β))
   : Tasks (TasksResult body.params β) :=
   match body with
   | .constructor ecoId classId constrId args signatures next =>
@@ -66,41 +78,42 @@ private partial def Body.tasks'
     Tasks.rand fun newId => Tasks.rand fun r =>
       let task := constr.task' adjust eco newId r args signatures
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) scope (next newId) cont
-        |>.map (fun res => ⟨res.value, res.adjust, ⟨newId, res.bodyParameterValues⟩⟩)
+        Body.tasks' cnt (task.adjust vals) scope (next newId) cont
+        |>.map (fun res => ⟨res.value, res.adjust, ⟨newId, res.bodyParameterValues⟩, res.fetchedObjectsRands⟩)
   | .destructor ecoId classId destrId selfId args signatures next =>
     let eco := scope.ecosystems ecoId
     let destr := eco.classes classId |>.destructors destrId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := destr.task' adjust eco r (adjust self) args signatures
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) scope next cont
+        Body.tasks' cnt (task.adjust vals) scope next cont
   | .method ecoId classId methodId selfId args signatures next =>
     let eco := scope.ecosystems ecoId
     let method := eco.classes classId |>.methods methodId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := method.task' adjust eco r (adjust self) args signatures
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) scope next cont
+        Body.tasks' cnt (task.adjust vals) scope next cont
   | .multiMethod ecoId multiId selvesIds args signatures next =>
     let eco := scope.ecosystems ecoId
     Tasks.fetchSelves selvesIds fun selves =>
       let method := eco.multiMethods multiId
       let task := method.task' adjust eco (fun x => adjust (selves x)) args signatures
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) scope next cont
+        Body.tasks' cnt (task.adjust vals) scope next cont
   | .upgrade ecoId classId selfId objData next =>
     let eco := scope.ecosystems ecoId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := Class.Upgrade.task' (classId := classId) adjust eco r (adjust self) objData
       Tasks.task task.task fun vals =>
-        Body.tasks' (task.adjust vals) scope next cont
+        Body.tasks' cnt (task.adjust vals) scope next cont
   | .fetch objId next =>
     Tasks.fetch objId fun obj =>
-      Body.tasks' adjust scope (next (adjust obj)) cont
-      |>.map (fun res => ⟨res.value, res.adjust, ⟨adjust obj, res.bodyParameterValues⟩⟩)
+      Body.tasks' cnt adjust scope (next (adjust obj)) cont
+      |>.map (fun res => ⟨res.value, res.adjust, ⟨adjust obj, res.bodyParameterValues⟩, res.fetchedObjectsRands⟩)
   | .return val =>
-    cont val adjust
+    Tasks.rands cnt fun rands =>
+      cont rands.toList val adjust
 
 private partial def Body.task'
   {α β : Type 1}
@@ -109,20 +122,20 @@ private partial def Body.task'
   {lab : Scope.Label}
   (scope : Scope lab)
   (body : Program lab α)
-  (cont : α → AdjustFun → Tasks (TasksResult .empty β))
-  (mkActionData : body.params.Product → β → ActionData)
+  (cont : List Nat → α → AdjustFun → Tasks (TasksResult .empty β))
+  (mkActionData : List Nat → body.params.Product → β → ActionData)
   (mkMessage : body.params.Product → β → SomeMessage)
   : Task' :=
   let tasks : Tasks (TasksResult body.params β) :=
-    Body.tasks' adjust scope body cont
+    Body.tasks' 0 adjust scope body cont
   let task :=
     Tasks.composeWithMessage
       tasks
       (fun res => mkMessage res.bodyParameterValues res.value)
-      (fun res => mkActionData res.bodyParameterValues res.value)
+      (fun res => mkActionData res.fetchedObjectsRands res.bodyParameterValues res.value)
   let mkAdjust (vals : task.params.Product) : AdjustFun :=
     let res := tasks.value (Tasks.coerce vals)
-    let actionData := mkActionData res.bodyParameterValues res.value
+    let actionData := mkActionData res.fetchedObjectsRands res.bodyParameterValues res.value
     let adjust' : AdjustFun := fun obj =>
       -- NOTE: This doesn't take into account objects that are destroyed. If an
       -- object is fetched after being destroyed, the program behaviour is
@@ -149,7 +162,7 @@ private partial def Class.Constructor.task'
   (signatures : constrId.Signatures args)
   : Task' :=
   let body : Program.{1} lab.toScope (ULift (ObjectData classId)) := constr.body args |>.lift
-  let mkActionData (vals : body.params.Product) (newObjectData : ULift (ObjectData classId)) : ActionData :=
+  let mkActionData (rands : List Nat) (vals : body.params.Product) (newObjectData : ULift (ObjectData classId)) : ActionData :=
     let newObj : SomeObject :=
       let obj : Object classId :=
         { uid := newId,
@@ -161,8 +174,7 @@ private partial def Class.Constructor.task'
     let consumedObjects := consumedObj :: valsObjs.map (fun c => c.toConsumable (ephemeral := false))
     let createdObjects : List CreatedObject :=
       CreatedObject.fromSomeObject newObj (ephemeral := false) (rand := r) ::
-        -- TODO: new rand for each created object
-        valsObjs.map (fun c => CreatedObject.fromSomeObject c (ephemeral := false) (rand := r))
+        mkFetchedCreatedObjects valsObjs rands
     { consumed := consumedObjects
       created := createdObjects }
   let mkMessage (vals : body.params.Product) _ : SomeMessage :=
@@ -183,7 +195,7 @@ private partial def Class.Destructor.task'
   (signatures : destructorId.Signatures args)
   : Task' :=
   let body : Program.{1} lab.toScope (ULift Unit) := destructor.body self args |>.lift
-  let mkActionData (vals : body.params.Product) (_ : ULift Unit) : ActionData :=
+  let mkActionData (rands : List Nat) (vals : body.params.Product) (_ : ULift Unit) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let valsObjs := body.objects vals
     let consumedObjects := consumedObj :: valsObjs.map (fun c => c.toConsumable (ephemeral := false))
@@ -192,8 +204,7 @@ private partial def Class.Destructor.task'
          data := self.data,
          ephemeral := true,
          rand := r } ::
-      -- TODO: new rand for each created object
-      valsObjs.map (fun c => CreatedObject.fromSomeObject c (ephemeral := false) (rand := r))
+      mkFetchedCreatedObjects valsObjs rands
     { consumed := consumedObjects
       created := createdObjects }
   let mkMessage (vals : body.params.Product) _ : SomeMessage :=
@@ -214,7 +225,7 @@ private partial def Class.Method.task'
   (signatures : methodId.Signatures args)
   : Task' :=
   let body : Program.{1} lab.toScope (ULift (Object classId)) := method.body self args |>.lift
-  let mkActionData (vals : body.params.Product) (lobj : ULift (Object classId)) : ActionData :=
+  let mkActionData (rands : List Nat) (vals : body.params.Product) (lobj : ULift (Object classId)) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let obj : Object classId := lobj.down
     let valsObjs := body.objects vals
@@ -225,9 +236,7 @@ private partial def Class.Method.task'
          ephemeral := false,
          rand := r }
     let createdObjects : List CreatedObject :=
-      createdObject ::
-      -- TODO: new rand for each created object
-      valsObjs.map (fun c => CreatedObject.fromSomeObject c (ephemeral := false) (rand := r))
+      createdObject :: mkFetchedCreatedObjects valsObjs rands
     { consumed := consumedObjects
       created := createdObjects }
   let mkMessage (vals : body.params.Product) _ : SomeMessage :=
@@ -243,7 +252,7 @@ private partial def Class.Upgrade.task'
   (self : Object classId)
   (objData : SomeObjectData)
   : Task' :=
-  let mkActionData _ (_ : PUnit) : ActionData :=
+  let mkActionData _ _ (_ : PUnit) : ActionData :=
     let consumedObj := self.toSomeObject.toConsumable (ephemeral := false)
     let createdObject : CreatedObject :=
       { uid := self.uid,
@@ -268,19 +277,18 @@ partial def Ecosystem.MultiMethod.task'
   : Task' :=
   let body := method.body selves args
 
-  let mkResult (res : MultiMethodResult multiId) (adjust : AdjustFun) : Tasks (TasksResult .empty (MultiTasksResult multiId)) :=
-    Tasks.genMultiMethodRandoms res.data fun rands =>
-      mkReturn ⟨res, rands⟩ adjust
+  let mkResult (rands : List Nat) (res : MultiMethodResult multiId) (adjust : AdjustFun) : Tasks (TasksResult .empty (MultiTasksResult multiId)) :=
+    Tasks.genMultiMethodRandoms res.data fun rands' =>
+      mkReturn rands ⟨res, rands'⟩ adjust
 
   let mkActionData
+      (fetchedRands : List Nat)
       (vals : body.params.Product)
       (tasksRes : MultiTasksResult multiId)
       : ActionData :=
       let valsObjs := body.objects vals
       let consumedFetchedObjects := valsObjs.map (fun c => c.toConsumable (ephemeral := false))
-      let createdFetchedObjects : List CreatedObject :=
-        -- TODO: new rand for each created object
-        valsObjs.map (fun c => CreatedObject.fromSomeObject c (ephemeral := false) (rand := 0))
+      let createdFetchedObjects : List CreatedObject := mkFetchedCreatedObjects valsObjs fetchedRands
       let res := tasksRes.res
       let rands := tasksRes.rands
       let consumedSelves := Ecosystem.Label.MultiMethodId.SelvesToVector selves (fun x => x.toSomeObject.toConsumable (ephemeral := false)) |>.toList
@@ -343,4 +351,4 @@ def Member.Body.tasks
   (scope : Scope lab)
   (prog : Program lab α)
   : Tasks α :=
-  Body.tasks' id scope prog mkReturn |>.map TasksResult.value
+  Body.tasks' 0 id scope prog mkReturn |>.map TasksResult.value
