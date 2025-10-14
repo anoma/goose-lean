@@ -86,14 +86,14 @@ private partial def Body.tasks'
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := destr.task' adjust eco r (adjust self) args signatures
       Tasks.task task.task fun vals =>
-        Body.tasks' cnt (task.adjust vals) scope next cont
+        Body.tasks' (cnt + 1) (task.adjust vals) scope next cont
   | .method ecoId classId methodId selfId args signatures next =>
     let eco := scope.ecosystems ecoId
     let method := eco.classes classId |>.methods methodId
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := method.task' adjust eco r (adjust self) args signatures
       Tasks.task task.task fun vals =>
-        Body.tasks' cnt (task.adjust vals) scope next cont
+        Body.tasks' (cnt + 1) (task.adjust vals) scope next cont
   | .multiMethod ecoId multiId selvesIds args signatures next =>
     let eco := scope.ecosystems ecoId
     Tasks.fetchSelves selvesIds fun selves =>
@@ -106,10 +106,10 @@ private partial def Body.tasks'
     Tasks.fetch selfId fun self => Tasks.rand fun r =>
       let task := Class.Upgrade.task' (classId := classId) adjust eco r (adjust self) objData
       Tasks.task task.task fun vals =>
-        Body.tasks' cnt (task.adjust vals) scope next cont
+        Body.tasks' (cnt + 1) (task.adjust vals) scope next cont
   | .fetch objId next =>
     Tasks.fetch objId fun obj =>
-      Body.tasks' cnt adjust scope (next (adjust obj)) cont
+      Body.tasks' (cnt + 1) adjust scope (next (adjust obj)) cont
       |>.map (fun res => ⟨res.value, res.adjust, ⟨adjust obj, res.bodyParameterValues⟩, res.fetchedObjectsRands⟩)
   | .return val =>
     Tasks.rands cnt fun rands =>
