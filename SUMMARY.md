@@ -113,7 +113,8 @@ would result in an action with:
   - one consumed object resource corresponding to `self`,
   - one created object resource corresponding to `self` with the `count` field increased by `n`,
   - one consumed message resource for `Counter.Incr` containing the `n` argument,
-  - created message resources for all nested calls (none in this case).
+  - created message resources for all nested calls (none in this case),
+  - one consumed and one created object resource for each object fetched in the body (none in this case).
 3. The previous points are applied recursively, resulting in a set of actions dependent on parameter values (fetched objects and generated object ids).
 4. The fetches and id generation at the beginning of the program are translated to `queryResource` and `genRand` Anoma program commands.
 5. The actions are grouped into a single transaction, together with an action that sends the messages corresponding to the calls in the program. The `submitTransaction` command submits this transaction in the resulting Anoma program.
@@ -395,9 +396,13 @@ The Task generated for `TwoCounter.MutualIncrement` composes the Tasks for the t
 	- consumed resources:
     	- object resource for `self`
     	- message resource for `TwoCounter.MutualIncrement(n)`
+		- object resources for `c1` and `c2`
 	- created resources:
     	- object resource for `self`
     	- message resources for `Counter.Incr(c1.id, c1.count * n + c2.count)` and `Counter.Incr(c2.id, c2.count * n + c1.count)`
+		- object resources for `c1` and `c2`
+
+In order to ensure the consistency of sub-objects, we include the object resources for `c1` and `c2` in the consumed and created resources of the action for `TwoCounter.MutualIncrement`. See https://github.com/anoma/goose-lean/issues/103.
 
 The message logic for `TwoCounter.MutualIncrement` checks if there is exactly one consumed object resource `self`, and exactly one created object resource `self'` with `self' = self`.
 
@@ -435,10 +440,14 @@ Constructor calls are translated to Tasks. The task for a call to a constructor 
 - `Class.Constructor.task'` in `AVM/Class/Translation/Tasks.lean`.
 - Consumed resources:
 	- one ephemeral object resource corresponding to the created object `(constr.body args).result`,
-	- one ephemeral message resource for the received constructor message, with message arguments set to `args`.
+	- one ephemeral message resource for the received constructor message, with message arguments set to `args`,
+	- persistent object resources corresponding to the objects fetched in the constructor body.
 - Created resources:
 	- one persistent object resource corresponding to the created object `(constr.body args).result`,
-	- ephemeral message resources for all messages sent in the constructor body (corresponding to nested calls).
+	- ephemeral message resources for all messages sent in the constructor body (corresponding to nested calls),
+	- persistent object resources corresponding to the objects fetched in the constructor body.
+
+The IDs of created objects are ensured to be unique by making them equal to the nonce of the consumed ephemeral object resource.
 
 #### Constructor message logic
 Constructor message logic is the logic associated with the constructor message. Constructor message logic is implemented in `Class.Constructor.logic` in `AVM/Class/Translation/Logics.lean`.
@@ -451,8 +460,13 @@ Constructor message logic has access to RL arguments which contain the following
 
 Constructor message logic for a constructor `constr` performs the following checks.
 
-- `consumed` contains exactly one ephemeral object resource `res` and `checkDataEq(res, (constr.body msg.args).result)` holds.
-- `created` contains exactly one persistent object resource `res'` and `checkDataEq(res', (constr.body msg.args).result)` holds.
+- `consumed` contains:
+	- one ephemeral object resource `res` such that `checkDataEq(res, (constr.body msg.args).result)` holds,
+	- persistent object resources corresponding to the objects fetched in the constructor body.
+- `created` contains:
+	- one persistent object resource `res'` such that `checkDataEq(res', (constr.body msg.args).result)` holds,
+	- ephemeral message resources for all messages sent in the constructor body, with arguments matching the arguments to the nested calls.
+	- persistent object resources corresponding to the objects fetched in the constructor body.
 - `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
 - `constr.invariant msg.args` holds.
 
@@ -464,10 +478,12 @@ Destructor calls are translated to Tasks. The task for a call to a destructor `d
 - `Class.Destructor.task'` in `AVM/Class/Translation/Tasks.lean`.
 - Consumed resources:
 	- one persistent object resource corresponding to `self`,
-	- one ephemeral message resource for the received destructor message, with message arguments set to `args`.
+	- one ephemeral message resource for the received destructor message, with message arguments set to `args`,
+	- persistent object resources corresponding to the objects fetched in the destructor body.
 - Created resources:
 	- one ephemeral object resource corresponding to `self`,
-	- ephemeral message resources for all messages sent in the destructor body (corresponding to nested calls).
+	- ephemeral message resources for all messages sent in the destructor body (corresponding to nested calls),
+	- persistent object resources corresponding to the objects fetched in the destructor body.
 
 #### Destructor message logic
 Destructor message logic is the logic associated with the destructor message. Destructor message logic is implemented in `Class.Destructor.logic` in `AVM/Class/Translation/Logics.lean`.
@@ -480,8 +496,13 @@ Destructor message logic has access to RL arguments which contain the following.
 
 Destructor message logic for a destructor `destr` performs the following checks.
 
-- `consumed` contains exactly one persistent object resource `selfRes` corresponding to the `self` object.
-- `created` contains exactly one emphemeral object resource `selfRes'` and `checkDataEq(selfRes', self.data)` holds.
+- `consumed` contains:
+	- one persistent object resource `selfRes` corresponding to the `self` object,
+	- persistent object resources corresponding to the objects fetched in the destructor body.
+- `created` contains:
+	- one emphemeral object resource `selfRes'` and `checkDataEq(selfRes', self.data)` holds,
+	- ephemeral message resources for all messages sent in the destructor body, with arguments matching the arguments to the nested calls,
+	- persistent object resources corresponding to the objects fetched in the destructor body.
 - `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
 - `destr.invariant self args` holds.
 
@@ -493,10 +514,12 @@ Method calls are translated to Tasks. The task for a call to a method `method` o
 - `Class.Method.task'` in `AVM/Class/Translation.lean`
 - Consumed resources:
 	- one persistent object resource corresponding to `self`,
-	- one ephemeral message resource for the received method message, with message arguments set to `args`.
+	- one ephemeral message resource for the received method message, with message arguments set to `args`,
+	- persistent object resources corresponding to the objects fetched in the method body.
 - Created resources:
 	- one persistent object resource corresponding to `(method.body self args).result`,
-	- ephemeral message resources for all messages sent in the method body (corresponding to nested calls).
+	- ephemeral message resources for all messages sent in the method body (corresponding to nested calls),
+	- persistent object resources corresponding to the objects fetched in the method body.
 
 #### Method message logic
 Method message logic is the logic associated with the method message. Method message logic is implemented in `Class.Method.logic` in `AVM/Class/Translation/Logics.lean`.
@@ -509,8 +532,13 @@ Method message logic has access to RL arguments which contain the following.
 
 Method message logic for a method `method` performs the following checks.
 
-- `consumed` contains exactly one persistent object resource `selfRes` corresponding to the `self` object.
-- `created` contains exactly one persistent object resource `selfRes'` and `checkDataEq(selfRes', (method.body self args).result.data)` holds.
+- `consumed` contains:
+	- one persistent object resource `selfRes` corresponding to the `self` object,
+	- persistent object resources corresponding to the objects fetched in the method body.
+- `created` contains:
+	- one persistent object resource `selfRes'` and `checkDataEq(selfRes', (method.body self args).result.data)` holds,
+	- ephemeral message resources for all messages sent in the method body, with arguments matching the arguments to the nested calls,
+	- persistent object resources corresponding to the objects fetched in the method body.
 - `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
 - `method.invariant self args` holds.
 
@@ -550,12 +578,14 @@ Multi-method calls are translated to Tasks. The task for a call to a multi-metho
 - Consumed resources:
 	- persistent object resources corresponding to `selves` (these consist of disassmbled and destroyed object resources),
 	- ephemeral object resources corresponding to the constructed objects `(multiMethod.body selves args).result.constructed`.
-	- one ephemeral message resource for the received multi-method message, with message arguments set to `args`.
+	- one ephemeral message resource for the received multi-method message, with message arguments set to `args`,
+	- persistent object resources corresponding to the objects fetched in the multi-method body.
 - Created resources:
 	- persistent object resources corresponding to the assembled objects `(multiMethod.body selves args).result.assembled`,
 	- ephemeral object resources corresponding to the destroyed objects `(multiMethod.body selves args).result.destroyed`,
 	- persistent object resources corresponding to the constructed objects `(multiMethod.body selves args).result.constructed`,
-	- ephemeral message resources for all messages sent in the multi-method body (corresponding to nested calls).
+	- ephemeral message resources for all messages sent in the multi-method body (corresponding to nested calls),
+	- persistent object resources corresponding to the objects fetched in the multi-method body.
 
 #### Multi-method message logic
 Multi-method message logic is the logic associated with the multi-method message. Multi-method message logic is implemented in `Ecosystem.MultiMethod.logic` in `AVM/Class/Translation/Logics.lean`.
@@ -573,7 +603,8 @@ For a given multi-method, we use the numbers stored in `msg.data` to partition t
 
 - `disassembledSelves` list of persistent object resources corresponding to disassembled selves,
 - `destroyedSelves` list of persistent object resources corresponding to destroyed selves,
-- `constructedEph` list of ephemeral object resources corresponding to constructed objects.
+- `constructedEph` list of ephemeral object resources corresponding to constructed objects,
+- `fetchedConsumed` list of persistent object resources corresponding to the objects fetched in the multi-method body.
 
 We re-create the `selves` objects from `disassembledSelves` and `destroyedSelves`.
 
@@ -581,7 +612,8 @@ Similarly, the `created` list is partitioned into:
 
 - `assembled` list of persistent object resources corresponding to the selves reassembled in the function body,
 - `destroyedEph` list of ephemeral object resources corresponding to the selves destroyed by the function,
-- `constructed` list of persistent object resources corresponding to the objects constructed in the function body.
+- `constructed` list of persistent object resources corresponding to the objects constructed in the function body,
+- `fetchedCreated` list of persistent object resources corresponding to the objects fetched in the multi-method body.
 
 Multi-method message logic for a multi-method `multiMethod` performs the following checks.
 
@@ -591,6 +623,8 @@ Multi-method message logic for a multi-method `multiMethod` performs the followi
 - `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip constructedEph (multiMethod.body selves msg.args).result.constructed`.
 - `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyed (multiMethod.body selves args).result.destroyed`.
 - `checkDataEq(res, obj)` holds pairwise for `(res, obj)` in `zip destroyedEph (multiMethod.body selves args).result.destroyed`.
+- resources in `fetchedConsumed` correspond to the objects fetched in the multi-method body.
+- resources in `fetchedCreated` correspond to the objects fetched in the multi-method body.
 - resources in `assembledSelves` are persistent.
 - resources in `destroyedSelves` are persistent.
 - resources in `constructedEph` are ephemeral.
@@ -598,6 +632,8 @@ Multi-method message logic for a multi-method `multiMethod` performs the followi
 - resources in `assembled` are persistent.
 - resources in `destroyedEph` are ephemeral.
 - resources in `constructed` are persistent.
+- resources in `fetchedConsumed` are persistent.
+- resources in `fetchedCreated` are persistent.
 - `multiMethod.invariant selves msg.args` holds.
 
 ### Function invocation
@@ -626,9 +662,6 @@ Class logic for a class `cls` performs the following checks.
 
 ## Translation issues and limitations
 
-- The high-level object interface is not fully enforced:
-  - https://github.com/anoma/goose-lean/issues/103
-  - https://github.com/anoma/goose-lean/issues/104
 - Objects can be upgraded by anyone and no data preservation is checked on upgrade, except that the class version increases and the id is preserved. Hence, someone could upgrade an object to one with different essential fields, e.g., owner. We need some form of access control to limit object upgrade to the object owner or other authorized principals.
 
 ## Implemented example apps
