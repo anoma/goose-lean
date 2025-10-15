@@ -9,7 +9,7 @@ def Constructor.message
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   {constrId : classId.label.ConstructorId}
-  (constr : Class.Constructor classId constrId)
+  (_constr : Class.Constructor classId constrId)
   (Vals : SomeType)
   (vals : Vals.type)
   (newId : ObjectId)
@@ -17,7 +17,7 @@ def Constructor.message
   (signatures : Class.Label.MemberId.constructorId constrId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.constructorId constrId)
-    logicRef := Constructor.Message.logic.{0, 0} constr |>.reference
+    logicRef := Logic.trivialLogicRef
     vals
     args
     signatures
@@ -27,7 +27,7 @@ def Destructor.message
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   {destrId : classId.label.DestructorId}
-  (destr : Class.Destructor classId destrId)
+  (_destr : Class.Destructor classId destrId)
   (Vals : SomeType)
   (vals : Vals.type)
   (selfId : ObjectId)
@@ -35,7 +35,7 @@ def Destructor.message
   (signatures : Class.Label.MemberId.destructorId destrId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.destructorId destrId)
-    logicRef := Destructor.Message.logic.{0, 0} destr |>.reference
+    logicRef := Logic.trivialLogicRef
     vals
     args
     signatures
@@ -45,7 +45,7 @@ def Method.message
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
   {methodId : classId.label.MethodId}
-  (method : Class.Method classId methodId)
+  (_method : Class.Method classId methodId)
   (Vals : SomeType)
   (vals : Vals.type)
   (selfId : ObjectId)
@@ -53,7 +53,7 @@ def Method.message
   (signatures : Class.Label.MemberId.methodId methodId |>.Signatures args)
   : Message lab :=
   { id := .classMember (.methodId methodId)
-    logicRef := Method.Message.logic.{0, 0} method |>.reference
+    logicRef := Logic.trivialLogicRef
     vals
     args
     signatures
@@ -65,7 +65,7 @@ def Upgrade.message
   (selfId : ObjectId)
   : Message lab :=
   { id := .classMember (classId := classId) .upgradeId
-    logicRef := Upgrade.Message.logic.{0, 0} classId |>.reference
+    logicRef := Logic.trivialLogicRef
     Vals := ⟨PUnit⟩
     vals := PUnit.unit
     args := .unit
@@ -88,7 +88,7 @@ def MultiMethod.message
   (rands : MultiMethodRandoms data)
   : Message lab :=
   { id := .multiMethodId multiId
-    logicRef := MultiMethod.Message.logic.{0, 0} method |>.reference
+    logicRef := Logic.trivialLogicRef
     Vals := ⟨(method.body selves args).params.Product⟩
     vals
     args
