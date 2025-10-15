@@ -203,10 +203,13 @@ private def Upgrade.Message.logicFun
     && selfRes.isPersistent
     && upgradedRes.isPersistent
 
-/-- The class logic checks if the message consumed in the action is associated
-    with the same ecosystem, the `self` object is among the message recipients
-    and the number of recipients is equal to the number of consumed object
-    resources. The class logic also checks the class invariant for `self`. -/
+/-- The class logic checks if one the following holds.
+    1. The message consumed in the action is associated with the same ecosystem,
+       the `self` object is among the message recipients, and the number of
+       recipients is at least the number of consumed object resources which are
+       not modified. The class logic also checks the class invariant for `self`.
+    2. The `self` object is not modified.
+  -/
 private def logicFun
   {lab : Ecosystem.Label}
   {classId : lab.ClassId}
@@ -218,20 +221,23 @@ private def logicFun
   match args.status with
   | Created => true
   | Consumed =>
-    let consumedObjectResources : List Anoma.Resource := Logic.selectObjectResources args.consumed
-    let! [consumedMessageResource] := Logic.selectMessageResources args.consumed
-    -- Note: the success of the `try` below ensures that the message is "legal"
-    -- for the consumed objects - it is from the same ecosystem
-    let try msg : Message lab := Message.fromResource consumedMessageResource
-    self.uid ∈ msg.recipients
-    && msg.recipients.length == consumedObjectResources.length
-    -- Note that the message logics already check if the consumed object
-    -- resources have the right form, i.e., correspond to the self / selves. We
-    -- only need to check that the number of recipients is equal to the number
-    -- of consumed object resources, i.e., there are no extra recipients. The
-    -- class logic will be run for each consumed object, with `self` set to that
-    -- object, so it will be checked if every consumed object is among the
-    -- recipients.
+    if args.self.isPersistent && Logic.isObjectPreserved self.toObjectValue args.created then
+      true
+    else
+      let consumedObjectResources : List Anoma.Resource := Logic.selectObjectResources args.consumed
+      let! [consumedMessageResource] := Logic.selectMessageResources args.consumed
+      -- Note: the success of the `try` below ensures that the message is "legal"
+      -- for the consumed objects - it is from the same ecosystem
+      let try msg : Message lab := Message.fromResource consumedMessageResource
+      self.uid ∈ msg.recipients
+      && msg.recipients.length == consumedObjectResources.length
+      -- Note that the message logics already check if the consumed object
+      -- resources have the right form, i.e., correspond to the self / selves. We
+      -- only need to check that the number of recipients is equal to the number
+      -- of consumed object resources, i.e., there are no extra recipients. The
+      -- class logic will be run for each consumed object, with `self` set to that
+      -- object, so it will be checked if every consumed object is among the
+      -- recipients.
 
 /-- The class logic that is the Resource Logic of each resource corresponding to
   an object of this class. -/

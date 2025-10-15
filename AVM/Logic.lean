@@ -10,6 +10,18 @@ namespace AVM.Logic
 def filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
   resources.filter (not ∘ Action.isDummyResource)
 
+def resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Bool :=
+  objValue.label === res.label &&
+  objValue.classId.label.logicRef == res.logicRef &&
+  objValue.data.quantity == res.quantity &&
+    let try resVal : Object.Resource.Value objValue.classId := tryCast res.value
+    resVal.privateFields == objValue.data.privateFields &&
+    resVal.uid == objValue.uid
+
+def resourceIdEq (objValue : ObjectValue) (res : Anoma.Resource) : Bool :=
+  let try resVal : Object.Resource.Value objValue.classId := tryCast res.value
+  resVal.uid == objValue.uid
+
 /-- Checks that the number of objects and resources match, and that the
     quantity, value and labels of each resource match the corresponding object.
     This check is used in the constructor, destructor and method message logics.
@@ -18,14 +30,6 @@ def checkResourceValues (objectValues : List ObjectValue) (resources : List Anom
   let resources' := Logic.filterOutDummy resources
   objectValues.length == resources'.length
     && List.and (List.zipWith resourceValueEq objectValues resources')
-  where
-    resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Bool :=
-      objValue.label === res.label &&
-      objValue.classId.label.logicRef == res.logicRef &&
-      objValue.data.quantity == res.quantity &&
-        let try resVal : Object.Resource.Value objValue.classId := tryCast res.value
-        resVal.privateFields == objValue.data.privateFields &&
-        resVal.uid == objValue.uid
 
 def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
   Logic.filterOutDummy resources |>.all Anoma.Resource.isEphemeral
@@ -38,3 +42,7 @@ def selectObjectResources.{u, v} (resources : List Anoma.Resource.{u, v}) : List
 
 def selectMessageResources.{u, v} (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
   resources.filter Resource.isSomeMessage
+
+def isObjectPreserved (obj : ObjectValue) (resources : List Anoma.Resource) : Bool :=
+  let! [res] := resources.filter (resourceIdEq obj)
+  resourceValueEq obj res && res.isPersistent
