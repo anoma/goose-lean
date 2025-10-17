@@ -37,7 +37,7 @@ structure Label : Type 1 where
   ConstructorSignatureId : ConstructorId → Type := fun _ => Empty
   ConstructorSignatureIdEnum : (s : ConstructorId) → FinEnum (ConstructorSignatureId s)
     := by intro s; cases s <;> infer_instance
-  [constructorsFinite : FinEnum ConstructorId]
+  [constructorsEnum : FinEnum ConstructorId]
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
   [constructorsLawfulBEq : LawfulBEq ConstructorId]
@@ -47,7 +47,7 @@ structure Label : Type 1 where
   DestructorSignatureId : DestructorId → Type := fun _ => Empty
   DestructorSignatureIdEnum : (s : DestructorId) → FinEnum (DestructorSignatureId s)
     := by intro s; cases s <;> infer_instance
-  [destructorsFinite : FinEnum DestructorId]
+  [destructorsEnum : FinEnum DestructorId]
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
   [destructorsLawfulBEq : LawfulBEq DestructorId]
@@ -57,7 +57,7 @@ structure Label : Type 1 where
   MethodSignatureId : MethodId → Type := fun _ => Empty
   MethodSignatureIdEnum : (s : MethodId) → FinEnum (MethodSignatureId s)
     := by intro s; cases s <;> infer_instance
-  [methodsFinite : FinEnum MethodId]
+  [methodsEnum : FinEnum MethodId]
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
   [methodsLawfulBEq : LawfulBEq MethodId]
@@ -71,7 +71,7 @@ def Label.dummy : Label where
   DynamicLabel := default
   ConstructorId := PUnit
   ConstructorArgs := fun _ => ⟨PUnit⟩
-  constructorsFinite := inferInstanceAs (FinEnum PUnit)
+  constructorsEnum := inferInstanceAs (FinEnum PUnit)
   constructorsRepr := inferInstanceAs (Repr PUnit)
   constructorsBEq := inferInstanceAs (BEq PUnit)
   DestructorId := Empty
@@ -101,13 +101,13 @@ instance Label.MemberId.instHashable {lab : Class.Label} : Hashable (Class.Label
       mix 0
     | .methodId m =>
       mix 1
-      mix (lab.methodsFinite.equiv m)
+      mix (lab.methodsEnum.equiv m)
     | .destructorId m =>
       mix 2
-      mix (lab.destructorsFinite.equiv m)
+      mix (lab.destructorsEnum.equiv m)
     | .constructorId m =>
       mix 3
-      mix (lab.constructorsFinite.equiv m)
+      mix (lab.constructorsEnum.equiv m)
 
 instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId lab) where
   beq a b :=
