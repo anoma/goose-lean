@@ -17,10 +17,10 @@ structure Message (lab : Ecosystem.Label) : Type 1 where
   logicRef : Anoma.LogicRef
   /-- The arguments of the message. -/
   args : id.Args.type
-  /-- The signature of the arguments -/
-  signatures : id.Signatures args
   /-- The recipients of the message. -/
   recipients : List ObjectId
+  /-- The signature of the arguments -/
+  signatures : id.Signatures args
 
 def Message.rawSignatures {lab : Ecosystem.Label} (msg : Message lab) : List Nat :=
   let {id := id, signatures := signatures, ..} := msg
