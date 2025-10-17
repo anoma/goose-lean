@@ -4,6 +4,7 @@ import Mathlib.Data.Fintype.Basic
 import Mathlib.Tactic.DeriveFintype
 
 open Applib
+open AVM
 
 def Std.HashMap.modifyDefault
 {α : Type u} {β : Type v} [BEq α] [Hashable α] [Inhabited β] (m : HashMap α β) (a : α) (f : β → β) : HashMap α β := m.alter a fun
@@ -12,7 +13,7 @@ def Std.HashMap.modifyDefault
 
 structure Denomination where
   originator : PublicKey
-  deriving BEq, Inhabited, Hashable, DecidableEq
+  deriving BEq, Inhabited, Hashable
 
 structure Account where
   assets : Std.HashMap Denomination Nat
@@ -228,7 +229,7 @@ structure TransferArgs where
   newOwner : PublicKey
   denom : Denomination
   quantity : Nat
-  deriving DecidableEq
+  deriving BEq
 
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
   rep := Rep.atomic "TransferArgs"
@@ -237,7 +238,7 @@ structure BurnArgs where
   denom : Denomination
   owner : PublicKey
   quantity : Nat
-  deriving DecidableEq
+  deriving BEq
 
 instance BurnArgs.hasTypeRep : TypeRep BurnArgs where
   rep := Rep.atomic "BurnArgs"
@@ -473,9 +474,9 @@ def kudosTransfer : @Class.Method label Classes.Bank Methods.Transfer := defMeth
         |> Balances.addTokens args.newOwner args.denom args.quantity
         |> Balances.subTokens args.oldOwner args.denom args.quantity)
   ⟫)
-  (invariant := fun (self : KudosBank) (args : TransferArgs) signatures =>
+  (invariant := fun (msg : Message label) (self : KudosBank) (args : TransferArgs) =>
     0 < args.quantity
-    && checkSignature (signatures .owner) args.oldOwner
+    && checkSignature msg.data (msg.signatures Methods.Transfer.SignatureId.owner) args.oldOwner
     && args.quantity <= self.getBalance args.oldOwner args.denom)
 
 def kudosBurn : @Class.Method label Classes.Bank Methods.Burn := defMethod KudosBank

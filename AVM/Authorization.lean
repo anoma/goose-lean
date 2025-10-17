@@ -1,5 +1,8 @@
 import Mathlib.Data.Fintype.Basic
 import Prelude
+import AVM.Message.Data
+
+namespace AVM
 
 structure PublicKey where
   key : Nat
@@ -21,19 +24,17 @@ def PrivateKey.universal : PrivateKey where
 -- mock function
 private def checkKey (pub : PublicKey) (priv : PrivateKey) : Bool := pub.key == priv.key
 
-structure Signature {A : Type u} (msg : A) : Type u where
-  msg : A
+structure Signature where
   private signature : PrivateKey
 
 -- Mock function that returns the `raw` bytes of the signature
-def Signature.raw {A : Type u} (msg : A) (_s : Signature msg ) : Nat := 0
+def Signature.raw (_s : Signature) : Nat := 0
 
-instance {A B} (msgA : A) (msgB : B) : HBEq (Signature msgA) (Signature msgB) where
-  hbeq a b := a.raw == b.raw
+instance : BEq Signature where
+  beq a b := a.raw == b.raw
 
-def Signature.sign {A : Type u} (msg : A) (key : PrivateKey) : Signature msg where
+def Signature.sign {lab : Ecosystem.Label} (_msg : MessageData lab) (key : PrivateKey) : Signature where
   signature := key
-  msg
 
 -- mock function
-def checkSignature {A : Type u} {msg : A} (sig : Signature msg) (pub : PublicKey) : Bool := checkKey pub sig.signature
+def checkSignature {lab : Ecosystem.Label} (_msg : MessageData lab) (sig : Signature) (pub : PublicKey) : Bool := checkKey pub sig.signature

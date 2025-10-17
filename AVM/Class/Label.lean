@@ -2,7 +2,6 @@ import Anoma.Resource
 import Prelude
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Data.FinEnum
-import AVM.Authorization
 
 abbrev AVM.ObjectId := Anoma.ObjectId
 
@@ -144,33 +143,14 @@ def Label.MemberId.Args {lab : Class.Label} (memberId : MemberId lab) : SomeType
   | methodId c => lab.MethodArgs c
   | upgradeId => ⟨PUnit⟩
 
-abbrev Label.MemberId.Signatures
-  {lab : Class.Label}
-  (f : MemberId lab)
-  (args : f.Args.type)
-  : Type :=
-  f.SignatureId → Signature (f, args)
+def Label.ConstructorId.SignatureId {lab : Class.Label} (constrId : lab.ConstructorId) : Type :=
+  lab.ConstructorSignatureId constrId
 
-abbrev Label.MethodId.Signatures
-  {lab : Class.Label}
-  (f : lab.MethodId)
-  (args : f.Args.type)
-  : Type :=
-  MemberId.methodId f |>.Signatures args
+def Label.DestructorId.SignatureId {lab : Class.Label} (destrId : lab.DestructorId) : Type :=
+  lab.DestructorSignatureId destrId
 
-abbrev Label.ConstructorId.Signatures
-  {lab : Class.Label}
-  (f : lab.ConstructorId)
-  (args : f.Args.type)
-  : Type :=
-  MemberId.constructorId f |>.Signatures args
-
-abbrev Label.DestructorId.Signatures
-  {lab : Class.Label}
-  (f : lab.DestructorId)
-  (args : f.Args.type)
-  : Type :=
-  MemberId.destructorId f |>.Signatures args
+def Label.MethodId.SignatureId {lab : Class.Label} (methodId : lab.MethodId) : Type :=
+  lab.MethodSignatureId methodId
 
 instance Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"
