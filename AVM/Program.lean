@@ -140,3 +140,27 @@ def value {lab : Scope.Label} {α : Type u} (prog : Program lab α) (vals : prog
     next obj |>.value vals'
   | .return val =>
     val
+
+/-- All objects fetched in the program.  The `vals` provided need to be adjusted
+  (see `Program.Parameters.Product`). -/
+def objects {lab : Scope.Label} {α : Type u} (prog : Program lab α) (vals : prog.params.Product) : List SomeObject :=
+  match prog with
+  | .constructor _ _ _ _ _ next =>
+    let ⟨newId, vals'⟩ := vals
+    objects (next newId) vals'
+  | .destructor _ _ _ _ _ _ next =>
+    next.objects vals
+  | .method _ _ _ _ _ _ next =>
+    next.objects vals
+  | .multiMethod _ _ _ _ _ next =>
+    next.objects vals
+  | .upgrade _ _ _ _ next =>
+    next.objects vals
+  | .fetch _ next =>
+    let ⟨obj, vals'⟩ := vals
+    obj.toSomeObject :: objects (next obj) vals'
+  | .return _ => []
+
+end Program
+
+end AVM
