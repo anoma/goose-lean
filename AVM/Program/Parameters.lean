@@ -39,6 +39,22 @@ def Product (params : Program.Parameters) : Type :=
   | .rand rest =>
     Σ (r : Nat), Program.Parameters.Product (rest r)
 
+def Product.hashHelper {params : Program.Parameters} (p : params.Product) : Hashable.Mix := do
+  match params with
+  | .empty =>
+     mix 0
+  | .fetch _ _ =>
+     mix 1
+     mix p.fst
+     hashHelper p.snd
+  | .rand _ =>
+     mix 2
+     mix p.fst
+     hashHelper p.snd
+
+instance Product.instHashable (params : Program.Parameters) : Hashable params.Product where
+  hash p := Hashable.Mix.run (hashHelper p)
+
 private def Product.defaultValue (params : Program.Parameters) : params.Product :=
   match params with
   | .empty => PUnit.unit

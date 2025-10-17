@@ -1,7 +1,5 @@
 import AVM
 import Applib
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Tactic.DeriveFintype
 
 open Applib
 
@@ -16,7 +14,7 @@ structure Denomination where
 
 structure Account where
   assets : Std.HashMap Denomination Nat
-  deriving BEq, Inhabited
+  deriving BEq, Inhabited, Hashable
 
 namespace Account
 
@@ -42,7 +40,7 @@ end Account
 
 structure Balances where
   accounts : Std.HashMap PublicKey Account
-  deriving BEq, Inhabited
+  deriving Inhabited, BEq, Hashable
 
 namespace Balances
 
@@ -67,7 +65,7 @@ structure Check where
   denomination : Denomination
   owner : PublicKey
   quantity : Nat
-  deriving BEq, Inhabited
+  deriving BEq, Inhabited, Hashable
 
 namespace Check
 
@@ -78,11 +76,11 @@ instance hasTypeRep : TypeRep Check where
 
 inductive Methods where
   | Transfer
-  deriving Repr, BEq, Fintype, DecidableEq
+  deriving Repr, BEq, DecidableEq, FinEnum
 
 structure TransferArgs where
   newOwner : PublicKey
-  deriving DecidableEq
+  deriving DecidableEq, Hashable
 
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
   rep := Rep.atomic "Check.TransferArgs"
@@ -109,7 +107,7 @@ structure Auction where
   biddingDenomination : Denomination
   highestBid : Nat
   highestBidder : PublicKey
-  deriving BEq, Inhabited
+  deriving BEq, Inhabited, Hashable
 
 namespace Auction
 
@@ -136,7 +134,7 @@ end Auction
 structure KudosBank where
   owner : PublicKey
   balances : Balances
-  deriving Inhabited, BEq
+  deriving Inhabited, BEq, Hashable
 
 namespace KudosBank
 
@@ -156,7 +154,7 @@ inductive Methods where
   | Transfer : Methods
   | Mint : Methods
   | Burn : Methods
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 namespace Methods
 
@@ -183,11 +181,11 @@ end Methods
 
 inductive Constructors where
   | Open : Constructors
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 inductive Destructors where
   | Close : Destructors
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 namespace Destructors
 
@@ -211,7 +209,7 @@ instance hasTypeRep : TypeRep KudosBank where
 structure MintArgs where
   denom : Denomination
   quantity : Nat
-  deriving BEq
+  deriving BEq, Hashable
 
 instance MintArgs.hasTypeRep : TypeRep MintArgs where
   rep := Rep.atomic "MintArgs"
@@ -228,7 +226,7 @@ structure TransferArgs where
   newOwner : PublicKey
   denom : Denomination
   quantity : Nat
-  deriving DecidableEq
+  deriving DecidableEq, Hashable
 
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
   rep := Rep.atomic "TransferArgs"
@@ -237,7 +235,7 @@ structure BurnArgs where
   denom : Denomination
   owner : PublicKey
   quantity : Nat
-  deriving DecidableEq
+  deriving DecidableEq, Hashable
 
 instance BurnArgs.hasTypeRep : TypeRep BurnArgs where
   rep := Rep.atomic "BurnArgs"
@@ -276,7 +274,7 @@ structure Args where
   denomination : Denomination
   owner : PublicKey
   quantity : Nat
-  deriving BEq
+  deriving BEq, Hashable
 
 inductive SignatureId : Type where
   | owner
@@ -294,7 +292,7 @@ end IssueCheck
 namespace DepositCheck
 
 structure Args where
-  deriving BEq
+  deriving BEq, Hashable
 
 inductive SignatureId : Type where
   | owner
@@ -314,7 +312,7 @@ namespace NewAuction
 
 structure Args where
   biddingDenomination : Denomination
-  deriving BEq
+  deriving BEq, Hashable
 
 inductive SignatureId : Type where
   | owner
@@ -332,7 +330,7 @@ end NewAuction
 namespace Bid
 
 structure Args where
-  deriving BEq
+  deriving BEq, Hashable
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "Bid.Args"
@@ -351,7 +349,7 @@ end Bid
 namespace EndAuction
 
 structure Args where
-  deriving BEq
+  deriving BEq, Hashable
 
 inductive SignatureId : Type where
   | owner

@@ -22,8 +22,7 @@ private def dummyResourceLogic : Anoma.Logic.{u, v} :=
     function :=
       fun (args : Anoma.Logic.Args.{u, v}) =>
         let res : Anoma.Resource.{u, v} := args.self
-        isDummyResource res
-  }
+        isDummyResource res }
 
 /-- A dummy resource used in generated actions. -/
 def dummyResource.{u, v} (nonce : Anoma.Nonce) : Anoma.Resource.{u, v} :=

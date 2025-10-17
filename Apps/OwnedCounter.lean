@@ -1,14 +1,12 @@
 import AVM
 import Applib
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Tactic.DeriveFintype
 
 open Applib
 
 structure OwnedCounter where
   count : Nat
   owner : PublicKey
-  deriving Inhabited, Repr, BEq
+  deriving Inhabited, Repr, BEq, Hashable
 
 namespace OwnedCounter
 
@@ -18,7 +16,7 @@ instance hasTypeRep : TypeRep OwnedCounter where
 inductive Methods where
   | Incr : Methods
   | Transfer : Methods
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 namespace Methods
 
@@ -38,11 +36,11 @@ end Methods
 
 inductive Constructors where
   | Zero : Constructors
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 inductive Destructors where
   | Ten : Destructors
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 namespace Destructors
 

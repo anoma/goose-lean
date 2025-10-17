@@ -2,7 +2,7 @@ import Anoma.Resource
 
 namespace Anoma
 
-structure Logic.Args.{u, v} where
+structure Logic.Args.{u, v} : Type (max u v + 1) where
   self : Resource.{u, v}
   status : ConsumedCreated
   consumed : List Resource.{u, v}
@@ -13,6 +13,8 @@ structure Logic.Args.{u, v} where
 
 def Logic.Args.isConsumed (d : Logic.Args) := d.status.isConsumed
 
+abbrev LogicFunction.{u, v} : Type (max u v + 1) := Logic.Args.{u, v} → Bool
+
 structure Logic.{u, v} where
   reference : LogicRef
-  function : Logic.Args.{u, v} → Bool
+  function : LogicFunction.{u, v}

@@ -6,8 +6,8 @@ import AVM.Program.Parameters
 
 namespace AVM
 
-structure Task.Actions : Type (u + 1) where
-  actions : List Anoma.Action
+structure Task.Actions.{u, v} : Type (max u v + 1) where
+  actions : List Anoma.Action.{u, v}
   deltaWitness : Anoma.DeltaWitness
 
 /-- Tasks are intermediate data structures used in the translation. Translating
@@ -15,7 +15,7 @@ structure Task.Actions : Type (u + 1) where
   step. Tasks enable modularity of the translation – they are at the right
   level of abstraction to compose translations of different message sends,
   enabling nested method calls and subobjects. -/
-structure Task : Type 1 where
+structure Task.{u, v} : Type (max u v + 1) where
   /-- Task parameters - objects to fetch from the Anoma system and random values
     to generate. In general, values in `task.params.Product` are assumed to be
     unadjusted (see `Program.Parameters.Product`). -/
@@ -24,7 +24,7 @@ structure Task : Type 1 where
   message : params.Product → Option SomeMessage
   /-- Task actions - actions to perform parameterised by fetched objects and new
     object ids. -/
-  actions : params.Product → Rand (Option Task.Actions)
+  actions : params.Product → Rand (Option Task.Actions.{u, v})
   deriving Inhabited
 
 def Task.absorbParams (params : Program.Parameters) (task : params.Product → Task) : Task :=

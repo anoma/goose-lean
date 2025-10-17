@@ -4,8 +4,8 @@ import Anoma.Delta
 
 namespace Anoma
 
-structure Transaction where
-  actions : List Action
+structure Transaction.{u, v} : Type (max u v + 1) where
+  actions : List Action.{u, v}
   deltaProof : DeltaProof
 
 def Transaction.generateDeltaProof (witness : DeltaWitness) (actions : List Action) : DeltaProof :=

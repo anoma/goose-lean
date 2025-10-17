@@ -7,10 +7,10 @@ namespace AVM
   structure of AVM programs than a single `Task`. `AVM.Program` is compiled to
   `Tasks` which are then composed into a single `Task`. The composition of
   `Tasks` collects and lifts out the parameters of all subtasks. -/
-inductive Tasks (α : Type u) : Type (max u 1) where
+inductive Tasks.{u, v, w} (α : Type w) : Type (max w ((max u v) + 1)) where
   /-- Execute a subtask and continue. The `rest` continuation receives the
     unadjusted parameter values. -/
-  | task (task : Task) (rest : task.params.Product → Tasks α) : Tasks α
+  | task (task : Task.{u, v}) (rest : task.params.Product → Tasks α) : Tasks α
   /-- Fetch an object and continue. The `rest` continuation receives the
     unadjusted original object value and is supposed to adjust it by the
     modifications to that object that occurred from the start of the program up
@@ -151,15 +151,17 @@ def coerce {α β} {tasks : Tasks α} {f : tasks.params.Product → α → β} (
     ⟨r, coerce vals'⟩
   | .result _ => vals
 
-def WithAction := Tasks (Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
+def WithAction.{u, v} : Type (max u v + 1) := Tasks.{u, v, max u v + 1} (Rand (Option (Anoma.Action.{u, v} × Anoma.DeltaWitness)))
+
+set_option pp.universes true
 
 def composeActions
-  (tasks : WithAction)
+  (tasks : WithAction.{u, v})
   (vals : tasks.params.Product)
-  : Rand (Option Task.Actions) :=
+  : Rand (Option Task.Actions.{u, v}) :=
   match tasks with
   | .result v => do
-    let try (action, witness) ← v
+    let try ((action : Anoma.Action.{u, v}), witness) ← v
     pure <| some { actions := [action], deltaWitness := witness }
   | .task ta rest => do
     let ⟨vals1, vals2⟩ := vals.split
@@ -204,7 +206,7 @@ def composeWithMessage
   (mkActionData : α → ActionData)
   : Task :=
   let mkAction (vals : tasks.params.Product) (a : α)
-    : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
+    : Rand (Option (Anoma.Action.{1, 1} × Anoma.DeltaWitness)) :=
     let actionData := mkActionData a
     let try consumedObjects := actionData.consumed.map (·.consume) |>.getSome
     let createdMessages := composeMessages tasks vals
@@ -216,7 +218,7 @@ def void {α : Type u} (tasks : Tasks α) : Tasks Unit :=
 
 def compose (tasks : Tasks Unit) : Task :=
   let mkAction (vals : tasks.params.Product) (_ : Unit)
-    : Rand (Option (Anoma.Action × Anoma.DeltaWitness)) :=
+    : Rand (Option (Anoma.Action.{1, 1} × Anoma.DeltaWitness)) :=
     let createdMessages := tasks.composeMessages vals
     Action.create [] [] [] [] createdMessages
   Tasks.composeWithAction (tasks.map' mkAction) (fun _ => none)
