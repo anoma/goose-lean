@@ -1,6 +1,7 @@
 import AVM
 import Applib
 import Anoma
+import Anoma.Eval
 import Applib.Surface.Program.Syntax
 
 open Applib
@@ -159,6 +160,6 @@ end Counter
 
 def runProgram {α} (prog : Applib.Program Counter.label.toScope α) : IO Unit :=
   let p : Anoma.Program := prog.map (fun _ => Unit.unit) |>.toAVM.compile Counter.scope
-  p.run ∅
+  p.run Counter.scope
 
 def main : IO Unit := runProgram Counter.example1

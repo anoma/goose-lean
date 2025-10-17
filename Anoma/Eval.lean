@@ -4,6 +4,7 @@ import Anoma.Program
 import Anoma.Logic
 import Anoma.Transaction
 import AVM.Object
+import AVM.Scope
 import Mathlib.Control.Random
 
 namespace Anoma.Program
@@ -144,15 +145,18 @@ def interpret : Program → RunM PUnit
     set' {s with gen := gen1}
     next gen2 |>.interpret
 
-def eval (logics : Std.HashMap LogicRef Anoma.LogicFunction) (p : Program) : EStateM.Result (ULift Program.Error) (ULift RmState) PUnit :=
+
+
+def eval {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : EStateM.Result (ULift Program.Error) (ULift RmState) PUnit :=
+  let logics := Std.HashMap.ofList (scope.logics.map fun l => ⟨l.reference, l.function⟩)
   interpret p |>.run (ULift.up (RmState.ini logics))
 
-def run (logics : Std.HashMap LogicRef Anoma.LogicFunction) (p : Program) : IO Unit := do
+def run {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : IO Unit := do
   let printLogs (logs : List String) : IO Unit := do
     if logs.isEmpty then IO.println "<no logs>" else pure Unit.unit
     for log in logs do
       IO.println log
-  match eval logics p with
+  match eval scope p with
   | .ok _res s => do
     printLogs s.down.logs
     IO.println "success"
