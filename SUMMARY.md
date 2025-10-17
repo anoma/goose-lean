@@ -19,6 +19,7 @@ A high-level summary description of GOOSE v0.3.1. The description intentionally 
 		- [MultiMethod](#multimethod)
 		- [Class](#class)
 		- [Ecosystem](#ecosystem)
+		- [Authorization](#authorization)
 	- [AVM -\> RM translation](#avm---rm-translation)
 		- [Object](#object-1)
 			- [Resource data check](#resource-data-check)
@@ -209,6 +210,9 @@ Action sending the call messages:
     - destroyed selves,
     - constructed objects.
   - `recipients : List ObjectId`. The recipients of the message.
+  - `signatures : List Signature`. Authorization signatures for the message. Each signature consists of:
+    - public identifier of the signer,
+    - signature data: the message `id` and `args` cryptographically signed with signer's private key.
 
 ### Constructor
 - `Class.Constructor` in `AVM/Class/Member.lean`
@@ -218,7 +222,7 @@ Action sending the call messages:
 	- `id : label.ConstructorId` determines the unique id of the constructor.
 	- `Args := label.ConstructorArgs id` is the type of constructor arguments.
 	- `body : Args -> Program ObjectData`. Constructor body, returning the object data for the object created by the constructor call.
-	- `invariant : Args -> Bool`. Extra constructor logic. The constructor message logic is a conjunction of auto-generated constructor logic and the extra constructor logic.
+	- `invariant : Message -> Args -> Bool`. Extra constructor logic. The constructor message logic is a conjunction of auto-generated constructor logic and the extra constructor logic.
 
 ### Destructor
 - `Class.Destructor` in `AVM/Class/Member.lean`
@@ -228,7 +232,7 @@ Action sending the call messages:
 	- `id : label.DestructorId` determines the unique id of the destructor.
 	- `Args := label.DestructorArgs id` is the type of destructor arguments excluding `self`.
 	- `body : (self : Object) -> Args -> Program Unit`. Destructor body program.
-	- `invariant : (self : Object) -> Args -> Bool`. Extra destructor logic. The destructor message logic is a conjunction of auto-generated destructor logic and the extra destructor logic.
+	- `invariant : Message -> (self : Object) -> Args -> Bool`. Extra destructor logic. The destructor message logic is a conjunction of auto-generated destructor logic and the extra destructor logic.
 
 ### Method
 - `Class.Method` in `AVM/Class/Member.lean`
@@ -238,7 +242,7 @@ Action sending the call messages:
 	- `id : label.MethodId` determines the unique id of the method.
 	- `Args := label.MethodArgs id` is the type of method arguments excluding `self`.
 	- `body : (self : Object) -> Args -> Program Object`. Method body program. The return value is the updated `self`.
-	- `invariant : (self : Object) -> Args -> Bool`. Extra method logic. The method message logic is a conjunction of auto-generated method logic and the extra method logic.
+	- `invariant : Message -> (self : Object) -> Args -> Bool`. Extra method logic. The method message logic is a conjunction of auto-generated method logic and the extra method logic.
 
 ### MultiMethod
 - `MultiMethod` in `AVM/Ecosystem/Member.lean`
@@ -253,7 +257,7 @@ Action sending the call messages:
 		- `destroyed : List Object`. List of destroyed selves. Destroyed object resources are balanced with automatically generated created ephemeral resources. The `destroyed` list must be a sublist of `selves`.
 		- `assembled : List Object`. List of assembled objects into which disassembled objects are transformed as a result of the multi-method call. It is the responsibility of the user to ensure that assembled object resources balance with the disassembled selves.
 		- `constructed : List Object`. List of constructed objects. Constructed object resources are balanced with automatically generated consumed ephemeral resources.
-	- `invariant : (selves : List Object) -> Args -> Bool`. Extra multi-method logic. The multi-method message logic is a conjunction of the auto-generated multi-method logic and the extra multi-method logic.
+	- `invariant : Message -> (selves : List Object) -> Args -> Bool`. Extra multi-method logic. The multi-method message logic is a conjunction of the auto-generated multi-method logic and the extra multi-method logic.
 - `selves : List Object` in `body` and `invariant` above is a list of `self` arguments - objects whose classes are described by `label.MultiMethodSelves id`.
 - `selves = disassembled ++ destroyed`.
 
@@ -274,6 +278,11 @@ Action sending the call messages:
 	- `label : Ecosystem.Label`. Unique ecosystem label.
 	- `classes : Set Class`. Classes in the ecosystem. A class is in exactly one ecosystem.
 	- `multiMethods : Set MultiMethod`. Multi-methods in the ecosystem. A multi-method is in exactly one ecosystem.
+
+### Authorization
+The GOOSE framework provides a function `checkSignature : Message -> PublicKey -> Bool` which checks that a given message was signed with the private key corresponding to a given public key. In other words, `checkSignature(msg, pubKey)` checks that decrypting `msg.signature` with `pubKey` yields (a digest of) `msg`.
+
+The `checkSignature` function can be used in invariants to perform authorization of the received messages.
 
 ## AVM -> RM translation
 
