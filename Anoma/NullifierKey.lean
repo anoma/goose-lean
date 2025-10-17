@@ -43,4 +43,4 @@ def checkNullifierKey (key : NullifierKey) (nfc : NullifierKeyCommitment) : Deci
 def NullifierKey.commitment (k : NullifierKey) : NullifierKeyCommitment :=
   match k with
   | .universal => .universal
-  | (.secret s) => .ofSecret s
+  | .secret s => .ofSecret s

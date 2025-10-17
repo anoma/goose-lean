@@ -65,6 +65,7 @@ def messageValues
     let ⟨obj, vals'⟩ := vals
     Program.messageValues (next obj) vals'
   | .return _ => []
+  | .log _ next => messageValues next vals
 
 end AVM.Program
 

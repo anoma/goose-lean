@@ -13,6 +13,17 @@ structure ObjectData {lab : Ecosystem.Label} (c : lab.ClassId) where
   privateFields : c.label.PrivateFields.type
   deriving BEq
 
+instance ObjectData.instHashable
+  {lab : Ecosystem.Label}
+  {c : lab.ClassId}
+  : Hashable (ObjectData c) where
+  hash v := Hashable.Mix.run do
+    mix lab
+    mix (lab.classesEnum.equiv c)
+    mix v.quantity
+    have := c.label.PrivateFields.typeHashable
+    mix v.privateFields
+
 instance ObjectData.inhabited {lab : Ecosystem.Label} (c : lab.ClassId) : Inhabited (ObjectData c) where
   default := { quantity := 0
                privateFields := c.label.privateFieldsInhabited.default }
@@ -24,6 +35,9 @@ structure SomeObjectData : Type 1 where
   {label : Ecosystem.Label}
   {classId : label.ClassId}
   data : ObjectData classId
+
+instance SomeObjectData.instHashable : Hashable SomeObjectData where
+  hash v := hash v.data
 
 instance SomeObjectData.hasTypeRep : TypeRep SomeObjectData where
   rep := Rep.atomic "AVM.SomeObjectData"
@@ -63,6 +77,14 @@ structure Object {lab : Ecosystem.Label} (c : lab.ClassId) : Type where
   data : ObjectData c
   deriving BEq, Inhabited
 
+instance Object.instHashable {lab : Ecosystem.Label} (c : lab.ClassId) : Hashable (Object c) where
+  hash v := Hashable.Mix.run do
+    mix lab
+    mix (lab.classesEnum.equiv c)
+    mix v.uid
+    mix v.nonce
+    mix v.data
+
 instance Object.hasTypeRep {lab : Ecosystem.Label} (c : lab.ClassId) : TypeRep (Object c) where
   rep := Rep.composite "AVM.Object" [Rep.atomic lab.name, Rep.atomic c.label.name]
 
@@ -96,6 +118,32 @@ instance {lab : Ecosystem.Label} {classId : lab.ClassId} : TypeRep (Object.Resou
 instance {lab : Ecosystem.Label} {classId : lab.ClassId} : BEq (Object.Resource.Value classId) where
   beq v1 v2 := v1.uid == v2.uid && v1.privateFields === v2.privateFields
 
+structure Object.Resource.SomeValue where
+  {lab : Ecosystem.Label}
+  classId : lab.ClassId
+  uid : Anoma.ObjectId
+  privateFields : classId.label.PrivateFields.type
+
+instance : Hashable Object.Resource.SomeValue where
+  hash v := Hashable.Mix.run do
+    mix v.lab
+    mix (v.lab.classesEnum.equiv v.classId)
+    mix v.uid
+    have := v.classId.label.PrivateFields.typeHashable
+    mix v.privateFields
+
+instance : TypeRep Object.Resource.SomeValue where
+  rep := Rep.atomic "Object.Resource.SomeValue"
+
+instance : BEq Object.Resource.SomeValue where
+  beq v1 v2 :=
+    let c1 := v1.lab.classesEnum.equiv.toFun
+    let c2 := v2.lab.classesEnum.equiv.toFun
+    v1.lab.name == v2.lab.name
+    && (c1 v1.classId).val == (c2 v2.classId).val
+    && v1.uid == v2.uid
+    && v1.privateFields === v2.privateFields
+
 /-- Converts SomeObject to a Resource. -/
 def SomeObject.toResource
   (sobj : SomeObject)
@@ -113,15 +161,16 @@ def SomeObject.toResource
               dynamicLabel := clab.DynamicLabel.mkDynamicLabel obj.data.privateFields }
     logicRef := classId.label.logicRef,
     quantity := obj.data.quantity,
-    Val := ⟨Object.Resource.Value classId⟩,
+    Val := ⟨Object.Resource.SomeValue⟩,
     value := { uid := obj.uid
+               classId
                privateFields := obj.data.privateFields },
     ephemeral := ephemeral,
     nonce := obj.nonce,
     nullifierKeyCommitment := default }
 
 /-- Converts Object to a Resource. -/
-def Object.toResource {lab : Ecosystem.Label} {c : lab.ClassId} (obj : Object c) (ephemeral : Bool) : Anoma.Resource
+def Object.toResource {lab : Ecosystem.Label} {c : lab.ClassId} (obj : Object c) (ephemeral : Bool) : Anoma.Resource.{1, 1}
  := obj.toSomeObject.toResource ephemeral
 
 def Object.fromResource

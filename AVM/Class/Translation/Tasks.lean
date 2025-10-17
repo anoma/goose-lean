@@ -114,6 +114,7 @@ private partial def Body.tasks'
   | .return val =>
     Tasks.rands cnt fun rands =>
       cont rands.toList val adjust
+  | .log _ next => Body.tasks' cnt  adjust scope next cont
 
 private partial def Body.task'
   {α β : Type 1}

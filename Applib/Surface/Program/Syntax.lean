@@ -76,6 +76,8 @@ syntax colGe "invoke " term : program
 syntax colGe withPosition("invoke " term) optSemicolon(program) : program
 syntax colGe withPosition(ident " := " " invoke " term) optSemicolon(program) : program
 syntax colGe withPosition(ident " := " " fetch " term) optSemicolon(program) : program
+syntax colGe "log " term : program
+syntax colGe withPosition("log " term) optSemicolon(program) : program
 syntax colGe "return " term : program
 syntax colGe "!" term : program
 syntax "⟪" withPosition(program) "⟫" : term
@@ -139,6 +141,10 @@ macro_rules
     `(Program.upgrade' (inScope := by scoper) $e $e' Program.return)
   | `(⟪upgrade $e:term to $e':term ; $p:program⟫) =>
     `(Program.upgrade' (inScope := by scoper) $e $e' (⟪$p⟫))
+  | `(⟪log $e:term⟫) =>
+    `(Program.log $e Program.return)
+  | `(⟪log $e:term ; $p:program⟫) =>
+    `(Program.log $e (⟪$p⟫))
   | `(⟪invoke $e:term⟫) =>
     `(Program.invoke $e Program.return)
   | `(⟪invoke $e:term ; $p:program⟫) =>

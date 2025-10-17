@@ -6,7 +6,7 @@ namespace Anoma
 
 abbrev MerklePath := List Nat
 
-structure ComplianceWitness : Type (max u v + 1) where
+structure ComplianceWitness.{u, v} : Type (max u v + 1) where
     consumedResource : Resource.{u, v}
     createdResource : Resource.{u, v}
     /-- Nullifier key of the consumed resource -/
@@ -22,10 +22,13 @@ structure ComplianceInstance where
 
 abbrev ComplianceProof := String
 
-structure ComplianceUnit : Type 1 where
+structure ComplianceUnit.{u, v} : Type (max u v + 1) where
   proof : ComplianceProof
   inst : ComplianceInstance
 
-def ComplianceUnit.create (_witness : ComplianceWitness) : ComplianceUnit :=
+  /-- used only by the evaluator.-/
+  witness : ComplianceWitness.{u, v}
+
+def ComplianceUnit.create (witness : ComplianceWitness.{u, v}) : ComplianceUnit.{u, v} :=
   -- This is a placeholder implementation.
-  { proof := "", inst := { } }
+  { proof := "", inst := { }, witness }

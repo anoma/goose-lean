@@ -1,7 +1,7 @@
 import AVM
 import Applib
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Tactic.DeriveFintype
+import Anoma
+import Anoma.Eval
 import Applib.Surface.Program.Syntax
 
 open Applib
@@ -14,11 +14,11 @@ namespace Counter
 
 inductive Methods where
   | Incr : Methods
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 inductive Constructors where
   | Zero : Constructors
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 inductive MultiMethods where
   | Merge : MultiMethods
@@ -133,7 +133,15 @@ def counterEcosystem : Ecosystem label where
   multiMethods := fun
     | .Merge => mergeMethod
 
-example (rx ry : Reference Counter) : Applib.Program label.toScope Unit := ⟪
+def example1 : Applib.Program label.toScope Unit := ⟪
+  -- log s!"create"
+  c1 := create Counter Counter.Constructors.Zero ()
+  -- c1' := fetch c1
+  -- log s!"hi {c1'.count}"
+  return .unit
+⟫
+
+def example2 (rx ry : Reference Counter) : Applib.Program label.toScope Unit := ⟪
   let selves :
       @Ecosystem.Label.MultiMethodId.SelvesReferences label
       Counter.MultiMethods.Merge := fun
@@ -145,3 +153,13 @@ example (rx ry : Reference Counter) : Applib.Program label.toScope Unit := ⟪
                          ref := ry }
   multiCall[ .unit ] Counter.MultiMethods.Merge selves .unit
 ⟫
+
+def scope : AVM.Scope label.toScope := counterEcosystem.toScope
+
+end Counter
+
+def runProgram {α} (prog : Applib.Program Counter.label.toScope α) : IO Unit :=
+  let p : Anoma.Program := prog.map (fun _ => Unit.unit) |>.toAVM.compile Counter.scope
+  p.run Counter.scope
+
+def main : IO Unit := runProgram Counter.example1
