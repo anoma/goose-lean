@@ -205,10 +205,6 @@ Action sending the call messages:
   - `vals : Vals`. Message parameter values. The message parameters are object resources and generated random values that are used in the body of the call associated with the message. These need to be provided in the message, because the associated Resource Logic cannot fetch object resources from the Anoma system or generate new object identifiers.
   - `id : MessageId`. The message ID.
   - `args : id.Args`. The arguments of the message, where `id.Args` is the type of arguments based on the message id. The message arguments are the non-self arguments of the corresponding member or multi-method call.
-  - `data : Option MultiMethodData`. Extra data for multi-methods which contains the numbers of:
-    - disassembled selves,
-    - destroyed selves,
-    - constructed objects.
   - `recipients : List ObjectId`. The recipients of the message.
   - `signatures : List Signature`. Authorization signatures for the message. Each signature consists of:
     - public identifier of the signer,
@@ -603,12 +599,18 @@ Multi-method message logic has access to RL arguments which contain the followin
 
 - `consumed : List Resource`. List of resources consumed in the transaction.
 - `created : List Resource`. List of resources created in the transaction.
-- `msgRes : Resource`. The resource of the method message `msg`, which contains the method call arguments `args` and the `data` field with the numbers of:
+- `msgRes : Resource`. The resource of the method message `msg`, which contains the method call arguments `args` and parameter values `vals`.
+
+For a given multi-method, the number `n` of `selves` is specified in the
+multi-method definition. We re-create the `selves` objects from the first `n`
+object resources in `consumed`.
+
+With `selves`, `args` and `vals`, we compute the result of of the multi-method. In this way, we obtain the numbers of:
   - disassembled selves,
   - destroyed selves,
   - constructed objects.
 
-For a given multi-method, we use the numbers stored in `msg.data` to partition the object resources in `consumed` into:
+We use the above numbers to partition the object resources in `consumed` into:
 
 - `disassembledSelves` list of persistent object resources corresponding to disassembled selves,
 - `destroyedSelves` list of persistent object resources corresponding to destroyed selves,
