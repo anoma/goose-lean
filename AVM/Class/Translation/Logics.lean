@@ -78,7 +78,7 @@ def checkMessageResourceValues {lab : Ecosystem.Label} (vals : List (Program.Mes
   List.all₂
     (fun val res =>
       let try msg : Message lab := Message.fromResource res
-      msg.id == val.id && msg.args === val.args && msg.logicRef == val.logicRef)
+      msg.data.id == val.id && msg.data.args === val.args && msg.data.logicRef == val.logicRef)
     vals
     resMsgs
 
@@ -99,10 +99,9 @@ def MultiMethod.Message.logicFun
   let createdResObjs := Logic.selectObjectResources args.created
   let argsConsumedSelves := consumedResObjs.take multiId.numObjectArgs
   let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves
+  check method.invariant msg argsConsumedObjects fargs
   let prog := method.body argsConsumedObjects fargs
-  let signatures := cast (by grind only) msg.signatures
-  check method.invariant argsConsumedObjects fargs signatures
-  let try vals : prog.params.Product := tryCast msg.vals
+  let try vals : prog.params.Product := tryCast msg.data.vals
   let res : MultiMethodResult multiId := prog.value vals
   let valsObjs := prog.objects vals
   let fetchedObjValues := valsObjs.map (·.toObjectValue)

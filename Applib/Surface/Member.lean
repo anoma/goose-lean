@@ -10,17 +10,17 @@ macro "noDestructors" : term => `(fun x => Empty.elim x)
 macro "noMethods" : term => `(fun x => Empty.elim x)
 
 def unsigned
-  {Args SignatureId : Type}
-  {args : Args}
-  : SignatureId → Signature args := fun _ => Signature.sign args PrivateKey.universal
+  {lab : Ecosystem.Label}
+  {SignatureId : Type}
+  : MessageData lab → SignatureId → Signature := fun msg _ => Signature.sign msg PrivateKey.universal
 
 def defMethod (cl : Type) [i : IsObject cl] {methodId : i.classId.label.MethodId}
  (body : (self : cl) → methodId.Args.type → Program i.label.toScope cl)
- (invariant : (self : cl) → (args : methodId.Args.type) → methodId.Signatures args → Bool := fun _ _ _ => true)
+ (invariant : (msg : Message i.label) → (self : cl) → (args : methodId.Args.type) → Bool := fun _ _ _ => true)
  : Class.Method i.classId methodId where
-    invariant (self : Object i.classId) (args : methodId.Args.type) :=
+    invariant (msg : Message i.label) (self : Object i.classId) (args : methodId.Args.type) :=
       let self' : cl := i.fromObject self.data
-      invariant self' args
+      invariant msg self' args
     body (self : Object i.classId) (args : methodId.Args.type) :=
       let self' := i.fromObject self.data
       let prog := body self' args
@@ -29,17 +29,17 @@ def defMethod (cl : Type) [i : IsObject cl] {methodId : i.classId.label.MethodId
 
 def defConstructor {cl : Type} [i : IsObject cl] {constrId : i.classId.label.ConstructorId}
  (body : constrId.Args.type → Program i.label.toScope cl)
- (invariant : (args : constrId.Args.type) → (signatures : constrId.Signatures args) → Bool := fun _ _ => true)
+ (invariant : (msg : Message i.label) → (args : constrId.Args.type) → Bool := fun _ _ => true)
  : Class.Constructor i.classId constrId where
-    invariant (args : constrId.Args.type) := invariant args
+    invariant (msg : Message i.label) (args : constrId.Args.type) := invariant msg args
     body (args : constrId.Args.type) := body args |>.map i.toObject |>.toAVM
 
 def defDestructor {cl : Type} [i : IsObject cl] {destructorId : i.classId.label.DestructorId}
  (body : (self : cl) → destructorId.Args.type → Program i.label.toScope PUnit := fun _ _ => Program.return ())
- (invariant : (self : cl) -> (args : destructorId.Args.type) → destructorId.Signatures args → Bool := fun _ _ _ => true)
+ (invariant : (msg : Message i.label) → (self : cl) -> (args : destructorId.Args.type) → Bool := fun _ _ _ => true)
  : Class.Destructor i.classId destructorId where
-    invariant (self : Object i.classId) (args : destructorId.Args.type) (signatures : destructorId.Signatures args) :=
+    invariant (msg : Message i.label) (self : Object i.classId) (args : destructorId.Args.type) :=
       let self' := i.fromObject self.data
-      invariant self' args signatures
+      invariant msg self' args
     body (self : Object i.classId) (args : destructorId.Args.type) :=
       body (i.fromObject self.data) args |>.toAVM

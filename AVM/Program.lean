@@ -14,7 +14,7 @@ inductive Program.{u} (scope : Scope.Label) (ReturnType : Type u) : Type (max u 
     (cid : eid.label.ClassId)
     (constrId : cid.label.ConstructorId)
     (args : constrId.Args.type)
-    (signatures : constrId.Signatures args)
+    (signatures : constrId.SignatureId -> Signature)
     (next : ObjectId → Program scope ReturnType)
     : Program scope ReturnType
   | /-- Destructor call. -/
@@ -24,7 +24,7 @@ inductive Program.{u} (scope : Scope.Label) (ReturnType : Type u) : Type (max u 
     (destrId : cid.label.DestructorId)
     (selfId : ObjectId)
     (args : destrId.Args.type)
-    (signatures : destrId.Signatures args)
+    (signatures : destrId.SignatureId -> Signature)
     (next : Program scope ReturnType)
     : Program scope ReturnType
   | /-- Method call. -/
@@ -34,7 +34,7 @@ inductive Program.{u} (scope : Scope.Label) (ReturnType : Type u) : Type (max u 
     (methodId : cid.label.MethodId)
     (selfId : ObjectId)
     (args : methodId.Args.type)
-    (signatures : methodId.Signatures args)
+    (signatures : methodId.SignatureId -> Signature)
     (next : Program scope ReturnType)
     : Program scope ReturnType
   | /-- MultiMethod call. -/
@@ -43,7 +43,7 @@ inductive Program.{u} (scope : Scope.Label) (ReturnType : Type u) : Type (max u 
     (mid : eid.label.MultiMethodId)
     (selvesIds : mid.SelvesIds)
     (args : mid.Args.type)
-    (signatures : mid.Signatures args)
+    (signatures : mid.SignatureId -> Signature)
     (next : Program scope ReturnType)
     : Program scope ReturnType
   | /-- Object upgrade -/

@@ -1,5 +1,4 @@
 import AVM.Class.Label
-import AVM.Authorization
 
 namespace AVM.Ecosystem
 
@@ -104,9 +103,6 @@ abbrev Args {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : SomeType :=
 
 abbrev SignatureId {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type := lab.MultiMethodSignatureId multiId
 
-abbrev Signatures {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) (args : multiId.Args.type) : Type :=
-  multiId.SignatureId → Signature (multiId, args)
-
 def ObjectArgNames {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type :=
   lab.MultiMethodObjectArgNames multiId
 
@@ -198,12 +194,6 @@ abbrev Args {lab : Ecosystem.Label} (memberId : MemberId lab) : SomeType.{0} :=
   match memberId with
   | multiMethodId f => lab.MultiMethodArgs f
   | classMember m => Class.Label.MemberId.Args m
-
-abbrev Signatures {lab : Ecosystem.Label} (mem : MemberId lab) (args : mem.Args.type)
-  : Type :=
-  match mem with
-  | .classMember m => m.Signatures args
-  | .multiMethodId m => m.Signatures args
 
 /-- The number of object arguments (selves) for this member ID. -/
 def numObjectArgs {lab : Ecosystem.Label} (memberId : MemberId lab) : Nat :=

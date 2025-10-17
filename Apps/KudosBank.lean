@@ -2,6 +2,7 @@ import AVM
 import Applib
 
 open Applib
+open AVM
 
 def Std.HashMap.modifyDefault
 {α : Type u} {β : Type v} [BEq α] [Hashable α] [Inhabited β] (m : HashMap α β) (a : α) (f : β → β) : HashMap α β := m.alter a fun
@@ -10,7 +11,7 @@ def Std.HashMap.modifyDefault
 
 structure Denomination where
   originator : PublicKey
-  deriving BEq, Inhabited, Hashable, DecidableEq
+  deriving BEq, Inhabited, Hashable
 
 structure Account where
   assets : Std.HashMap Denomination Nat
@@ -471,9 +472,9 @@ def kudosTransfer : @Class.Method label Classes.Bank Methods.Transfer := defMeth
         |> Balances.addTokens args.newOwner args.denom args.quantity
         |> Balances.subTokens args.oldOwner args.denom args.quantity)
   ⟫)
-  (invariant := fun (self : KudosBank) (args : TransferArgs) signatures =>
+  (invariant := fun (msg : Message label) (self : KudosBank) (args : TransferArgs) =>
     0 < args.quantity
-    && checkSignature (signatures .owner) args.oldOwner
+    && checkSignature msg.data (msg.signatures Methods.Transfer.SignatureId.owner) args.oldOwner
     && args.quantity <= self.getBalance args.oldOwner args.denom)
 
 def kudosBurn : @Class.Method label Classes.Bank Methods.Burn := defMethod KudosBank
