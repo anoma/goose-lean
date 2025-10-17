@@ -1,7 +1,5 @@
 import AVM
 import Applib
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Tactic.DeriveFintype
 
 open Applib
 open AVM
@@ -15,7 +13,7 @@ inductive Classes where
 
 structure Counter where
   count : Nat
-  deriving Inhabited, Repr, BEq
+  deriving Inhabited, Repr, BEq, Hashable
 
 instance Counter.HasTypeRep : TypeRep Counter where
   rep := Rep.atomic "TwoCounter.Counter"
@@ -24,11 +22,11 @@ namespace Counter
 
 inductive Methods where
   | Incr : Methods
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 inductive Constructors where
   | Zero : Constructors
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 def lab : Class.Label where
   name := "UniversalCounter"
@@ -58,11 +56,11 @@ namespace TwoCounter
 
 inductive Constructors where
   | Zero : Constructors
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 inductive Methods where
   | IncrementBoth : Methods
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 def lab : Class.Label where
   name := "TwoCounter"

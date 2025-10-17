@@ -37,7 +37,7 @@ structure Label : Type 1 where
   ConstructorSignatureId : ConstructorId → Type := fun _ => Empty
   ConstructorSignatureIdEnum : (s : ConstructorId) → FinEnum (ConstructorSignatureId s)
     := by intro s; cases s <;> infer_instance
-  [constructorsFinite : Fintype ConstructorId]
+  [constructorsFinite : FinEnum ConstructorId]
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
   [constructorsLawfulBEq : LawfulBEq ConstructorId]
@@ -47,7 +47,7 @@ structure Label : Type 1 where
   DestructorSignatureId : DestructorId → Type := fun _ => Empty
   DestructorSignatureIdEnum : (s : DestructorId) → FinEnum (DestructorSignatureId s)
     := by intro s; cases s <;> infer_instance
-  [destructorsFinite : Fintype DestructorId]
+  [destructorsFinite : FinEnum DestructorId]
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
   [destructorsLawfulBEq : LawfulBEq DestructorId]
@@ -57,10 +57,13 @@ structure Label : Type 1 where
   MethodSignatureId : MethodId → Type := fun _ => Empty
   MethodSignatureIdEnum : (s : MethodId) → FinEnum (MethodSignatureId s)
     := by intro s; cases s <;> infer_instance
-  [methodsFinite : Fintype MethodId]
+  [methodsFinite : FinEnum MethodId]
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
   [methodsLawfulBEq : LawfulBEq MethodId]
+
+instance Label.instHashable : Hashable Label where
+  hash l := hash l.name
 
 def Label.dummy : Label where
   name := "Dummy"
@@ -68,7 +71,7 @@ def Label.dummy : Label where
   DynamicLabel := default
   ConstructorId := PUnit
   ConstructorArgs := fun _ => ⟨PUnit⟩
-  constructorsFinite := inferInstanceAs (Fintype PUnit)
+  constructorsFinite := inferInstanceAs (FinEnum PUnit)
   constructorsRepr := inferInstanceAs (Repr PUnit)
   constructorsBEq := inferInstanceAs (BEq PUnit)
   DestructorId := Empty
@@ -89,6 +92,22 @@ abbrev Label.MemberId.SignatureId {lab : Class.Label} : Label.MemberId lab → T
   | .destructorId m => lab.DestructorSignatureId m
   | .constructorId m => lab.ConstructorSignatureId m
   | .upgradeId => Empty
+
+instance Label.MemberId.instHashable {lab : Class.Label} : Hashable (Class.Label.MemberId lab) where
+  hash l := Hashable.Mix.run do
+    mix lab
+    match l with
+    | .upgradeId =>
+      mix 0
+    | .methodId m =>
+      mix 1
+      mix (lab.methodsFinite.equiv m)
+    | .destructorId m =>
+      mix 2
+      mix (lab.destructorsFinite.equiv m)
+    | .constructorId m =>
+      mix 3
+      mix (lab.constructorsFinite.equiv m)
 
 instance Label.MemberId.hasBEq {lab : Class.Label} : BEq (Class.Label.MemberId lab) where
   beq a b :=

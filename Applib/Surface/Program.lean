@@ -69,6 +69,11 @@ inductive Program (lab : Scope.Label) : (α : Type u) → Type (u + 1) where
     {α : Type u}
     (val : α)
     : Program lab α
+  | log
+    {α : Type u}
+    (msg : String)
+    (next : Program lab α)
+    : Program lab α
 
 def Program.toAVM {lab : Scope.Label} {α} (prog : Program lab α) : AVM.Program lab α :=
   match prog with
@@ -88,6 +93,8 @@ def Program.toAVM {lab : Scope.Label} {α} (prog : Program lab α) : AVM.Program
     .invoke (toAVM p) (fun x => toAVM (next x))
   | .return val =>
     .return val
+  | .log msg next =>
+    .log msg (toAVM next)
 
 def Program.map {lab : Scope.Label} {A B : Type u} (f : A → B) (prog : Program.{u} lab A) : Program.{u} lab B :=
   match prog with
@@ -107,6 +114,8 @@ def Program.map {lab : Scope.Label} {A B : Type u} (f : A → B) (prog : Program
     .invoke p (fun x => map f (next x))
   | .return val =>
     .return (f val)
+  | .log msg next =>
+    .log msg (map f next)
 
 def Program.create'
   {α}

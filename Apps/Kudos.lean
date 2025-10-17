@@ -1,7 +1,5 @@
 import AVM
 import Applib
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Tactic.DeriveFintype
 
 open Applib
 
@@ -18,17 +16,17 @@ open Applib
 structure KudosData where
   originator : PublicKey
   owner : PublicKey
-  deriving DecidableEq, Inhabited
+  deriving DecidableEq, Inhabited, Hashable
 
 structure Kudos extends KudosData where
   quantity : Nat
-  deriving DecidableEq, Inhabited
+  deriving DecidableEq, Inhabited, Hashable
 
 namespace Kudos
 
 inductive Methods where
   | Transfer : Methods
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 namespace Methods
 
@@ -43,7 +41,7 @@ end Methods
 
 inductive Constructors where
   | Mint : Constructors
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 namespace Constructors
 
@@ -59,7 +57,7 @@ end Constructors
 
 inductive Destructors where
   | Burn : Destructors
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, FinEnum, Repr
 
 namespace Destructors
 
@@ -87,14 +85,14 @@ instance hasTypeRep : TypeRep Kudos where
 structure MintArgs where
   originator : PublicKey
   quantity : Nat
-  deriving BEq
+  deriving BEq, Hashable
 
 instance MintArgs.hasTypeRep : TypeRep MintArgs where
   rep := Rep.atomic "MintArgs"
 
 structure TransferArgs where
   newOwner : PublicKey
-  deriving DecidableEq
+  deriving DecidableEq, Hashable
 
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
   rep := Rep.atomic "TransferArgs"
@@ -135,7 +133,7 @@ inductive ArgNames where
 export ArgNames (Kudos1 Kudos2)
 
 structure Args where
-  deriving BEq
+  deriving BEq, Hashable
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "Kudos.Merge.Args"
@@ -152,7 +150,7 @@ export ArgNames (Kudos)
 
 structure Args where
   quantities : List Nat
-  deriving BEq
+  deriving BEq, Hashable
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "Kudos.Split.Args"

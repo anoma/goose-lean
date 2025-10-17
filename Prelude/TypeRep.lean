@@ -8,7 +8,7 @@ inductive Rep where
   | atomic (encoding : String)
   /-- `Rep.composite` is used for parameterised data types -/
   | composite (name : String) (params : List Rep)
-  deriving Inhabited, Repr
+  deriving Inhabited, Repr, Hashable
 
 partial def Rep.decEq (a b : Rep) : Decidable (Eq a b) :=
   match a with
