@@ -31,13 +31,13 @@ inductive Program.Error : Type where
 /-- Represents an Anoma program, as per
   https://forum.anoma.net/t/reifying-the-local-domain-solver-and-controller-in-the-avm
   -/
-inductive Program where
+inductive Program.{u, v, x, y} where
   | skip
   | raise (err : Program.Error)
   | tryCatch (prog : Program) (onError : Program.Error → Program) (next : Program)
   | withRandomGen (next : StdGen → Program)
-  | queryResource (query : Program.ResourceQuery) (next : Resource → Program)
-  | submitTransaction (tx : Transaction) (next : Program)
+  | queryResource (query : Program.ResourceQuery) (next : Resource.{u, v} → Program)
+  | submitTransaction (tx : Transaction.{x, y}) (next : Program)
   | log (msg : String) (next : Program)
   -- | decrypt (engine : EngineId) (data : Ciphertext) (next : Plaintext → Program)
   -- | requestCommitment (engine : EngineId) (data : Signable) (next : Commitment → Program)
