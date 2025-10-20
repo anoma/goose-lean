@@ -36,8 +36,3 @@ name = "Tests"
 name = "Runner"
 srcDir = "Apps"
 root = "UniversalCounter"
-
-[[lean_exe]]
-name = "hello"
-srcDir = "hello"
-root = "Hello"
