@@ -11,7 +11,7 @@ def Std.HashMap.modifyDefault
 
 structure Denomination where
   originator : PublicKey
-  deriving BEq, Inhabited, Hashable
+  deriving BEq, Inhabited, Hashable, DecidableEq
 
 structure Account where
   assets : Std.HashMap Denomination Nat
