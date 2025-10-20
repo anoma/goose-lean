@@ -7,7 +7,7 @@ import AVM.Action.DummyResource
 namespace AVM.Logic
 
 /-- Filters out dummy resources from a list of resources. -/
-def filterOutDummy (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
+def filterOutDummy (resources : List Anoma.Resource) : List Anoma.Resource :=
   resources.filter (not ∘ Action.isDummyResource)
 
 def resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Bool :=
@@ -37,10 +37,10 @@ def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
 def checkResourcesPersistent (resources : List Anoma.Resource) : Bool :=
   Logic.filterOutDummy resources |>.all Anoma.Resource.isPersistent
 
-def selectObjectResources.{u, v} (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
-  resources.filter Resource.isSomeObject.{u, v}
+def selectObjectResources (resources : List Anoma.Resource) : List Anoma.Resource :=
+  resources.filter Resource.isSomeObject
 
-def selectMessageResources.{u, v} (resources : List Anoma.Resource.{u, v}) : List Anoma.Resource.{u, v} :=
+def selectMessageResources (resources : List Anoma.Resource) : List Anoma.Resource :=
   resources.filter Resource.isSomeMessage
 
 def isObjectPreserved (obj : ObjectValue) (resources : List Anoma.Resource) : Bool :=

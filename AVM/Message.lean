@@ -16,7 +16,7 @@ def SomeMessage.toResource (msg : SomeMessage) (nonce : Anoma.Nonce) : Anoma.Res
     ephemeral := true,
     nonce }
 
-def SomeMessage.fromResource (res : Anoma.Resource.{u, v}) : Option SomeMessage :=
+def SomeMessage.fromResource (res : Anoma.Resource) : Option SomeMessage :=
   let try msg : SomeMessage := tryCast res.label
   check (msg.message.logicRef == res.logicRef)
   some msg

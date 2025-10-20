@@ -23,6 +23,6 @@ structure LogicVerifierInput : Type 1 where
   logicVKOuter : LogicVKOuterHash := ""
   proof: String := ""
 
-structure Action.{u, v} : Type (max u v + 1) where
-  complianceUnits : List ComplianceUnit.{u, v}
+structure Action : Type 2 where
+  complianceUnits : List ComplianceUnit
   logicVerifierInputs : Std.HashMap Tag LogicVerifierInput

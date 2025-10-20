@@ -4,7 +4,7 @@ import AVM.Task
 namespace AVM.Task
 
 /-- Creates an Anoma Transaction for a given Task. -/
-def toTransaction (task : Task.{1, 1}) (vals : task.params.Product) : Rand (Option Anoma.Transaction.{1, 1}) := do
+def toTransaction (task : Task) (vals : task.params.Product) : Rand (Option Anoma.Transaction) := do
   match task.message vals with
   | none =>
     let try actions : Task.Actions ← task.actions vals
@@ -36,11 +36,11 @@ private def resolveParameters (params : Program.Parameters) (cont : params.Produ
       resolveParameters (ps objId) (fun vals => cont ⟨objId, vals⟩))
 
 /-- Creates an Anoma Program for a given Task. -/
-def toProgram (task : Task.{1, 1}) : Anoma.Program :=
+def toProgram (task : Task) : Anoma.Program :=
   let cont (vals : task.params.Product) : Anoma.Program :=
-    Anoma.Program.withRandOption.{1, 1, 1, 1} do
-      let try tx : Anoma.Transaction.{1, 1} ← task.toTransaction vals
-      pure <| Anoma.Program.submitTransaction.{1, 1, 1, 1} tx Anoma.Program.skip
+    Anoma.Program.withRandOption do
+      let try tx : Anoma.Transaction ← task.toTransaction vals
+      pure <| Anoma.Program.submitTransaction tx Anoma.Program.skip
   resolveParameters task.params cont
 
 def toProgramRand (task : Rand Task) : Anoma.Program :=

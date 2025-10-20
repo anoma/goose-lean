@@ -9,12 +9,12 @@ import Mathlib.Control.Random
 
 namespace Anoma.Program
 
-structure RmState.{u, v} : Type (max u v + 1) where
+structure RmState : Type 2 where
   gen : StdGen
-  objects : Std.HashMap ObjectId Resource.{u, v}
+  objects : Std.HashMap ObjectId Resource
   commited : Std.HashSet Commitment
-  nullified : Std.HashSet Resource.{u, v}
-  logics : Std.HashMap LogicRef LogicFunction.{u, v}
+  nullified : Std.HashSet Resource
+  logics : Std.HashMap LogicRef LogicFunction
 
   logs : List String
 
@@ -26,29 +26,26 @@ abbrev RmState.ini (logics : Std.HashMap LogicRef LogicFunction) (gen : StdGen :
     logics
     logs := ∅ }
 
+abbrev RunM (a : Type 2) : Type 2 :=
+  EStateM (ULift Program.Error) RmState a
+
 /-- The evaluation monad -/
-abbrev RunM.{u, v} (a : Type (max u v + 1)) : Type (max u v + 1) :=
-  EStateM (ULift Program.Error) (ULift RmState.{u, v}) a
+def modify' (f : RmState → RmState) : RunM PUnit := modify (fun s => f s)
 
-def modify' (f : RmState → RmState) : RunM PUnit :=
-  modify (fun s => ULift.up (f s.down))
+def get' : RunM RmState := get
 
-def get'.{u, v} : RunM.{u, v} RmState.{u, v} :=
-  (·.down) <$> get
-
-def set' (s : RmState) : RunM PUnit :=
-  set (ULift.up s)
+def set' (s : RmState) : RunM PUnit := set s
 
 def throw' {α : Type _} (e : Program.Error) : RunM α :=
   throw (ULift.up e)
 
 /-- checks that consumed and created resources of the same kind are balanced -/
-def checkDelta.{u, v} (consumed created : List Resource.{u, v}) : RunM PUnit := do
-  let mkMap (l : List Resource.{u, v}) : Std.HashMap Resource.Kind.{v} (List Resource.{u, v}) := l.groupByKey (·.kind)
+def checkDelta (consumed created : List Resource) : RunM PUnit := do
+  let mkMap (l : List Resource) : Std.HashMap Resource.Kind (List Resource) := l.groupByKey (·.kind)
   let consumedByKind := mkMap consumed
   let createdByKind := mkMap created
-  let kinds : Std.HashSet Resource.Kind.{v} := Std.HashSet.ofList (consumedByKind.keys ++ createdByKind.keys)
-  let getQuantityOfKind (m : Std.HashMap Resource.Kind.{v} (List Resource.{u, v})) (k : Resource.Kind.{v}) : Nat :=
+  let kinds : Std.HashSet Resource.Kind := Std.HashSet.ofList (consumedByKind.keys ++ createdByKind.keys)
+  let getQuantityOfKind (m : Std.HashMap Resource.Kind (List Resource)) (k : Resource.Kind) : Nat :=
     m.get? k |>.getD [] |>.map (·.quantity) |>.sum
   for kind in kinds do
     let numConsumed := getQuantityOfKind consumedByKind kind
@@ -62,8 +59,8 @@ def checkDelta.{u, v} (consumed created : List Resource.{u, v}) : RunM PUnit := 
 def picks {A : Type u} (l : List A) : List (A × List A) :=
   List.finRange l.length |>.map (fun i => ⟨l.get i, l.eraseIdx i⟩)
 
-def fetchLogic.{u, v} (ref : LogicRef) : RunM.{u, v} (LogicFunction.{u, v}) := do
-  let s <- get'
+def fetchLogic (ref : LogicRef) : RunM (LogicFunction) := do
+  let s <- get
   match s.logics.get? ref with
   | none => throw' (.missingLogic ref)
   | some s => pure s
@@ -134,7 +131,7 @@ def interpret : Program → RunM PUnit
       catch err => interpret (handle (ULift.down err))
   | .queryResource q next => do
     let s ← get
-    match s.down.objects.get? q.uid with
+    match s.objects.get? q.uid with
     | .none => throw' (.storageError s!"object {q.uid} not in storage")
     | .some r => interpret (next r)
   | .submitTransaction t next => do
@@ -146,9 +143,9 @@ def interpret : Program → RunM PUnit
     set' {s with gen := gen1}
     next gen2 |>.interpret
 
-def eval {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : EStateM.Result (ULift Program.Error) (ULift RmState) PUnit :=
+def eval {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : EStateM.Result (ULift Program.Error) RmState PUnit :=
   let logics := Std.HashMap.ofList (scope.logics.map fun l => ⟨l.reference, l.function⟩)
-  interpret p |>.run (ULift.up (RmState.ini logics))
+  interpret p |>.run (RmState.ini logics)
 
 def run {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : IO Unit := do
   let printLogs (logs : List String) : IO Unit := do
@@ -157,9 +154,9 @@ def run {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : IO Unit 
       IO.println log
   match eval scope p with
   | .ok _res s => do
-    printLogs s.down.logs
+    printLogs s.logs
     IO.println "success"
   | .error err s => do
-    printLogs s.down.logs
+    printLogs s.logs
     IO.println "error"
     IO.println (repr err.down)

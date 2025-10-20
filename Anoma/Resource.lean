@@ -11,10 +11,10 @@ structure LogicRef where
   deriving BEq, Repr, Inhabited, Hashable
 
 /-- Representation of Anoma Resource data. -/
-structure Resource.{u, v} : Type (max u v + 1) where
-  Label : SomeType.{v}
+structure Resource : Type 2 where
+  Label : SomeType.{1}
   label : Label.type
-  Val : SomeType.{u}
+  Val : SomeType.{1}
   value : Val.type
   logicRef : LogicRef
   quantity : Nat

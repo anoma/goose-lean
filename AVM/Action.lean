@@ -13,11 +13,11 @@ import AVM.Message
 namespace AVM
 
 def CreatedObject.toObject (c : CreatedObject) : Object c.classId :=
-  let res : Anoma.Resource := Action.dummyResource.{0, 0} ⟨c.rand⟩
+  let res : Anoma.Resource := Action.dummyResource ⟨c.rand⟩
   let nonce := res.nullifyUniversal.nullifier.toNonce
   {uid := c.uid, nonce, data := c.data}
 
-def CreatedObject.toResource (c : CreatedObject) : Anoma.Resource.{1, 1} :=
+def CreatedObject.toResource (c : CreatedObject) : Anoma.Resource :=
   c.toObject.toResource (ephemeral := c.ephemeral)
 
 def Action.create'
@@ -27,15 +27,15 @@ def Action.create'
   (ensureUnique : List Anoma.Nonce)
   (consumedMessages : List SomeMessage)
   (createdMessages : List SomeMessage)
-  : Anoma.Action.{1, 1} × Anoma.DeltaWitness × StdGen :=
-  let (createdWitnesses, g') : List Anoma.ComplianceWitness.{1, 1} × StdGen :=
+  : Anoma.Action × Anoma.DeltaWitness × StdGen :=
+  let (createdWitnesses, g') : List Anoma.ComplianceWitness × StdGen :=
     ([], g) |>
     createdObjects.foldr mkCreatedComplianceWitness |>
     ensureUnique.foldr mkDummyComplianceWitness |>
     createdMessages.foldr mkCreatedMessageComplianceWitness
   let createdUnits : List Anoma.ComplianceUnit :=
     createdWitnesses.map Anoma.ComplianceUnit.create
-  let ((consumedWitnesses : List Anoma.ComplianceWitness.{1, 1}), g'') : List Anoma.ComplianceWitness × StdGen :=
+  let ((consumedWitnesses : List Anoma.ComplianceWitness), g'') : List Anoma.ComplianceWitness × StdGen :=
     ([], g') |>
     consumedObjects.foldr mkConsumedComplianceWitness |>
     consumedMessages.foldr mkConsumedMessageComplianceWitness
@@ -58,7 +58,7 @@ def Action.create'
             rcv := r.repr }
         (witness :: acc, g')
 
-    mkCreatedResourceComplianceWitness (mkCreated : Anoma.Nonce → Anoma.Resource) (consumedNonce : Anoma.Nonce) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness.{1, 1} × StdGen
+    mkCreatedResourceComplianceWitness (mkCreated : Anoma.Nonce → Anoma.Resource) (consumedNonce : Anoma.Nonce) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
       | (acc, g) =>
         let (r, g') := stdNext g
         let consumed := dummyResource consumedNonce
@@ -74,7 +74,7 @@ def Action.create'
     mkDummyComplianceWitness (nonce : Anoma.Nonce) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen :=
         mkCreatedResourceComplianceWitness dummyResource nonce
 
-    mkCreatedComplianceWitness (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness.{1, 1} × StdGen :=
+    mkCreatedComplianceWitness (obj : CreatedObject) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen :=
       mkCreatedResourceComplianceWitness (fun _ => obj.toResource) ⟨obj.rand⟩
 
     mkConsumedMessageComplianceWitness (msg : SomeMessage) : List Anoma.ComplianceWitness × StdGen → List Anoma.ComplianceWitness × StdGen
@@ -111,7 +111,7 @@ def Action.create
   (ensureUnique : List Anoma.Nonce)
   (consumedMessages : List SomeMessage)
   (createdMessages : List SomeMessage)
-  : Rand (Anoma.Action.{1, 1} × Anoma.DeltaWitness) := do
+  : Rand (Anoma.Action × Anoma.DeltaWitness) := do
   let g ← get
   let (action, witness, g') := Action.create' g.down consumedObjects createdObjects ensureUnique consumedMessages createdMessages
   set (ULift.up g')

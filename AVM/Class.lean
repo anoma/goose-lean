@@ -3,11 +3,11 @@ import AVM.Class.Member
 
 namespace AVM
 
-abbrev Logic.Args.{u, v} := Anoma.Logic.Args.{u, v}
+abbrev Logic.Args := Anoma.Logic.Args
 
 /-- Syntax-level object description (fields + constructors + methods) should
     desugar to the `Class` structure. -/
-structure Class {lab : Ecosystem.Label} (classId : lab.ClassId) : Type (u + 1) where
+structure Class {lab : Ecosystem.Label} (classId : lab.ClassId) : Type 2 where
   /-- The constructors of the class. -/
   constructors : (c : classId.label.ConstructorId) → Class.Constructor classId c
   /-- The destructors of the class. -/

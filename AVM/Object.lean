@@ -170,7 +170,7 @@ def SomeObject.toResource
     nullifierKeyCommitment := default }
 
 /-- Converts Object to a Resource. -/
-def Object.toResource {lab : Ecosystem.Label} {c : lab.ClassId} (obj : Object c) (ephemeral : Bool) : Anoma.Resource.{1, 1}
+def Object.toResource {lab : Ecosystem.Label} {c : lab.ClassId} (obj : Object c) (ephemeral : Bool) : Anoma.Resource
  := obj.toSomeObject.toResource ephemeral
 
 def Object.fromResource
@@ -188,8 +188,8 @@ def Object.fromResource
                     privateFields := value.privateFields }
           nonce := res.nonce }
 
-def SomeObject.fromResource.{u, v}
-  (res : Anoma.Resource.{u, v})
+def SomeObject.fromResource
+  (res : Anoma.Resource)
   : Option SomeObject :=
   let try resLab : AVM.Resource.Label := tryCast res.label
   let try objLab := Resource.Label.getObjectResourceLabel resLab
@@ -200,5 +200,5 @@ def SomeObject.fromResource.{u, v}
          classId
          object }
 
-def Resource.isSomeObject.{u, v} (res : Anoma.Resource.{u, v}) : Bool :=
-  Option.isSome (SomeObject.fromResource.{u, v} res)
+def Resource.isSomeObject (res : Anoma.Resource) : Bool :=
+  Option.isSome (SomeObject.fromResource res)
