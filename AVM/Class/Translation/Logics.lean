@@ -296,13 +296,12 @@ private def Member.logicFun
   -/
 private def logicFun
   {lab : Ecosystem.Label}
-  {classId : lab.ClassId}
   (eco : Ecosystem lab)
-  (cl : Class classId)
+  (classId : lab.ClassId)
   (args : Logic.Args)
   : Bool :=
   let try self : Object classId := Object.fromResource args.self
-  check cl.invariant self args
+  check eco.classes classId |>.invariant self args
   match args.status with
   | Created => true
   | Consumed =>
@@ -320,11 +319,10 @@ private def logicFun
   an object of this class. -/
 def logic
   {lab : Ecosystem.Label}
-  {classId : lab.ClassId}
   (eco : Ecosystem lab)
-  (cl : Class classId)
+  (classId : lab.ClassId)
   : Anoma.Logic :=
   { reference := classId.label.logicRef,
-    function := logicFun eco cl }
+    function := logicFun eco classId }
 
 end AVM.Class

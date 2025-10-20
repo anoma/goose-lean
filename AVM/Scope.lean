@@ -13,8 +13,5 @@ abbrev Ecosystem.toScope {lab : Ecosystem.Label} (eco : Ecosystem lab) : Scope l
 def Scope.logics {lab : Scope.Label} (s : Scope lab) : List Anoma.Logic :=
   lab.EcosystemIdEnum.toList.flatMap fun e =>
    let eco := s.ecosystems e
-   e.label.classesEnum.toList.flatMap fun c =>
-     let cl := eco.classes c
-     c.label.constructorsEnum.toList.map fun m =>
-       let ctr := cl.constructors m
-       Class.Constructor.Message.logic ctr
+   e.label.classesEnum.toList.map fun c =>
+     Class.logic eco c
