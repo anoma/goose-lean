@@ -1,7 +1,7 @@
 import AVM
 import Applib
 import Anoma
-import Anoma.Eval
+import Anoma.Simulator
 import Applib.Surface.Program.Syntax
 
 open Applib

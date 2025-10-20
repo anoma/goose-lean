@@ -26,15 +26,9 @@ abbrev RmState.ini (logics : Std.HashMap LogicRef LogicFunction) (gen : StdGen :
     logics
     logs := ∅ }
 
+/-- The evaluation monad -/
 abbrev RunM (a : Type 2) : Type 2 :=
   EStateM (ULift Program.Error) RmState a
-
-/-- The evaluation monad -/
-def modify' (f : RmState → RmState) : RunM PUnit := modify (fun s => f s)
-
-def get' : RunM RmState := get
-
-def set' (s : RmState) : RunM PUnit := set s
 
 def throw' {α : Type _} (e : Program.Error) : RunM α :=
   throw (ULift.up e)
@@ -52,9 +46,7 @@ def checkDelta (consumed created : List Resource) : RunM PUnit := do
     let numCreated := getQuantityOfKind createdByKind kind
     if numConsumed == numCreated
     then pure .unit
-    -- TODO uncomment
-    -- else throw' (.balanceCheck s!"numConsumed: {numConsumed}/{consumed.length}, numCreated: {numCreated}/{created.length}")
-    else pure .unit
+    else throw' (.balanceCheck s!"numConsumed: {numConsumed}/{consumed.length}, numCreated: {numCreated}/{created.length}")
 
 def picks {A : Type u} (l : List A) : List (A × List A) :=
   List.finRange l.length |>.map (fun i => ⟨l.get i, l.eraseIdx i⟩)
@@ -65,8 +57,8 @@ def fetchLogic (ref : LogicRef) : RunM (LogicFunction) := do
   | none => throw' (.missingLogic ref)
   | some s => pure s
 
-def storeLogic (ref : LogicRef) (f : LogicFunction) := do
-  modify' (fun s => {s with logics := s.logics.insert ref f})
+def storeLogic (ref : LogicRef) (f : LogicFunction) : RunM PUnit := do
+  modify (fun s => {s with logics := s.logics.insert ref f})
 
 def storeCreated (created : List Resource) : RunM PUnit := do
   let created := created.filter (·.ephemeral.not)
@@ -74,8 +66,8 @@ def storeCreated (created : List Resource) : RunM PUnit := do
     dbgTrace s!"created" (fun _ =>
     let try val : AVM.Object.Resource.SomeValue := tryCast r.value
     dbgTrace s!"hi: {val.uid}" (fun _ =>
-    modify' (fun s => {s with objects := s.objects.insert val.uid r
-                              commited := s.commited.insert r.commitment})))
+    modify (fun s => {s with objects := s.objects.insert val.uid r
+                             commited := s.commited.insert r.commitment})))
 
 def runAction (a : Action) : RunM PUnit := do
   let units : List ComplianceUnit := a.complianceUnits
@@ -109,7 +101,7 @@ def runAction (a : Action) : RunM PUnit := do
   -- TODO nullify consumed
 
 def logmsg (msg : String) : RunM PUnit :=
-  modify' (fun s => {s with logs := s.logs.cons msg})
+  modify (fun s => {s with logs := s.logs.cons msg})
 
 def runTransaction (t : Transaction) : RunM PUnit := do
   let actions : List Action := t.actions
@@ -122,7 +114,7 @@ def interpret : Program → RunM PUnit
   | .skip => pure .unit
   | .raise err => throw' err
   | .log msg next => do
-    modify' (fun s => {s with logs := s.logs.cons msg})
+    modify (fun s => {s with logs := s.logs.cons msg})
     interpret next
   | .tryCatch b handle next =>
       try do
@@ -138,9 +130,9 @@ def interpret : Program → RunM PUnit
     runTransaction t
     interpret next
   | .withRandomGen next => do
-    let s ← get'
+    let s ← get
     let ⟨gen1, gen2⟩ := stdSplit s.gen
-    set' {s with gen := gen1}
+    set {s with gen := gen1}
     next gen2 |>.interpret
 
 def eval {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : EStateM.Result (ULift Program.Error) RmState PUnit :=
