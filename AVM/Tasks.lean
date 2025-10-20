@@ -153,8 +153,6 @@ def coerce {α β} {tasks : Tasks α} {f : tasks.params.Product → α → β} (
 
 def WithAction : Type 2 := Tasks (Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
 
-set_option pp.universes true
-
 def composeActions
   (tasks : WithAction)
   (vals : tasks.params.Product)

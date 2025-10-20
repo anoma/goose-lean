@@ -21,8 +21,6 @@ def toTransaction (task : Task) (vals : task.params.Product) : Rand (Option Anom
       { actions := acts,
         deltaProof := Anoma.Transaction.generateDeltaProof witness' acts }
 
-set_option pp.universes true
-
 private def resolveParameters (params : Program.Parameters) (cont : params.Product → Anoma.Program) : Anoma.Program :=
   match params with
   | .empty => cont PUnit.unit
