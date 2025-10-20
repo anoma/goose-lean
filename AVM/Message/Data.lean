@@ -13,8 +13,6 @@ structure MessageData (lab : Ecosystem.Label) : Type 1 where
     associated Resource Logic cannot fetch object resources from the Anoma
     system or generate new object identifiers. -/
   vals : Vals.type
-  /-- Resource logic reference for the message logic. -/
-  logicRef : Anoma.LogicRef
   /-- The arguments of the message. -/
   args : id.Args.type
   /-- The recipients of the message. -/

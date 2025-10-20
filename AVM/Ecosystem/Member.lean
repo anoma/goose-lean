@@ -92,9 +92,6 @@ def data
 
 end MultiMethodResult
 
-def Ecosystem.Label.MultiMethodId.Signatures {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type :=
-  multiId.SignatureId -> Signature
-
 structure Ecosystem.MultiMethod {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type 1 where
   /-- Computes the result of a multiMethod call. See `MultiMethodResult`. -/
   body (selves : multiId.Selves) (args : multiId.Args.type) : Program.{1} lab.toScope (MultiMethodResult multiId)

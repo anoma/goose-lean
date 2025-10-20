@@ -6,18 +6,11 @@ namespace AVM
 /-- A message is a communication sent from one object to another in the AVM. -/
 structure Message (lab : Ecosystem.Label) : Type 1 where
   data : MessageData lab
-  /-- The signature of the arguments -/
-  signatures : data.id.SignatureId → Signature
+  /-- Signatures for `data`. -/
+  signatures : List Signature
 
 def Message.rawSignatures {lab : Ecosystem.Label} (msg : Message lab) : List Nat :=
-  let {data := {id := id, ..}, signatures := signatures, ..} := msg
-  match id with
-  | .multiMethodId m => lab.MultiMethodSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
-  | .classMember (classId := clab) c => match c with
-    | .methodId m => clab.label.MethodSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
-    | .destructorId m => clab.label.DestructorSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
-    | .constructorId m => clab.label.ConstructorSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
-    | .upgradeId => []
+  msg.signatures.map Signature.raw
 
 instance Message.instHashable (lab : Ecosystem.Label) : Hashable (Message lab) where
   hash m := Hashable.Mix.run do
@@ -52,10 +45,9 @@ instance : Inhabited SomeMessage where
                     { id := .classMember (classId := .unit) (.constructorId PUnit.unit)
                       Vals := ⟨PUnit⟩
                       vals := PUnit.unit
-                      logicRef := default
                       args := PUnit.unit
                       recipients := [] },
-                  signatures f := nomatch f }}
+                  signatures := [] }}
 
 def Message.toSomeMessage {lab : Ecosystem.Label} (msg : Message lab) : SomeMessage :=
   { label := lab, message := msg }

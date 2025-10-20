@@ -208,7 +208,7 @@ Action sending the call messages:
   - `recipients : List ObjectId`. The recipients of the message.
   - `signatures : List Signature`. Authorization signatures for the message. Each signature consists of:
     - public identifier of the signer,
-    - signature data: the message `id` and `args` cryptographically signed with signer's private key.
+    - signature data: the message `id`, `args` and `vals` cryptographically signed with signer's private key.
 
 ### Constructor
 - `Class.Constructor` in `AVM/Class/Member.lean`

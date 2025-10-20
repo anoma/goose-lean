@@ -104,17 +104,14 @@ def clab : Class.Label where
   MethodId := Methods
   MethodArgs := fun
     | Methods.Transfer => ⟨TransferArgs⟩
-  MethodSignatureId := Methods.SignatureId
 
   ConstructorId := Constructors
   ConstructorArgs := fun
     | Constructors.Mint => ⟨MintArgs⟩
-  ConstructorSignatureId := Constructors.SignatureId
 
   DestructorId := Destructors
   DestructorArgs := fun
     | Destructors.Burn => ⟨PUnit⟩
-  DestructorSignatureId := Destructors.SignatureId
 
 inductive MultiMethods where
   | Merge
@@ -199,17 +196,17 @@ def kudosMint : @Class.Constructor label .unit Constructors.Mint := defConstruct
         owner := args.originator
         originator := args.originator : Kudos}
   ⟫)
-  (invariant := fun (args : MintArgs) signatures => checkSignature (signatures .originator) args.originator)
+  (invariant := fun msg (args : MintArgs) => msg.checkSignature args.originator)
 
 def kudosTransfer : @Class.Method label .unit Methods.Transfer := defMethod Kudos
   (body := fun (self : Kudos) (args : TransferArgs) =>
     ⟪return {self with owner := args.newOwner : Kudos}⟫)
-  (invariant := fun (self : Kudos) (_args : TransferArgs) signatures =>
-    checkSignature (signatures .owner) self.owner)
+  (invariant := fun msg (self : Kudos) (_args : TransferArgs) =>
+    msg.checkSignature self.owner)
 
 def kudosBurn : @Class.Destructor label .unit Destructors.Burn := defDestructor
-  (invariant := fun (self : Kudos) (_args : PUnit) signatures =>
-    checkSignature (signatures .owner) self.owner
+  (invariant := fun msg (self : Kudos) (_args : PUnit) =>
+    msg.checkSignature self.owner
     && self.originator == self.owner)
 
 def kudosClass : @Class label .unit where
@@ -243,10 +240,11 @@ def kudosEcosystem : Ecosystem label where
                     }
                   }
                 ⟫)
-        (invariant := fun kudos _args _signatures =>
+        (invariant := fun msg kudos _args =>
                   let k1 := kudos .Kudos1
                   let k2 := kudos .Kudos2
-                  k1.originator == k2.originator
+                  msg.checkSignature k1.owner
+                  && k1.originator == k2.originator
                   && k1.owner == k2.owner)
 
     | .Split =>

@@ -33,9 +33,6 @@ structure Label : Type 1 where
 
   ConstructorId : Type
   ConstructorArgs : ConstructorId -> SomeType
-  ConstructorSignatureId : ConstructorId → Type := fun _ => Empty
-  ConstructorSignatureIdEnum : (s : ConstructorId) → FinEnum (ConstructorSignatureId s)
-    := by intro s; cases s <;> infer_instance
   [constructorsEnum : FinEnum ConstructorId]
   [constructorsRepr : Repr ConstructorId]
   [constructorsBEq : BEq ConstructorId]
@@ -43,9 +40,6 @@ structure Label : Type 1 where
 
   DestructorId : Type := Empty
   DestructorArgs : DestructorId -> SomeType := fun _ => ⟨PUnit⟩
-  DestructorSignatureId : DestructorId → Type := fun _ => Empty
-  DestructorSignatureIdEnum : (s : DestructorId) → FinEnum (DestructorSignatureId s)
-    := by intro s; cases s <;> infer_instance
   [destructorsEnum : FinEnum DestructorId]
   [destructorsRepr : Repr DestructorId]
   [destructorsBEq : BEq DestructorId]
@@ -53,9 +47,6 @@ structure Label : Type 1 where
 
   MethodId : Type
   MethodArgs : MethodId -> SomeType
-  MethodSignatureId : MethodId → Type := fun _ => Empty
-  MethodSignatureIdEnum : (s : MethodId) → FinEnum (MethodSignatureId s)
-    := by intro s; cases s <;> infer_instance
   [methodsEnum : FinEnum MethodId]
   [methodsRepr : Repr MethodId]
   [methodsBEq : BEq MethodId]
@@ -85,12 +76,6 @@ inductive Label.MemberId (lab : Class.Label) : Type where
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
   | upgradeId : MemberId lab
-
-abbrev Label.MemberId.SignatureId {lab : Class.Label} : Label.MemberId lab → Type
-  | .methodId m => lab.MethodSignatureId m
-  | .destructorId m => lab.DestructorSignatureId m
-  | .constructorId m => lab.ConstructorSignatureId m
-  | .upgradeId => Empty
 
 instance Label.MemberId.instHashable {lab : Class.Label} : Hashable (Class.Label.MemberId lab) where
   hash l := Hashable.Mix.run do
@@ -161,15 +146,6 @@ def Label.MemberId.Args {lab : Class.Label} (memberId : MemberId lab) : SomeType
   | destructorId c => lab.DestructorArgs c
   | methodId c => lab.MethodArgs c
   | upgradeId => ⟨PUnit⟩
-
-def Label.ConstructorId.SignatureId {lab : Class.Label} (constrId : lab.ConstructorId) : Type :=
-  lab.ConstructorSignatureId constrId
-
-def Label.DestructorId.SignatureId {lab : Class.Label} (destrId : lab.DestructorId) : Type :=
-  lab.DestructorSignatureId destrId
-
-def Label.MethodId.SignatureId {lab : Class.Label} (methodId : lab.MethodId) : Type :=
-  lab.MethodSignatureId methodId
 
 instance Label.hasTypeRep : TypeRep Label where
   rep := Rep.atomic "AVM.Class.Label"

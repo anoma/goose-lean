@@ -11,8 +11,7 @@ macro "noMethods" : term => `(fun x => Empty.elim x)
 
 def unsigned
   {lab : Ecosystem.Label}
-  {SignatureId : Type}
-  : MessageData lab → SignatureId → Signature := fun msg _ => Signature.sign msg PrivateKey.universal
+  : MessageData lab → List Signature := fun _ => []
 
 def defMethod (cl : Type) [i : IsObject cl] {methodId : i.classId.label.MethodId}
  (body : (self : cl) → methodId.Args.type → Program i.label.toScope cl)

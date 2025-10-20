@@ -2,15 +2,6 @@ import AVM.Program
 
 namespace AVM.Class
 
-def Label.ConstructorId.Signatures {lab : Class.Label} (constrId : lab.ConstructorId) : Type :=
-  constrId.SignatureId -> Signature
-
-def Label.DestructorId.Signatures {lab : Class.Label} (destrId : lab.DestructorId) : Type :=
-  destrId.SignatureId -> Signature
-
-def Label.MethodId.Signatures {lab : Class.Label} (methodId : lab.MethodId) : Type :=
-  methodId.SignatureId -> Signature
-
 structure Constructor {lab : Ecosystem.Label} (cid : lab.ClassId) (constrId : cid.label.ConstructorId) : Type 1 where
   /-- Constructor call body. -/
   body : constrId.Args.type → Program.{0} lab.toScope (ObjectData cid)

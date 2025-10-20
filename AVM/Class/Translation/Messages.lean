@@ -1,7 +1,6 @@
 import AVM.Ecosystem
 import AVM.Class
 import AVM.Message
-import AVM.Class.Translation.Logics
 
 namespace AVM.Class
 
@@ -14,15 +13,15 @@ def Constructor.message
   (vals : Vals.type)
   (newId : ObjectId)
   (args : constrId.Args.type)
-  (signatures : constrId.Signatures)
+  (signatures : MessageData lab → List Signature)
   : Message lab :=
   let data : MessageData lab :=
     { id := .classMember (.constructorId constrId)
-      logicRef := Logic.trivialLogicRef
       vals
       args
       recipients := [newId] }
-  { data, signatures }
+  { data,
+    signatures := signatures data }
 
 def Destructor.message
   {lab : Ecosystem.Label}
@@ -33,15 +32,15 @@ def Destructor.message
   (vals : Vals.type)
   (selfId : ObjectId)
   (args : destrId.Args.type)
-  (signatures : destrId.Signatures)
+  (signatures : MessageData lab → List Signature)
   : Message lab :=
   let data : MessageData lab :=
     { id := .classMember (.destructorId destrId)
-      logicRef := Logic.trivialLogicRef
       vals
       args
       recipients := [selfId] }
-  { data, signatures }
+  { data,
+    signatures := signatures data }
 
 def Method.message
   {lab : Ecosystem.Label}
@@ -52,15 +51,15 @@ def Method.message
   (vals : Vals.type)
   (selfId : ObjectId)
   (args : methodId.Args.type)
-  (signatures : methodId.Signatures)
+  (signatures : MessageData lab → List Signature)
   : Message lab :=
   let data : MessageData lab :=
     { id := .classMember (.methodId methodId)
-      logicRef := Logic.trivialLogicRef
       vals
       args
       recipients := [selfId] }
-  { data, signatures }
+  { data,
+    signatures := signatures data }
 
 def Upgrade.message
   {lab : Ecosystem.Label}
@@ -69,12 +68,11 @@ def Upgrade.message
   : Message lab :=
   let data : MessageData lab :=
     { id := .classMember (classId := classId) .upgradeId
-      logicRef := Logic.trivialLogicRef
       Vals := ⟨PUnit⟩
       vals := PUnit.unit
       args := .unit
       recipients := [selfId] }
-  { data, signatures := fun f => nomatch f}
+  { data, signatures := []}
 
 end AVM.Class
 
@@ -86,18 +84,18 @@ def MultiMethod.message
   (method : MultiMethod multiId)
   (selves : multiId.Selves)
   (args : multiId.Args.type)
-  (signatures : multiId.Signatures)
+  (signatures : MessageData lab → List Signature)
   (vals : (method.body selves args).params.Product)
   (data : MultiMethodData)
   (rands : MultiMethodRandoms data)
   : Message lab :=
   let data : MessageData lab :=
     { id := .multiMethodId multiId
-      logicRef := Logic.trivialLogicRef
       Vals := ⟨(method.body selves args).params.Product⟩
       vals
       args
       recipients :=
         (Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) |>.toList)
           ++ rands.constructedNonces.toList.map (·.value) }
-  { data, signatures }
+  { data,
+    signatures := signatures data }

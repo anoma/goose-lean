@@ -78,7 +78,7 @@ def checkMessageResourceValues {lab : Ecosystem.Label} (vals : List (Program.Mes
   List.all₂
     (fun val res =>
       let try msg : Message lab := Message.fromResource res
-      msg.data.id == val.id && msg.data.args === val.args && msg.data.logicRef == val.logicRef)
+      msg.data.id == val.id && msg.data.args === val.args)
     vals
     resMsgs
 
