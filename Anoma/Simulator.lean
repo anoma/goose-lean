@@ -152,3 +152,4 @@ def run {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : IO Unit 
     printLogs s.logs
     IO.println "error"
     IO.println (repr err.down)
+    IO.Process.exit 1
