@@ -11,11 +11,11 @@ def Std.HashMap.modifyDefault
 
 structure Denomination where
   originator : PublicKey
-  deriving BEq, Inhabited, Hashable, DecidableEq
+  deriving BEq, Inhabited, Hashable, DecidableEq, Repr
 
 structure Account where
   assets : Std.HashMap Denomination Nat
-  deriving BEq, Inhabited, Hashable
+  deriving BEq, Inhabited, Hashable, Repr
 
 namespace Account
 
@@ -41,7 +41,7 @@ end Account
 
 structure Balances where
   accounts : Std.HashMap PublicKey Account
-  deriving Inhabited, BEq, Hashable
+  deriving Inhabited, BEq, Hashable, Repr
 
 namespace Balances
 
@@ -66,7 +66,7 @@ structure Check where
   denomination : Denomination
   owner : PublicKey
   quantity : Nat
-  deriving BEq, Inhabited, Hashable
+  deriving BEq, Inhabited, Hashable, Repr
 
 namespace Check
 
@@ -81,7 +81,7 @@ inductive Methods where
 
 structure TransferArgs where
   newOwner : PublicKey
-  deriving DecidableEq, Hashable
+  deriving DecidableEq, Hashable, Repr
 
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
   rep := Rep.atomic "Check.TransferArgs"
@@ -108,7 +108,7 @@ structure Auction where
   biddingDenomination : Denomination
   highestBid : Nat
   highestBidder : PublicKey
-  deriving BEq, Inhabited, Hashable
+  deriving BEq, Inhabited, Hashable, Repr
 
 namespace Auction
 
@@ -135,7 +135,7 @@ end Auction
 structure KudosBank where
   owner : PublicKey
   balances : Balances
-  deriving Inhabited, BEq, Hashable
+  deriving Inhabited, BEq, Hashable, Repr
 
 namespace KudosBank
 
@@ -210,7 +210,7 @@ instance hasTypeRep : TypeRep KudosBank where
 structure MintArgs where
   denom : Denomination
   quantity : Nat
-  deriving BEq, Hashable
+  deriving BEq, Hashable, Repr
 
 instance MintArgs.hasTypeRep : TypeRep MintArgs where
   rep := Rep.atomic "MintArgs"
@@ -227,7 +227,7 @@ structure TransferArgs where
   newOwner : PublicKey
   denom : Denomination
   quantity : Nat
-  deriving DecidableEq, Hashable
+  deriving DecidableEq, Hashable, Repr
 
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
   rep := Rep.atomic "TransferArgs"
@@ -236,7 +236,7 @@ structure BurnArgs where
   denom : Denomination
   owner : PublicKey
   quantity : Nat
-  deriving DecidableEq, Hashable
+  deriving DecidableEq, Hashable, Repr
 
 instance BurnArgs.hasTypeRep : TypeRep BurnArgs where
   rep := Rep.atomic "BurnArgs"
@@ -273,7 +273,7 @@ structure Args where
   denomination : Denomination
   owner : PublicKey
   quantity : Nat
-  deriving BEq, Hashable
+  deriving BEq, Hashable, Repr
 
 inductive SignatureId : Type where
   | owner
@@ -291,7 +291,7 @@ end IssueCheck
 namespace DepositCheck
 
 structure Args where
-  deriving BEq, Hashable
+  deriving BEq, Hashable, Repr
 
 inductive SignatureId : Type where
   | owner
@@ -311,7 +311,7 @@ namespace NewAuction
 
 structure Args where
   biddingDenomination : Denomination
-  deriving BEq, Hashable
+  deriving BEq, Hashable, Repr
 
 inductive SignatureId : Type where
   | owner
@@ -329,7 +329,7 @@ end NewAuction
 namespace Bid
 
 structure Args where
-  deriving BEq, Hashable
+  deriving BEq, Hashable, Repr
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "Bid.Args"
@@ -348,7 +348,7 @@ end Bid
 namespace EndAuction
 
 structure Args where
-  deriving BEq, Hashable
+  deriving BEq, Hashable, Repr
 
 inductive SignatureId : Type where
   | owner

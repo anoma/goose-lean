@@ -24,6 +24,17 @@ structure Resource : Type 2 where
 
 namespace Resource
 
+def h (x : Lean.Json) : String := toString x
+
+instance instRepr : Repr Resource where
+  reprPrec r _ :=
+    s!"Resource@\{
+    logicRef := {repr r.logicRef}
+    quantity := {repr r.quantity}
+    ephemeral := {repr r.ephemeral}
+    nonce := {repr r.nonce}
+    }"
+
 instance instHashable : Hashable Resource where
   hash r :=
     Hashable.Mix.run do
@@ -37,10 +48,13 @@ instance instHashable : Hashable Resource where
       mix r.nonce
       mix r.nullifierKeyCommitment
 
-structure Kind.{v} : Type (v + 1) where
-  Label : SomeType.{v}
+structure Kind : Type 2 where
+  Label : SomeType.{1}
   label : Label.type
   logicRef : LogicRef
+
+instance Kind.instRepr : Repr Kind where
+  reprPrec k _ := s!"Kind@\{ label := ??? \nlogicRef:= {repr k.logicRef}"
 
 def kind (r : Resource) : Kind where
   Label := r.Label

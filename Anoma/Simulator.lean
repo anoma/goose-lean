@@ -32,10 +32,10 @@ abbrev RmState.ini (logics : Std.HashMap LogicRef LogicFunction) (gen : StdGen :
 
 /-- The evaluation monad -/
 abbrev RunM (a : Type 2) : Type 2 :=
-  EStateM (ULift Program.Error) RmState a
+  EStateM (Program.Error) RmState a
 
 def throw' {α : Type _} (e : Program.Error) : RunM α :=
-  throw (ULift.up e)
+  throw e
 
 /-- checks that consumed and created resources of the same kind are balanced -/
 def checkDelta (actions : List SplitAction) : RunM PUnit := do
@@ -45,14 +45,20 @@ def checkDelta (actions : List SplitAction) : RunM PUnit := do
   let consumedByKind := mkMap consumed
   let createdByKind := mkMap created
   let kinds : Std.HashSet Resource.Kind := Std.HashSet.ofList (consumedByKind.keys ++ createdByKind.keys)
+  let getResourcesOfKind (m : Std.HashMap Resource.Kind (List Resource)) (k : Resource.Kind) : List Resource :=
+    m.get? k |>.getD []
   let getQuantityOfKind (m : Std.HashMap Resource.Kind (List Resource)) (k : Resource.Kind) : Nat :=
-    m.get? k |>.getD [] |>.map (·.quantity) |>.sum
+    getResourcesOfKind m k |>.map (·.quantity) |>.sum
   for kind in kinds do
     let numConsumed := getQuantityOfKind consumedByKind kind
     let numCreated := getQuantityOfKind createdByKind kind
     if numConsumed == numCreated
     then pure .unit
-    else throw' (.balanceCheck s!"numConsumed: {numConsumed}/{consumed.length}, numCreated: {numCreated}/{created.length}")
+    else throw' (.balanceCheck { consumed
+                                 created
+                                 kind
+                                 kindCreated := getResourcesOfKind createdByKind kind
+                                 kindConsumed := getResourcesOfKind consumedByKind kind })
 
 def picks {A : Type u} (l : List A) : List (A × List A) :=
   List.finRange l.length |>.map (fun i => ⟨l.get i, l.eraseIdx i⟩)
@@ -131,7 +137,7 @@ def interpret : Program → RunM PUnit
       try do
         interpret b
         interpret next
-      catch err => interpret (handle (ULift.down err))
+      catch err => interpret (handle err)
   | .queryResource q next => do
     let s ← get
     match s.objects.get? q.uid with
@@ -146,7 +152,7 @@ def interpret : Program → RunM PUnit
     set {s with gen := gen1}
     next gen2 |>.interpret
 
-def eval {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : EStateM.Result (ULift Program.Error) RmState PUnit :=
+def eval {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : EStateM.Result Program.Error RmState PUnit :=
   let logics := Std.HashMap.ofList (scope.logics.map fun l => ⟨l.reference, l.function⟩)
   interpret p |>.run (RmState.ini logics)
 
@@ -161,5 +167,5 @@ def run {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : IO Unit 
     IO.println "success"
   | .error err s => do
     printLogs s.logs
-    IO.println (repr err.down)
+    IO.println (repr err)
     IO.Process.exit 1

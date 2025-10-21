@@ -18,12 +18,20 @@ inductive StorageValue where
 structure Program.ResourceQuery where
   uid : ObjectId
 
-inductive Program.Error : Type where
+structure Program.Error.BalanceCheck : Type 2 where
+  consumed : List Resource
+  created : List Resource
+  kind : Resource.Kind
+  kindConsumed : List Resource
+  kindCreated : List Resource
+  deriving Repr
+
+inductive Program.Error : Type 2 where
   | identityError (msg : String)
   | storageError (msg : String)
   | logicFailed (logRef : LogicRef)
   | missingLogic (ref : LogicRef)
-  | balanceCheck (msg : String)
+  | balanceCheck (err : Program.Error.BalanceCheck)
   | typeError (msg : String)
   | userError
   deriving Repr

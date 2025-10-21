@@ -26,6 +26,9 @@ structure Label : Type 1 where
   [multiMethodsBEq : BEq MultiMethodId]
   [multiMethodsLawfulBEq : LawfulBEq MultiMethodId]
 
+instance Label.instRepr : Repr Label where
+  reprPrec l _ := s!"\{name := {l.name}; .. : Ecosystem.Label}"
+
 instance Label.instHashable : Hashable Label where
   hash l := hash l.name
 

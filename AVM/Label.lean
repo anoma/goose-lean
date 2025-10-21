@@ -11,6 +11,9 @@ structure Object.Resource.Label where
   /-- The dynamic label is used to put dynamic data into the Resource label -/
   dynamicLabel : classId.label.DynamicLabel.Label.type
 
+instance : Repr Object.Resource.Label where
+  reprPrec _l _ := "Resource.Label TODO"
+
 instance : Hashable Object.Resource.Label where
   hash l := Hashable.Mix.run do
     mix l.label
@@ -39,6 +42,11 @@ instance : Hashable Resource.Label where
     | .message s =>
       mix 1
       mix s
+
+instance : Repr Resource.Label where
+  reprPrec lab _prec := match lab with
+    | .object l => s!"object:{repr l}"
+    | .message _l => s!"message:TODO"
 
 instance : TypeRep Resource.Label where
   rep := Rep.atomic "AVM.Resource.Label"

@@ -27,6 +27,9 @@ structure SomeMessage : Type 1 where
   {label : Ecosystem.Label}
   message : Message label
 
+instance SomeMessage.instRepr : Repr SomeMessage where
+  reprPrec _m _ := s!"SomeMessage TODO"
+
 instance SomeMessage.instHashable : Hashable SomeMessage where
   hash m := Hashable.Mix.run do
     mix m.label

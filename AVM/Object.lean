@@ -124,6 +124,9 @@ structure Object.Resource.SomeValue where
   uid : Anoma.ObjectId
   privateFields : classId.label.PrivateFields.type
 
+instance : Repr Object.Resource.SomeValue where
+  reprPrec _v _ := s!"SomeValue TODO"
+
 instance : Hashable Object.Resource.SomeValue where
   hash v := Hashable.Mix.run do
     mix v.lab
