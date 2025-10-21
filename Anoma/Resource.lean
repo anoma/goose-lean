@@ -32,7 +32,6 @@ instance instHashable : Hashable Resource where
       mix r.value
       mix r.label
       mix r.logicRef
-      mix r.logicRef
       mix r.quantity
       mix r.ephemeral
       mix r.nonce
