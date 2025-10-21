@@ -9,6 +9,18 @@ structure Message (lab : Ecosystem.Label) : Type 1 where
   /-- Signatures for `data`. -/
   signatures : List Signature
 
+instance {lab : Ecosystem.Label} : Repr (Message lab) where
+  reprPrec r _ :=
+    have := r.Vals.typeRepr
+    have := r.id.Args.typeRepr
+    s!"Message@\{
+      id := {repr r.id}
+      vals := {repr r.vals}
+      args := {repr r.args}
+      logicRef := {repr r.logicRef}
+      recipients := {repr r.recipients}
+    }"
+
 def Message.rawSignatures {lab : Ecosystem.Label} (msg : Message lab) : List Nat :=
   msg.signatures.map Signature.raw
 
@@ -28,7 +40,7 @@ structure SomeMessage : Type 1 where
   message : Message label
 
 instance SomeMessage.instRepr : Repr SomeMessage where
-  reprPrec _m _ := s!"SomeMessage TODO"
+  reprPrec m _ := repr m.message
 
 instance SomeMessage.instHashable : Hashable SomeMessage where
   hash m := Hashable.Mix.run do

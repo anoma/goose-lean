@@ -28,11 +28,15 @@ def h (x : Lean.Json) : String := toString x
 
 instance instRepr : Repr Resource where
   reprPrec r _ :=
+    have := r.Label.typeRepr
+    have := r.Val.typeRepr
     s!"Resource@\{
-    logicRef := {repr r.logicRef}
-    quantity := {repr r.quantity}
-    ephemeral := {repr r.ephemeral}
-    nonce := {repr r.nonce}
+      label := {repr r.label}
+      value := {repr r.value}
+      logicRef := {repr r.logicRef}
+      quantity := {repr r.quantity}
+      ephemeral := {repr r.ephemeral}
+      nonce := {repr r.nonce}
     }"
 
 instance instHashable : Hashable Resource where

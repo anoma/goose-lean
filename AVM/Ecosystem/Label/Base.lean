@@ -132,6 +132,13 @@ inductive MemberId (lab : Ecosystem.Label) : Type where
 
 namespace MemberId
 
+instance instRepr {lab : Ecosystem.Label} : Repr (MemberId lab) where
+  reprPrec m _ :=
+    have := lab.multiMethodsRepr
+    match m with
+    | .multiMethodId f => s!"MultiMethod {repr f}"
+    | .classMember f => repr f
+
 instance instHashable {lab : Ecosystem.Label} : Hashable (MemberId lab) where
   hash m := Hashable.Mix.run do
     mix lab

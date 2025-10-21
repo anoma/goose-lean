@@ -6,7 +6,7 @@ structure SomeType : Type (u + 1) where
   [typeTypeRep : TypeRep type]
   [typeBEq : BEq type]
   [typeHashable : Hashable type]
-  [typePretty : Repr type]
+  [typeRepr : Repr type]
 
 instance SomeType.hasTypeRep : TypeRep SomeType where
   rep := Rep.atomic "SomeType"
