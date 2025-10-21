@@ -134,10 +134,7 @@ def counterEcosystem : Ecosystem label where
     | .Merge => mergeMethod
 
 def example1 : Applib.Program label.toScope Unit := ⟪
-  -- log s!"create"
   c1 := create Counter Counter.Constructors.Zero ()
-  -- c1' := fetch c1
-  -- log s!"hi {c1'.count}"
   return .unit
 ⟫
 
