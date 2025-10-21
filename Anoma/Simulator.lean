@@ -12,7 +12,7 @@ namespace Anoma.Program
 structure RmState : Type 2 where
   gen : StdGen
   objects : Std.HashMap ObjectId Resource
-  commited : Std.HashSet Commitment
+  committed : Std.HashSet Commitment
   nullified : Std.HashSet Resource
   logics : Std.HashMap LogicRef LogicFunction
 
@@ -22,7 +22,7 @@ abbrev RmState.ini (logics : Std.HashMap LogicRef LogicFunction) (gen : StdGen :
   { gen
     objects := ∅
     nullified := ∅
-    commited := ∅
+    committed := ∅
     logics
     logs := ∅ }
 
@@ -67,7 +67,7 @@ def storeCreated (created : List Resource) : RunM PUnit := do
     let try val : AVM.Object.Resource.SomeValue := tryCast r.value
     dbgTrace s!"hi: {val.uid}" (fun _ =>
     modify (fun s => {s with objects := s.objects.insert val.uid r
-                             commited := s.commited.insert r.commitment})))
+                             committed := s.committed.insert r.commitment})))
 
 def runAction (a : Action) : RunM PUnit := do
   let units : List ComplianceUnit := a.complianceUnits
