@@ -14,6 +14,8 @@ def trivialLogic : Anoma.Logic :=
   { reference := trivialLogicRef,
     function := fun _ => true }
 
+abbrev builtinLogics : List Anoma.Logic := [trivialLogic]
+
 end AVM.Logic
 
 namespace AVM.Program
