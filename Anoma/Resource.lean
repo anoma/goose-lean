@@ -58,7 +58,12 @@ structure Kind : Type 2 where
   logicRef : LogicRef
 
 instance Kind.instRepr : Repr Kind where
-  reprPrec k _ := s!"Kind@\{ label := ??? \nlogicRef:= {repr k.logicRef}"
+  reprPrec k _ :=
+    have := k.Label.typeRepr
+    s!"Kind@\{
+      label := {repr k.label}
+      logicRef:= {repr k.logicRef}
+    }"
 
 def kind (r : Resource) : Kind where
   Label := r.Label

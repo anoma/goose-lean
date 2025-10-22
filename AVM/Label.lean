@@ -12,7 +12,13 @@ structure Object.Resource.Label where
   dynamicLabel : classId.label.DynamicLabel.Label.type
 
 instance : Repr Object.Resource.Label where
-  reprPrec _l _ := "Resource.Label TODO"
+  reprPrec l _ :=
+    have := l.label.classesRepr
+    s!"Resource.Label@\{
+      label := {repr l.label}
+      classId := {repr l.classId}
+      dynamicLabel := ?
+   }"
 
 instance : Hashable Object.Resource.Label where
   hash l := Hashable.Mix.run do

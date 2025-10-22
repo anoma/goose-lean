@@ -125,7 +125,14 @@ structure Object.Resource.SomeValue where
   privateFields : classId.label.PrivateFields.type
 
 instance : Repr Object.Resource.SomeValue where
-  reprPrec _v _ := s!"SomeValue TODO"
+  reprPrec v _ :=
+    have := v.lab.classesRepr
+    have := v.classId.label.PrivateFields.typeRepr
+    s!"SomeValue@\{
+      classId := {repr v.classId}
+      uid := {repr v.uid}
+      privateFields := {repr v.privateFields}
+    }"
 
 instance : Hashable Object.Resource.SomeValue where
   hash v := Hashable.Mix.run do
