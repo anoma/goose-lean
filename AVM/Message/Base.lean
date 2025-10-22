@@ -14,7 +14,7 @@ def Message.rawSignatures {lab : Ecosystem.Label} (msg : Message lab) : List Nat
 
 instance Message.instHashable (lab : Ecosystem.Label) : Hashable (Message lab) where
   hash m := Hashable.Mix.run do
-    mix m.id
+    mix m.data.id
 
 instance Message.hasTypeRep (lab : Ecosystem.Label) : TypeRep (Message lab) where
   rep := Rep.composite "AVM.Message" [Rep.atomic lab.name]

@@ -5,7 +5,7 @@ open Applib
 
 structure OwnedCounter where
   count : Nat
-  owner : PublicKey
+  owner : AVM.PublicKey
   deriving Inhabited, Repr, BEq, Hashable
 
 namespace OwnedCounter

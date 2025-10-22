@@ -14,8 +14,8 @@ open Applib
 /- 3. Burn: The owner of a kudos token can destroy it if themself is the originator of the token -/
 
 structure KudosData where
-  originator : PublicKey
-  owner : PublicKey
+  originator : AVM.PublicKey
+  owner : AVM.PublicKey
   deriving DecidableEq, Inhabited, Hashable
 
 structure Kudos extends KudosData where

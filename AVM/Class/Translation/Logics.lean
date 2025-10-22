@@ -3,21 +3,6 @@ import AVM.Message
 import AVM.Logic
 import AVM.Ecosystem
 
-namespace AVM.Logic
-
-def classLogicRef {lab : Ecosystem.Label} (classId : lab.ClassId) : Anoma.LogicRef :=
-  classId.label.logicRef
-
-def trivialLogicRef : Anoma.LogicRef := Anoma.LogicRef.mk "Anoma.TrivialLogic"
-
-def trivialLogic : Anoma.Logic :=
-  { reference := trivialLogicRef,
-    function := fun _ => true }
-
-abbrev builtinLogics : List Anoma.Logic := [trivialLogic]
-
-end AVM.Logic
-
 namespace AVM.Program
 
 structure MessageValue (lab : Ecosystem.Label) where
