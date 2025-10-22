@@ -21,7 +21,7 @@ structure Program.ResourceQuery where
 inductive Program.Error : Type where
   | identityError (msg : String)
   | storageError (msg : String)
-  | logicFailed
+  | logicFailed (logRef : LogicRef)
   | missingLogic (ref : LogicRef)
   | balanceCheck (msg : String)
   | typeError (msg : String)

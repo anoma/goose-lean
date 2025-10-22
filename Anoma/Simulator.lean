@@ -103,7 +103,7 @@ def runAction (a : SplitAction) : RunM PUnit := do
         let logic <- fetchLogic self.logicRef
         if logic args
         then pure .unit
-        else throw' (.logicFailed)
+        else throw' (.logicFailed self.logicRef)
   for (r, consumed') in consumedPicks do
     checkLogic r .Consumed consumed' created
   for (r, created') in createdPicks do
@@ -161,6 +161,5 @@ def run {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : IO Unit 
     IO.println "success"
   | .error err s => do
     printLogs s.logs
-    IO.println "error"
     IO.println (repr err.down)
     IO.Process.exit 1
