@@ -3,6 +3,7 @@ import Anoma
 import AVM.Object
 import AVM.Message
 import AVM.Action.DummyResource
+import AVM.Logic.Base
 
 namespace AVM.Logic
 

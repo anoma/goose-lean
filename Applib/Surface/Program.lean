@@ -13,7 +13,7 @@ inductive Program (lab : Scope.Label) : (α : Type u) → Type (u + 1) where
     (cid : eid.label.ClassId)
     (constrId : cid.label.ConstructorId)
     (args : constrId.Args.type)
-    (signatures : constrId.Signatures args)
+    (signatures : MessageData eid.label → List Signature)
     (next : ObjectId → Program lab α)
     : Program lab α
   | destroy
@@ -23,7 +23,7 @@ inductive Program (lab : Scope.Label) : (α : Type u) → Type (u + 1) where
     (destrId : cid.label.DestructorId)
     (selfId : ObjectId)
     (args : destrId.Args.type)
-    (signatures : destrId.Signatures args)
+    (signatures : MessageData eid.label → List Signature)
     (next : Program lab α)
     : Program lab α
   | call
@@ -33,7 +33,7 @@ inductive Program (lab : Scope.Label) : (α : Type u) → Type (u + 1) where
     (methodId : cid.label.MethodId)
     (selfId : ObjectId)
     (args : methodId.Args.type)
-    (signatures : methodId.Signatures args)
+    (signatures : MessageData eid.label → List Signature)
     (next : Program lab α)
     : Program lab α
   | multiCall
@@ -42,7 +42,7 @@ inductive Program (lab : Scope.Label) : (α : Type u) → Type (u + 1) where
     (multiId : eid.label.MultiMethodId)
     (selves : multiId.SelvesIds)
     (args : multiId.Args.type)
-    (signatures : multiId.Signatures args)
+    (signatures : MessageData eid.label → List Signature)
     (next : Program lab α)
     : Program lab α
   | upgrade
@@ -125,7 +125,7 @@ def Program.create'
   (inScope : i.label ∈ lab)
   (constrId : i.classId.label.ConstructorId)
   (args : constrId.Args.type)
-  (signatures : constrId.Signatures args)
+  (signatures : MessageData i.label → List Signature)
   (next : Reference C → Program lab α)
   : Program lab α :=
   let ⟨eid, _⟩ := inScope
@@ -146,7 +146,7 @@ def Program.destroy'
   (inScope : i.label ∈ lab)
   (destrId : i.classId.label.DestructorId)
   (args : destrId.Args.type)
-  (signatures : destrId.Signatures args)
+  (signatures : MessageData i.label → List Signature)
   (next : Program lab α)
   : Program lab α :=
   let ⟨eid, _⟩ := inScope
@@ -168,7 +168,7 @@ def Program.call'
   (inScope : i.label ∈ lab)
   (methodId : i.classId.label.MethodId)
   (args : methodId.Args.type)
-  (signatures : methodId.Signatures args)
+  (signatures : MessageData i.label → List Signature)
   (next : Program lab α)
   : Program lab α :=
   let ⟨eid, _⟩ := inScope
@@ -203,7 +203,7 @@ def Program.multiCall'
   (multiId : eid.label.MultiMethodId)
   (selves : multiId.SelvesReferences)
   (args : multiId.Args.type)
-  (signatures : multiId.Signatures args)
+  (signatures : MessageData eid.label → List Signature)
   (next : Program lab α)
   : Program lab α :=
   let selves' : multiId.SelvesIds := fun x => selves x |>.ref.objId

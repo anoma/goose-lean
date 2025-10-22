@@ -1,5 +1,4 @@
 import AVM.Class.Label
-import AVM.Authorization
 
 namespace AVM.Ecosystem
 
@@ -20,9 +19,6 @@ structure Label : Type 1 where
   MultiMethodObjectArgNames : MultiMethodId → Type := fun _ => PUnit
   /-- Class identifiers for `self` arguments. -/
   MultiMethodObjectArgClass : {f : MultiMethodId} → MultiMethodObjectArgNames f → ClassId
-  MultiMethodSignatureId : MultiMethodId → Type := fun _ => Empty
-  MultiMethodSignatureIdEnum : (s : MultiMethodId) → FinEnum (MultiMethodSignatureId s)
-    := by intro s; cases s <;> infer_instance
   [ObjectArgNamesEnum (f : MultiMethodId) : FinEnum (MultiMethodObjectArgNames f)]
   [ObjectArgNamesBEq (f : MultiMethodId) : BEq (MultiMethodObjectArgNames f)]
   [multiMethodsFinite : FinEnum MultiMethodId]
@@ -101,11 +97,6 @@ namespace MultiMethodId
 
 abbrev Args {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : SomeType :=
   lab.MultiMethodArgs multiId
-
-abbrev SignatureId {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type := lab.MultiMethodSignatureId multiId
-
-abbrev Signatures {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) (args : multiId.Args.type) : Type :=
-  multiId.SignatureId → Signature (multiId, args)
 
 def ObjectArgNames {lab : Ecosystem.Label} (multiId : lab.MultiMethodId) : Type :=
   lab.MultiMethodObjectArgNames multiId
@@ -190,20 +181,10 @@ instance instLawfulBEq {lab : Ecosystem.Label} : LawfulBEq lab.MemberId where
       subst x; simp
     contradiction
 
-abbrev SignatureId (lab : Ecosystem.Label) : MemberId lab → Type
-  | .classMember m => m.SignatureId
-  | .multiMethodId m => m.SignatureId
-
 abbrev Args {lab : Ecosystem.Label} (memberId : MemberId lab) : SomeType.{0} :=
   match memberId with
   | multiMethodId f => lab.MultiMethodArgs f
   | classMember m => Class.Label.MemberId.Args m
-
-abbrev Signatures {lab : Ecosystem.Label} (mem : MemberId lab) (args : mem.Args.type)
-  : Type :=
-  match mem with
-  | .classMember m => m.Signatures args
-  | .multiMethodId m => m.Signatures args
 
 /-- The number of object arguments (selves) for this member ID. -/
 def numObjectArgs {lab : Ecosystem.Label} (memberId : MemberId lab) : Nat :=

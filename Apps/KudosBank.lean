@@ -2,6 +2,7 @@ import AVM
 import Applib
 
 open Applib
+open AVM
 
 def Std.HashMap.modifyDefault
 {α : Type u} {β : Type v} [BEq α] [Hashable α] [Inhabited β] (m : HashMap α β) (a : α) (f : β → β) : HashMap α β := m.alter a fun
@@ -249,7 +250,6 @@ def BankLabel : Class.Label where
     | Methods.Transfer => ⟨TransferArgs⟩
     | Methods.Mint => ⟨MintArgs⟩
     | Methods.Burn => ⟨BurnArgs⟩
-  MethodSignatureId := Methods.SignatureId
 
   ConstructorId := Constructors
   ConstructorArgs := fun
@@ -258,7 +258,6 @@ def BankLabel : Class.Label where
   DestructorId := Destructors
   DestructorArgs := fun
     | Destructors.Close => ⟨PUnit⟩
-  DestructorSignatureId := Destructors.SignatureId
 
 inductive MultiMethods where
   | IssueCheck
@@ -404,12 +403,6 @@ def label : AVM.Ecosystem.Label where
      | .auction => Classes.Auction
    | MultiMethods.EndAuction => fun
      | .auction => Classes.Auction
-  MultiMethodSignatureId := fun
-    | .IssueCheck => IssueCheck.SignatureId
-    | .DepositCheck => DepositCheck.SignatureId
-    | .NewAuction => NewAuction.SignatureId
-    | .Bid => Bid.SignatureId
-    | .EndAuction => EndAuction.SignatureId
   ObjectArgNamesBEq (f : MultiMethods) := by cases f <;> exact inferInstance
   ObjectArgNamesEnum (f : MultiMethods) := by cases f <;> exact inferInstance
 
@@ -471,9 +464,9 @@ def kudosTransfer : @Class.Method label Classes.Bank Methods.Transfer := defMeth
         |> Balances.addTokens args.newOwner args.denom args.quantity
         |> Balances.subTokens args.oldOwner args.denom args.quantity)
   ⟫)
-  (invariant := fun (self : KudosBank) (args : TransferArgs) signatures =>
+  (invariant := fun (msg : Message label) (self : KudosBank) (args : TransferArgs) =>
     0 < args.quantity
-    && checkSignature (signatures .owner) args.oldOwner
+    && msg.checkSignature args.oldOwner
     && args.quantity <= self.getBalance args.oldOwner args.denom)
 
 def kudosBurn : @Class.Method label Classes.Bank Methods.Burn := defMethod KudosBank
@@ -482,15 +475,15 @@ def kudosBurn : @Class.Method label Classes.Bank Methods.Burn := defMethod Kudos
       self.overBalances (fun b => b
         |> Balances.subTokens args.denom.originator args.denom args.quantity)
   ⟫)
-  (invariant := fun (self : KudosBank) (args : BurnArgs) signatures =>
-    checkSignature (signatures .originator) args.denom.originator
-    && checkSignature (signatures .owner) args.owner
+  (invariant := fun (msg : Message label) (self : KudosBank) (args : BurnArgs) =>
+    msg.checkSignature args.denom.originator
+    && msg.checkSignature args.owner
     && 0 < args.quantity
     && args.quantity <= self.getBalance args.denom.originator args.denom)
 
 def kudosClose : @Class.Destructor label Classes.Bank Destructors.Close := defDestructor
-  (invariant := fun (self : KudosBank) (_args : PUnit) signatures =>
-    checkSignature (signatures .owner) self.owner
+  (invariant := fun (msg : Message label) (self : KudosBank) (_args : PUnit) =>
+    msg.checkSignature self.owner
     && self.balances.isEmpty)
 
 def kudosClass : @Class label Classes.Bank where
@@ -543,9 +536,9 @@ def issueCheck : @Ecosystem.MultiMethod label .IssueCheck :=
                           quantity := args.quantity
                           : Check }]}
     ⟫)
-  (invariant := fun selves args signatures =>
+  (invariant := fun msg selves args =>
     let bank := selves .bank
-    checkSignature (signatures .owner) args.owner
+    msg.checkSignature args.owner
     && 0 < args.quantity
     && args.quantity <= bank.getBalance args.owner args.denomination)
 
@@ -571,8 +564,8 @@ def depositCheck : @Ecosystem.MultiMethod label .DepositCheck :=
           | .bank => .Disassembled
           | .check => .Destroyed }
     ⟫)
-  (invariant := fun selves _args signatures =>
-    checkSignature (signatures .owner) (selves .check).owner)
+  (invariant := fun msg selves _args =>
+    msg.checkSignature (selves .check).owner)
 
 def newAuction : @Ecosystem.MultiMethod label .NewAuction :=
   defMultiMethod label .NewAuction
@@ -595,8 +588,8 @@ def newAuction : @Ecosystem.MultiMethod label .NewAuction :=
           match arg with
           | .check => .Destroyed }
     ⟫)
-  (invariant := fun selves _args signatures =>
-    checkSignature (signatures .owner) (selves .check).owner)
+  (invariant := fun msg selves _args =>
+    msg.checkSignature (selves .check).owner)
 
 def bid : @Ecosystem.MultiMethod label .Bid :=
   defMultiMethod label .Bid
@@ -631,10 +624,10 @@ def bid : @Ecosystem.MultiMethod label .Bid :=
           | .check => .Destroyed
           | .auction => .Disassembled }
     ⟫)
-  (invariant := fun selves _args signatures =>
+  (invariant := fun msg selves _args =>
     let bid := selves .check
     let auction := selves .auction
-    checkSignature (signatures .owner) bid.owner
+    msg.checkSignature bid.owner
     && bid.denomination == auction.biddingDenomination
     && bid.quantity > auction.highestBid)
 
@@ -662,9 +655,9 @@ def endAuction : @Ecosystem.MultiMethod label .EndAuction :=
           match arg with
           | .auction => .Destroyed }
     ⟫)
-  (invariant := fun selves _args signatures =>
+  (invariant := fun msg selves _args =>
     let auction := selves .auction
-    checkSignature (signatures .owner) auction.owner)
+    msg.checkSignature auction.owner)
 
 def kudosEcosystem : Ecosystem label where
   classes := fun

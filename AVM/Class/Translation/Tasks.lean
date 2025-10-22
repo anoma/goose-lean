@@ -160,7 +160,7 @@ private partial def Class.Constructor.task'
   (newId : ObjectId)
   (r : Nat)
   (args : constrId.Args.type)
-  (signatures : constrId.Signatures args)
+  (signatures : MessageData lab → List Signature)
   : Task' :=
   let body : Program.{1} lab.toScope (ULift (ObjectData classId)) := constr.body args |>.lift
   let mkActionData (rands : List Nat) (vals : body.params.Product) (newObjectData : ULift (ObjectData classId)) : ActionData :=
@@ -193,7 +193,7 @@ private partial def Class.Destructor.task'
   (r : Nat)
   (self : Object classId)
   (args : destructorId.Args.type)
-  (signatures : destructorId.Signatures args)
+  (signatures : MessageData lab → List Signature)
   : Task' :=
   let body : Program.{1} lab.toScope (ULift Unit) := destructor.body self args |>.lift
   let mkActionData (rands : List Nat) (vals : body.params.Product) (_ : ULift Unit) : ActionData :=
@@ -223,7 +223,7 @@ private partial def Class.Method.task'
   (r : Nat)
   (self : Object classId)
   (args : methodId.Args.type)
-  (signatures : methodId.Signatures args)
+  (signatures : MessageData lab → List Signature)
   : Task' :=
   let body : Program.{1} lab.toScope (ULift (Object classId)) := method.body self args |>.lift
   let mkActionData (rands : List Nat) (vals : body.params.Product) (lobj : ULift (Object classId)) : ActionData :=
@@ -274,7 +274,7 @@ partial def Ecosystem.MultiMethod.task'
   (method : Ecosystem.MultiMethod multiId)
   (selves : multiId.Selves)
   (args : multiId.Args.type)
-  (signatures : multiId.Signatures args)
+  (signatures : MessageData lab → List Signature)
   : Task' :=
   let body := method.body selves args
 

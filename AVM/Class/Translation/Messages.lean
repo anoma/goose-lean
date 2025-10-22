@@ -1,7 +1,6 @@
-import AVM.Ecosystem.Label
+import AVM.Ecosystem
 import AVM.Class
 import AVM.Message
-import AVM.Class.Translation.Logics
 
 namespace AVM.Class
 
@@ -14,14 +13,15 @@ def Constructor.message
   (vals : Vals.type)
   (newId : ObjectId)
   (args : constrId.Args.type)
-  (signatures : Class.Label.MemberId.constructorId constrId |>.Signatures args)
+  (signatures : MessageData lab → List Signature)
   : Message lab :=
-  { id := .classMember (.constructorId constrId)
-    logicRef := Logic.trivialLogicRef
-    vals
-    args
-    signatures
-    recipients := [newId] }
+  let data : MessageData lab :=
+    { id := .classMember (.constructorId constrId)
+      vals
+      args
+      recipients := [newId] }
+  { data,
+    signatures := signatures data }
 
 def Destructor.message
   {lab : Ecosystem.Label}
@@ -32,14 +32,15 @@ def Destructor.message
   (vals : Vals.type)
   (selfId : ObjectId)
   (args : destrId.Args.type)
-  (signatures : Class.Label.MemberId.destructorId destrId |>.Signatures args)
+  (signatures : MessageData lab → List Signature)
   : Message lab :=
-  { id := .classMember (.destructorId destrId)
-    logicRef := Logic.trivialLogicRef
-    vals
-    args
-    signatures
-    recipients := [selfId] }
+  let data : MessageData lab :=
+    { id := .classMember (.destructorId destrId)
+      vals
+      args
+      recipients := [selfId] }
+  { data,
+    signatures := signatures data }
 
 def Method.message
   {lab : Ecosystem.Label}
@@ -50,27 +51,28 @@ def Method.message
   (vals : Vals.type)
   (selfId : ObjectId)
   (args : methodId.Args.type)
-  (signatures : Class.Label.MemberId.methodId methodId |>.Signatures args)
+  (signatures : MessageData lab → List Signature)
   : Message lab :=
-  { id := .classMember (.methodId methodId)
-    logicRef := Logic.trivialLogicRef
-    vals
-    args
-    signatures
-    recipients := [selfId] }
+  let data : MessageData lab :=
+    { id := .classMember (.methodId methodId)
+      vals
+      args
+      recipients := [selfId] }
+  { data,
+    signatures := signatures data }
 
 def Upgrade.message
   {lab : Ecosystem.Label}
   (classId : lab.ClassId)
   (selfId : ObjectId)
   : Message lab :=
-  { id := .classMember (classId := classId) .upgradeId
-    logicRef := Logic.trivialLogicRef
-    Vals := ⟨PUnit⟩
-    vals := PUnit.unit
-    args := .unit
-    signatures f := nomatch f
-    recipients := [selfId] }
+  let data : MessageData lab :=
+    { id := .classMember (classId := classId) .upgradeId
+      Vals := ⟨PUnit⟩
+      vals := PUnit.unit
+      args := .unit
+      recipients := [selfId] }
+  { data, signatures := []}
 
 end AVM.Class
 
@@ -82,17 +84,18 @@ def MultiMethod.message
   (method : MultiMethod multiId)
   (selves : multiId.Selves)
   (args : multiId.Args.type)
-  (signatures : multiId.Signatures args)
+  (signatures : MessageData lab → List Signature)
   (vals : (method.body selves args).params.Product)
   (data : MultiMethodData)
   (rands : MultiMethodRandoms data)
   : Message lab :=
-  { id := .multiMethodId multiId
-    logicRef := Logic.trivialLogicRef
-    Vals := ⟨(method.body selves args).params.Product⟩
-    vals
-    args
-    signatures
-    recipients :=
-      (Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) |>.toList)
-        ++ rands.constructedNonces.toList.map (·.value) }
+  let data : MessageData lab :=
+    { id := .multiMethodId multiId
+      Vals := ⟨(method.body selves args).params.Product⟩
+      vals
+      args
+      recipients :=
+        (Label.MultiMethodId.SelvesToVector selves (fun obj => obj.uid) |>.toList)
+          ++ rands.constructedNonces.toList.map (·.value) }
+  { data,
+    signatures := signatures data }

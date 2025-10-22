@@ -1,54 +1,27 @@
-import AVM.Ecosystem.Data
+import AVM.Message.Data
+import AVM.Authorization
 
 namespace AVM
 
 /-- A message is a communication sent from one object to another in the AVM. -/
 structure Message (lab : Ecosystem.Label) : Type 1 where
-  /-- The message ID. -/
-  id : lab.MemberId
-  {Vals : SomeType.{0}}
-  /-- Message parameter values. The message parameters are object resources and
-    generated random values that are used in the body of the call associated with
-    the message. These need to be provided in the message, because the
-    associated Resource Logic cannot fetch object resources from the Anoma
-    system or generate new object identifiers. -/
-  vals : Vals.type
-  /-- Resource logic reference for the message logic. -/
-  logicRef : Anoma.LogicRef
-  /-- The arguments of the message. -/
-  args : id.Args.type
-  /-- The signature of the arguments -/
-  signatures : id.Signatures args
-  /-- The recipients of the message. -/
-  recipients : List ObjectId
+  data : MessageData lab
+  /-- Signatures for `data`. -/
+  signatures : List Signature
 
 def Message.rawSignatures {lab : Ecosystem.Label} (msg : Message lab) : List Nat :=
-  let {id := id, signatures := signatures, ..} := msg
-  match id with
-  | .multiMethodId m => lab.MultiMethodSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
-  | .classMember (classId := clab) c => match c with
-    | .methodId m => clab.label.MethodSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
-    | .destructorId m => clab.label.DestructorSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
-    | .constructorId m => clab.label.ConstructorSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
-    | .upgradeId => []
+  msg.signatures.map Signature.raw
 
 instance Message.instHashable (lab : Ecosystem.Label) : Hashable (Message lab) where
   hash m := Hashable.Mix.run do
-    mix m.id
+    mix m.data.id
 
 instance Message.hasTypeRep (lab : Ecosystem.Label) : TypeRep (Message lab) where
   rep := Rep.composite "AVM.Message" [Rep.atomic lab.name]
 
 instance Message.hasBEq {lab : Ecosystem.Label} : BEq (Message lab) where
   beq a b :=
-    let {id := aid, args := aargs, signatures := asigs, ..} := a
-    let {id := bid, args := bargs, signatures := bsigs, ..} := b
-    check h : aid == bid
-    let h' := eq_of_beq h
-    check a.vals === b.vals
-    check s : aargs == cast (by simp! [h']) bargs
-    check a.recipients == b.recipients
-    check a.rawSignatures == b.rawSignatures
+    a.data == b.data && a.rawSignatures == b.rawSignatures
 
 structure SomeMessage : Type 1 where
   {label : Ecosystem.Label}
@@ -68,13 +41,13 @@ instance SomeMessage.hasBEq : BEq SomeMessage where
 instance : Inhabited SomeMessage where
   default := { label := Ecosystem.Label.dummy
                message :=
-                { id := .classMember (classId := .unit) (.constructorId PUnit.unit)
-                  Vals := ⟨PUnit⟩
-                  vals := PUnit.unit
-                  logicRef := default
-                  signatures f := nomatch f
-                  args := PUnit.unit
-                  recipients := [] }}
+                { data :=
+                    { id := .classMember (classId := .unit) (.constructorId PUnit.unit)
+                      Vals := ⟨PUnit⟩
+                      vals := PUnit.unit
+                      args := PUnit.unit
+                      recipients := [] },
+                  signatures := [] }}
 
 def Message.toSomeMessage {lab : Ecosystem.Label} (msg : Message lab) : SomeMessage :=
   { label := lab, message := msg }

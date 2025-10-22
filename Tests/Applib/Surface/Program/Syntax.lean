@@ -217,7 +217,7 @@ namespace OwnedCounter
 
 abbrev scope := label.toScope
 
-example (r : Reference OwnedCounter) (newOwner : PublicKey) : Program scope (Reference OwnedCounter) := ⟪
+example (r : Reference OwnedCounter) (newOwner : AVM.PublicKey) : Program scope (Reference OwnedCounter) := ⟪
   c := fetch r
   call OwnedCounter.Methods.Transfer r newOwner
   r' := create OwnedCounter OwnedCounter.Constructors.Zero ()

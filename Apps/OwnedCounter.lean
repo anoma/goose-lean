@@ -5,7 +5,7 @@ open Applib
 
 structure OwnedCounter where
   count : Nat
-  owner : PublicKey
+  owner : AVM.PublicKey
   deriving Inhabited, Repr, BEq, Hashable
 
 namespace OwnedCounter
@@ -62,12 +62,10 @@ def clab : Class.Label where
   MethodArgs := fun
     | Methods.Incr => ⟨Nat⟩
     | Methods.Transfer => ⟨PublicKey⟩
-  MethodSignatureId := Methods.SignatureId
   ConstructorId := Constructors
   ConstructorArgs := fun
     | Constructors.Zero => ⟨Unit⟩
   DestructorId := Destructors
-  DestructorSignatureId := Destructors.SignatureId
 
 def label : Ecosystem.Label := Ecosystem.Label.singleton clab
 
@@ -97,19 +95,19 @@ def counterConstructor : @Class.Constructor label .unit Constructors.Zero := def
 
 def counterIncr : @Class.Method label .unit Methods.Incr := defMethod OwnedCounter
   (body := fun (self : OwnedCounter) (step : Nat) => ⟪return self.incrementBy step⟫)
-  (invariant := fun (self : OwnedCounter) (_step : Nat) signatures =>
-    checkSignature (signatures .owner) self.owner)
+  (invariant := fun (msg : Message label) (self : OwnedCounter) (_step : Nat) =>
+    msg.checkSignature self.owner)
 
 def counterTransfer : @Class.Method label .unit Methods.Transfer := defMethod OwnedCounter
   (body := fun (self : OwnedCounter) (newOwner : PublicKey) =>
     ⟪return {self with owner := newOwner : OwnedCounter}⟫)
-  (invariant := fun (self : OwnedCounter) (_newOwner : PublicKey) signatures =>
-    checkSignature (signatures .owner) self.owner)
+  (invariant := fun msg (self : OwnedCounter) (_newOwner : PublicKey) =>
+    msg.checkSignature self.owner)
 
 /-- We only allow the counter to be destroyed if its count is at least 10 -/
 def counterDestroy : @Class.Destructor label .unit Destructors.Ten := defDestructor
-  (invariant := fun (self : OwnedCounter) () signatures =>
-    checkSignature (signatures .owner) self.owner
+  (invariant := fun (msg : Message label) (self : OwnedCounter) () =>
+    msg.checkSignature self.owner
     && self.count >= 10)
 
 def counterClass : @Class label .unit where

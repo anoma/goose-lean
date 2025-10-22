@@ -2,6 +2,7 @@ import AVM.Class.Label
 import AVM.Ecosystem.Label
 import AVM.Ecosystem.Data
 import AVM.Authorization
+import AVM.Logic.Base
 
 namespace AVM
 
@@ -9,7 +10,7 @@ def SomeMessage.toResource (msg : SomeMessage) (nonce : Anoma.Nonce) : Anoma.Res
   { Val := ⟨PUnit⟩,
     Label := ⟨SomeMessage⟩,
     label := msg,
-    logicRef := msg.message.logicRef,
+    logicRef := Logic.trivialLogicRef,
     value := PUnit.unit,
     quantity := 1,
     nullifierKeyCommitment := default,
@@ -18,7 +19,6 @@ def SomeMessage.toResource (msg : SomeMessage) (nonce : Anoma.Nonce) : Anoma.Res
 
 def SomeMessage.fromResource (res : Anoma.Resource) : Option SomeMessage :=
   let try msg : SomeMessage := tryCast res.label
-  check (msg.message.logicRef == res.logicRef)
   some msg
 
 def Message.toResource {lab : Ecosystem.Label} (msg : Message lab) (nonce : Anoma.Nonce) : Anoma.Resource :=
@@ -30,3 +30,6 @@ def Message.fromResource {lab : Ecosystem.Label} (res : Anoma.Resource) : Option
 
 def Resource.isSomeMessage (res : Anoma.Resource) : Bool :=
   Option.isSome (SomeMessage.fromResource res)
+
+def Message.checkSignature {lab : Ecosystem.Label} (msg : Message lab) (pub : PublicKey)  : Bool :=
+  AVM.checkSignature msg.data msg.signatures pub
