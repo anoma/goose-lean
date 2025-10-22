@@ -32,6 +32,10 @@ def Message.rawSignatures {lab : Ecosystem.Label} (msg : Message lab) : List Nat
     | .constructorId m => clab.label.ConstructorSignatureIdEnum m |>.toList.map (fun s => signatures s |>.raw)
     | .upgradeId => []
 
+instance Message.instHashable (lab : Ecosystem.Label) : Hashable (Message lab) where
+  hash m := Hashable.Mix.run do
+    mix m.id
+
 instance Message.hasTypeRep (lab : Ecosystem.Label) : TypeRep (Message lab) where
   rep := Rep.composite "AVM.Message" [Rep.atomic lab.name]
 
@@ -49,6 +53,11 @@ instance Message.hasBEq {lab : Ecosystem.Label} : BEq (Message lab) where
 structure SomeMessage : Type 1 where
   {label : Ecosystem.Label}
   message : Message label
+
+instance SomeMessage.instHashable : Hashable SomeMessage where
+  hash m := Hashable.Mix.run do
+    mix m.label
+    mix m.message
 
 instance SomeMessage.hasTypeRep : TypeRep SomeMessage where
   rep := Rep.atomic "AVM.SomeMessage"

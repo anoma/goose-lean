@@ -14,6 +14,8 @@ def trivialLogic : Anoma.Logic :=
   { reference := trivialLogicRef,
     function := fun _ => true }
 
+abbrev builtinLogics : List Anoma.Logic := [trivialLogic]
+
 end AVM.Logic
 
 namespace AVM.Program
@@ -65,6 +67,7 @@ def messageValues
     let ⟨obj, vals'⟩ := vals
     Program.messageValues (next obj) vals'
   | .return _ => []
+  | .log _ next => messageValues next vals
 
 end AVM.Program
 
@@ -295,13 +298,12 @@ private def Member.logicFun
   -/
 private def logicFun
   {lab : Ecosystem.Label}
-  {classId : lab.ClassId}
   (eco : Ecosystem lab)
-  (cl : Class classId)
+  (classId : lab.ClassId)
   (args : Logic.Args)
   : Bool :=
   let try self : Object classId := Object.fromResource args.self
-  check cl.invariant self args
+  check eco.classes classId |>.invariant self args
   match args.status with
   | Created => true
   | Consumed =>
@@ -319,11 +321,10 @@ private def logicFun
   an object of this class. -/
 def logic
   {lab : Ecosystem.Label}
-  {classId : lab.ClassId}
   (eco : Ecosystem lab)
-  (cl : Class classId)
+  (classId : lab.ClassId)
   : Anoma.Logic :=
   { reference := classId.label.logicRef,
-    function := logicFun eco cl }
+    function := logicFun eco classId }
 
 end AVM.Class

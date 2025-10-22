@@ -11,6 +11,13 @@ structure Object.Resource.Label where
   /-- The dynamic label is used to put dynamic data into the Resource label -/
   dynamicLabel : classId.label.DynamicLabel.Label.type
 
+instance : Hashable Object.Resource.Label where
+  hash l := Hashable.Mix.run do
+    mix l.label
+    mix (l.label.classesEnum.equiv l.classId)
+    have := l.classId.label.DynamicLabel.Label.typeHashable
+    mix l.dynamicLabel
+
 instance : TypeRep Object.Resource.Label where
   rep := Rep.atomic "Object.Resource.Label"
 
@@ -23,6 +30,15 @@ instance : BEq Object.Resource.Label where
 inductive Resource.Label : Type 1 where
   | object : Object.Resource.Label → Label
   | message : SomeMessage → Label
+
+instance : Hashable Resource.Label where
+  hash l := Hashable.Mix.run do match l with
+    | .object l =>
+      mix 0
+      mix l
+    | .message s =>
+      mix 1
+      mix s
 
 instance : TypeRep Resource.Label where
   rep := Rep.atomic "AVM.Resource.Label"

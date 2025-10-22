@@ -7,7 +7,7 @@ namespace AVM
   structure of AVM programs than a single `Task`. `AVM.Program` is compiled to
   `Tasks` which are then composed into a single `Task`. The composition of
   `Tasks` collects and lifts out the parameters of all subtasks. -/
-inductive Tasks (α : Type u) : Type (max u 1) where
+inductive Tasks.{w} (α : Type w) : Type (max w 2) where
   /-- Execute a subtask and continue. The `rest` continuation receives the
     unadjusted parameter values. -/
   | task (task : Task) (rest : task.params.Product → Tasks α) : Tasks α
@@ -151,7 +151,7 @@ def coerce {α β} {tasks : Tasks α} {f : tasks.params.Product → α → β} (
     ⟨r, coerce vals'⟩
   | .result _ => vals
 
-def WithAction := Tasks (Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
+def WithAction : Type 2 := Tasks (Rand (Option (Anoma.Action × Anoma.DeltaWitness)))
 
 def composeActions
   (tasks : WithAction)
@@ -159,7 +159,7 @@ def composeActions
   : Rand (Option Task.Actions) :=
   match tasks with
   | .result v => do
-    let try (action, witness) ← v
+    let try ((action : Anoma.Action), witness) ← v
     pure <| some { actions := [action], deltaWitness := witness }
   | .task ta rest => do
     let ⟨vals1, vals2⟩ := vals.split

@@ -2,17 +2,19 @@ import Anoma.Resource
 
 namespace Anoma
 
-structure Logic.Args.{u, v} where
-  self : Resource.{u, v}
+structure Logic.Args : Type 2 where
+  self : Resource
   status : ConsumedCreated
-  consumed : List Resource.{u, v}
-  created : List Resource.{u, v}
+  consumed : List Resource
+  created : List Resource
   /-- `data` is the action's appData for self -/
   Data : SomeType.{0}
   data : Data.type
 
 def Logic.Args.isConsumed (d : Logic.Args) := d.status.isConsumed
 
-structure Logic.{u, v} where
+abbrev LogicFunction : Type 2 := Logic.Args → Bool
+
+structure Logic where
   reference : LogicRef
-  function : Logic.Args.{u, v} → Bool
+  function : LogicFunction

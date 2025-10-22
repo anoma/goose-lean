@@ -5,10 +5,12 @@ import Prelude.Function
 import Prelude.HBeq
 import Prelude.HList
 import Prelude.HashMap
+import Prelude.Hashable
+import Prelude.Hashable.Mix
 import Prelude.LetBang
 import Prelude.LetTry
 import Prelude.List
 import Prelude.SomeType
 import Prelude.TypeRep
-import Prelude.Vector
 import Prelude.ULift
+import Prelude.Vector

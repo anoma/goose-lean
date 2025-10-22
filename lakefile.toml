@@ -31,3 +31,8 @@ name = "Goose"
 
 [[lean_lib]]
 name = "Tests"
+
+[[lean_exe]]
+name = "Runner"
+srcDir = "Apps"
+root = "UniversalCounter"

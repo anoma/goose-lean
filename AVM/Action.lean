@@ -13,7 +13,7 @@ import AVM.Message
 namespace AVM
 
 def CreatedObject.toObject (c : CreatedObject) : Object c.classId :=
-  let res : Anoma.Resource := Action.dummyResource.{0, 0} ⟨c.rand⟩
+  let res : Anoma.Resource := Action.dummyResource ⟨c.rand⟩
   let nonce := res.nullifyUniversal.nullifier.toNonce
   {uid := c.uid, nonce, data := c.data}
 
@@ -35,7 +35,7 @@ def Action.create'
     createdMessages.foldr mkCreatedMessageComplianceWitness
   let createdUnits : List Anoma.ComplianceUnit :=
     createdWitnesses.map Anoma.ComplianceUnit.create
-  let (consumedWitnesses, g'') : List Anoma.ComplianceWitness × StdGen :=
+  let ((consumedWitnesses : List Anoma.ComplianceWitness), g'') : List Anoma.ComplianceWitness × StdGen :=
     ([], g') |>
     consumedObjects.foldr mkConsumedComplianceWitness |>
     consumedMessages.foldr mkConsumedMessageComplianceWitness

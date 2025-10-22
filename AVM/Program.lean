@@ -66,6 +66,12 @@ inductive Program.{u} (scope : Scope.Label) (ReturnType : Type u) : Type (max u 
     (val : ReturnType)
     : Program scope ReturnType
 
+  | /-- Log a message. -/
+    log
+    (msg : String)
+    (next : Program scope ReturnType)
+    : Program scope ReturnType
+
 namespace Program
 
 def lift.{v, u}
@@ -81,6 +87,7 @@ def lift.{v, u}
   | .upgrade eid cid selfId obj next => .upgrade eid cid selfId obj next.lift
   | .fetch objId next => .fetch objId (fun a => (next a).lift)
   | .return val => .return (ULift.up val)
+  | .log msg next => .log msg next.lift
 
 /-- Program composition: invoke a program and then continue with another program. -/
 def invoke
@@ -91,19 +98,21 @@ def invoke
     : Program lab β :=
   match prog with
   | .constructor eid cid constrId args signatures cont =>
-    .constructor eid cid constrId args signatures (fun objId => Program.invoke (cont objId) next)
+    .constructor eid cid constrId args signatures (fun objId => invoke (cont objId) next)
   | .destructor eid cid destrId selfId args signatures cont =>
-    .destructor eid cid destrId selfId args signatures (Program.invoke cont next)
+    .destructor eid cid destrId selfId args signatures (invoke cont next)
   | .method eid cid methodId selfId args signatures cont =>
-    .method eid cid methodId selfId args signatures (Program.invoke cont next)
+    .method eid cid methodId selfId args signatures (invoke cont next)
   | .multiMethod eid mid selvesId args signatures cont =>
-    .multiMethod eid mid selvesId args signatures (Program.invoke cont next)
+    .multiMethod eid mid selvesId args signatures (invoke cont next)
   | .upgrade eid cid selfId obj cont =>
-    .upgrade eid cid selfId obj (Program.invoke cont next)
+    .upgrade eid cid selfId obj (invoke cont next)
   | .fetch objId cont =>
-    .fetch objId (fun obj => Program.invoke (cont obj) next)
+    .fetch objId (fun obj => invoke (cont obj) next)
   | .return val =>
     next val
+  | .log msg cont =>
+    .log msg (invoke cont next)
 
 /-- Parameters (generated random values and fetched objects) of the program,
   *not* including the parameters of the sub-programs (the bodies of called
@@ -119,6 +128,7 @@ def params {lab : Scope.Label} {α : Type u} (prog : Program lab α) : Parameter
   | .upgrade _ _ _ _ next => next.params
   | .fetch objId next => .fetch objId (fun obj => next obj |>.params)
   | .return _ => .empty
+  | .log _ next => next.params
 
 /-- The return value of a program. The `vals` provided need to be adjusted (see
   `Program.Parameters.Product`). -/
@@ -140,6 +150,7 @@ def value {lab : Scope.Label} {α : Type u} (prog : Program lab α) (vals : prog
     next obj |>.value vals'
   | .return val =>
     val
+  | .log _ next => value next vals
 
 /-- All objects fetched in the program.  The `vals` provided need to be adjusted
   (see `Program.Parameters.Product`). -/
@@ -160,6 +171,7 @@ def objects {lab : Scope.Label} {α : Type u} (prog : Program lab α) (vals : pr
     let ⟨obj, vals'⟩ := vals
     obj.toSomeObject :: objects (next obj) vals'
   | .return _ => []
+  | .log _ next => objects next vals
 
 end Program
 

@@ -4,7 +4,7 @@ import Anoma.Delta
 
 namespace Anoma
 
-structure Transaction where
+structure Transaction : Type 2 where
   actions : List Action
   deltaProof : DeltaProof
 

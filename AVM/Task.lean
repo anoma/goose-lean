@@ -6,7 +6,7 @@ import AVM.Program.Parameters
 
 namespace AVM
 
-structure Task.Actions : Type (u + 1) where
+structure Task.Actions : Type 2 where
   actions : List Anoma.Action
   deltaWitness : Anoma.DeltaWitness
 
@@ -15,7 +15,7 @@ structure Task.Actions : Type (u + 1) where
   step. Tasks enable modularity of the translation – they are at the right
   level of abstraction to compose translations of different message sends,
   enabling nested method calls and subobjects. -/
-structure Task : Type 1 where
+structure Task : Type 2 where
   /-- Task parameters - objects to fetch from the Anoma system and random values
     to generate. In general, values in `task.params.Product` are assumed to be
     unadjusted (see `Program.Parameters.Product`). -/
