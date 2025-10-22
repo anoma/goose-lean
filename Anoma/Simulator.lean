@@ -18,6 +18,10 @@ structure RmState : Type 2 where
 
   logs : List String
 
+structure SplitAction : Type 3 where
+  consumed : List Resource
+  created : List Resource
+
 abbrev RmState.ini (logics : Std.HashMap LogicRef LogicFunction) (gen : StdGen := mkStdGen 0) : RmState :=
   { gen
     objects := ∅
@@ -34,7 +38,9 @@ def throw' {α : Type _} (e : Program.Error) : RunM α :=
   throw (ULift.up e)
 
 /-- checks that consumed and created resources of the same kind are balanced -/
-def checkDelta (consumed created : List Resource) : RunM PUnit := do
+def checkDelta (actions : List SplitAction) : RunM PUnit := do
+  let consumed := actions.flatMap (·.consumed)
+  let created := actions.flatMap (·.created)
   let mkMap (l : List Resource) : Std.HashMap Resource.Kind (List Resource) := l.groupByKey (·.kind)
   let consumedByKind := mkMap consumed
   let createdByKind := mkMap created
@@ -69,11 +75,17 @@ def storeCreated (created : List Resource) : RunM PUnit := do
     modify (fun s => {s with objects := s.objects.insert val.uid r
                              committed := s.committed.insert r.commitment})))
 
-def runAction (a : Action) : RunM PUnit := do
+
+def Action.split (a : Action) : SplitAction :=
   let units : List ComplianceUnit := a.complianceUnits
   let witnesses : List ComplianceWitness := units.map (·.witness)
-  let consumed : List Resource := witnesses.map (·.consumedResource)
-  let created : List Resource := witnesses.map (·.createdResource)
+  { consumed := witnesses.map (·.consumedResource)
+    created := witnesses.map (·.createdResource) }
+
+
+def runAction (a : SplitAction) : RunM PUnit := do
+  let consumed : List Resource := a.consumed
+  let created : List Resource := a.created
   let createdPicks := picks created
   let consumedPicks := picks consumed
   let checkLogic
@@ -91,8 +103,7 @@ def runAction (a : Action) : RunM PUnit := do
         let logic <- fetchLogic self.logicRef
         if logic args
         then pure .unit
-        else throw' .logicFailed
-  checkDelta consumed created
+        else throw' (.logicFailed)
   for (r, consumed') in consumedPicks do
     checkLogic r .Consumed consumed' created
   for (r, created') in createdPicks do
@@ -104,8 +115,8 @@ def logmsg (msg : String) : RunM PUnit :=
   modify (fun s => {s with logs := s.logs.cons msg})
 
 def runTransaction (t : Transaction) : RunM PUnit := do
-  let actions : List Action := t.actions
-  logmsg "runtrans2"
+  let actions : List SplitAction := t.actions |>.map Action.split
+  checkDelta actions
   for action in actions do
     runAction action
 
