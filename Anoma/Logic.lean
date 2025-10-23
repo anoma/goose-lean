@@ -5,13 +5,12 @@ namespace Anoma
 inductive Logic.Error : Type where
   | rawError (pos : FilePosition)
   | custom (pos : FilePosition) (msg : String)
-  -- | rawError
 
 instance : Repr Logic.Error where
   reprPrec e _ :=
     match e with
     | .rawError p => repr p
-    | .custom p msg => s!"{repr p}: {msg}"
+    | .custom p msg => s!"{repr p}\n{msg}"
 
 structure Logic.Args : Type 2 where
   self : Resource

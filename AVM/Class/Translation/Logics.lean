@@ -3,16 +3,6 @@ import AVM.Message
 import AVM.Logic
 import AVM.Ecosystem
 
-namespace AVM.Logic
-
-def trivialLogicRef : Anoma.LogicRef := Anoma.LogicRef.mk "Anoma.TrivialLogic"
-
-def trivialLogic : Anoma.Logic :=
-  { reference := trivialLogicRef,
-    function := fun _ => .true }
-
-end AVM.Logic
-
 namespace AVM.Program
 
 structure MessageValue (lab : Ecosystem.Label) where
@@ -295,8 +285,7 @@ private def logicFun
   : Anoma.LogicM :=
   let try self : Object classId := Object.fromResource args.self
     failwith throw (.custom here# s!"Failed to decode self to an Object:
-                                     {repr args.self}"
-      )
+    {repr args.self}")
   check eco.classes classId |>.invariant self args
   match args.status with
   | Created => .true

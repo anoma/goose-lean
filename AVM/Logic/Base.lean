@@ -10,6 +10,6 @@ def trivialLogicRef : Anoma.LogicRef := Anoma.LogicRef.mk "Anoma.TrivialLogic"
 
 def trivialLogic : Anoma.Logic :=
   { reference := trivialLogicRef,
-    function := fun _ => true }
+    function := fun _ => .true }
 
 abbrev builtinLogics : List Anoma.Logic := [trivialLogic]

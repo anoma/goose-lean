@@ -88,13 +88,6 @@ instance (lab : Class.Label) : Repr (Label.MemberId lab) where
   | .methodId methodId => s!"destructor {repr methodId}"
   | .upgradeId  => "upgradeId"
 
-
-abbrev Label.MemberId.SignatureId {lab : Class.Label} : Label.MemberId lab → Type
-  | .methodId m => lab.MethodSignatureId m
-  | .destructorId m => lab.DestructorSignatureId m
-  | .constructorId m => lab.ConstructorSignatureId m
-  | .upgradeId => Empty
-
 instance Label.MemberId.instHashable {lab : Class.Label} : Hashable (Class.Label.MemberId lab) where
   hash l := Hashable.Mix.run do
     mix lab

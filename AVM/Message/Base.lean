@@ -10,16 +10,7 @@ structure Message (lab : Ecosystem.Label) : Type 1 where
   signatures : List Signature
 
 instance {lab : Ecosystem.Label} : Repr (Message lab) where
-  reprPrec r _ :=
-    have := r.Vals.typeRepr
-    have := r.id.Args.typeRepr
-    s!"Message@\{
-      id := {repr r.id}
-      vals := {repr r.vals}
-      args := {repr r.args}
-      logicRef := {repr r.logicRef}
-      recipients := {repr r.recipients}
-    }"
+  reprPrec r _ := repr r.data
 
 def Message.rawSignatures {lab : Ecosystem.Label} (msg : Message lab) : List Nat :=
   msg.signatures.map Signature.raw
