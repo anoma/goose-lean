@@ -294,6 +294,9 @@ private def logicFun
   (args : Logic.Args)
   : Anoma.LogicM :=
   let try self : Object classId := Object.fromResource args.self
+    failwith throw (.custom here# s!"Failed to decode self to an Object:
+                                     {repr args.self}"
+      )
   check eco.classes classId |>.invariant self args
   match args.status with
   | Created => .true

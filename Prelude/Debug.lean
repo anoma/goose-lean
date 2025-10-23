@@ -2,14 +2,26 @@ import Lean
 
 open Lean
 
+structure FilePosition where
+  file : String
+  pos : Position
+  deriving ToExpr
+
+instance : Repr FilePosition where
+  reprPrec p _ := s!"{p.file}:{p.pos.line}:{p.pos.column}"
+
+def FilePosition.unknown : FilePosition where
+  file := "<unknown-file>"
+  pos := ⟨0, 0⟩
+
+-- returns FilePosition for the location where it is inserted
 elab "here#" : term => do
   let file ← getFileName
   let ref ← getRef
-  let some pos := ref.getPos?
-    | return mkStrLit "<unknown position>"
   let fm ← getFileMap
-  let lc := fm.toPosition pos
-  return mkStrLit s!"{file}:{lc.line}:{lc.column}"
-
-instance (priority := high) [Pure m] : Inhabited (ExceptT String m α) where
-  default := pure (f := m) (throw here#)
+  let some pos := ref.getPos?
+    | return (toExpr FilePosition.unknown)
+  let lc : FilePosition :=
+         { file
+           pos := fm.toPosition pos }
+  return (toExpr lc)

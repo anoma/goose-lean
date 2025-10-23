@@ -2,6 +2,17 @@ import Anoma.Resource
 
 namespace Anoma
 
+inductive Logic.Error : Type where
+  | rawError (pos : FilePosition)
+  | custom (pos : FilePosition) (msg : String)
+  -- | rawError
+
+instance : Repr Logic.Error where
+  reprPrec e _ :=
+    match e with
+    | .rawError p => repr p
+    | .custom p msg => s!"{repr p}: {msg}"
+
 structure Logic.Args : Type 2 where
   self : Resource
   status : ConsumedCreated
@@ -13,7 +24,7 @@ structure Logic.Args : Type 2 where
 
 def Logic.Args.isConsumed (d : Logic.Args) := d.status.isConsumed
 
-abbrev LogicM : Type := Except String Unit
+abbrev LogicM : Type := Except Logic.Error Unit
 
 abbrev LogicM.true : LogicM := pure .unit
 

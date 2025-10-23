@@ -1,5 +1,6 @@
 import Prelude
 import Anoma
+import Anoma.Logic
 
 namespace AVM.Action
 
@@ -15,6 +16,8 @@ def isDummyResource (res : Anoma.Resource) : Bool :=
   res.logicRef == dummyResourceLogicRef &&
   res.ephemeral &&
   res.quantity == 0
+
+#check Anoma.Logic.Error.rawError
 
 /-- The resource logic of any dummy resource. -/
 private def dummyResourceLogic : Anoma.Logic :=

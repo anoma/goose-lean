@@ -21,7 +21,7 @@ def findProof (scope : Term) : TacticM Unit := do
   let possibleIndices : List (Fin card) := List.finRange card
   let tryN (n : Fin card) : TacticM Unit := do
     let sn := Syntax.mkNumLit (toString n)
-    let labelId ← `(term| $f $sn)
+    let labelId : TSyntax `term ← `(term| $f $sn)
     let t ← `(tactic| try exact ⟨$labelId, by rfl⟩)
     evalTactic t
   for x in possibleIndices do

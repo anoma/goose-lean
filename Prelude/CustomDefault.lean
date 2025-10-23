@@ -6,9 +6,12 @@ open Elab.Tactic Meta
 
 elab "mydefault" : tactic => do
    let tgt ← getMainTarget
-   if tgt.isAppOf `LogicM
+   -- logInfo s!"unchecked default {tgt}"
+   if tgt.isAppOf `Anoma.LogicM
      then
-        let t ← `(tactic| exact (throw here#))
+        -- logInfo "XXXXXXXX unchecked default"
+        let rawErr : TSyntax `term := mkIdent `Anoma.Logic.Error.rawError
+        let t ← `(tactic| exact (throw ($rawErr here#)))
         evalTactic t
      else do
       let t ← `(tactic| exact default)
@@ -16,8 +19,10 @@ elab "mydefault" : tactic => do
 
 elab "mydefaultM" : tactic => do
    let tgt ← getMainTarget
+   -- logInfo "mydefaultM"
    if tgt.isAppOf `LogicM
      then
+        -- logInfo "MMMMMMM  unchecked default M"
         let t ← `(tactic| exact (throw here#))
         evalTactic t
      else do
