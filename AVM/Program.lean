@@ -65,7 +65,6 @@ inductive Program.{u} (scope : Scope.Label) (ReturnType : Type u) : Type (max u 
     return
     (val : ReturnType)
     : Program scope ReturnType
-
   | /-- Log a message. -/
     log
     (msg : String)

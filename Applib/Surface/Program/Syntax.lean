@@ -16,7 +16,7 @@ def elabClosedNat (t : Syntax) : TacticM Nat := do
     reduceEval e
 
 def findProof (scope : Term) : TacticM Unit := do
-  let card <- elabClosedNat (← `(term| (AVM.Scope.Label.EcosystemIdEnum $scope).1))
+  let card <- elabClosedNat (← `(term| (AVM.Scope.Label.EcosystemIdEnum $scope).card))
   let f ← `(term| ($scope).EcosystemIdEnum.equiv.invFun)
   let possibleIndices : List (Fin card) := List.finRange card
   let tryN (n : Fin card) : TacticM Unit := do

@@ -1,4 +1,6 @@
 import Lean.Parser.Term
+import Prelude.CustomDefault
+import Lean
 
 open Lean.Parser.Term
 
@@ -11,12 +13,12 @@ syntax withPosition("check " binderIdent " : " term) optSemicolon(doSeq) : doEle
   otherwise. -/
 macro_rules
 | `(check $cond:term ; $body:term) =>
-  `(if $cond then $body else default)
+  `(if $cond then $body else by mydefault)
 | `(check $h:ident : $cond:term ; $body:term) =>
-  `(if $h:ident : $cond then $body else default)
+  `(if $h:ident : $cond then $body else by mydefault)
 | `(check $cond:term) =>
   `($cond)
 | `(doElem| check $cond:term ; $body:doSeq) =>
-  `(doElem| if $cond then $body else pure default)
+  `(doElem| if $cond then $body else by mydefaultM)
 | `(doElem| check $h:ident : $cond:term ; $body:doSeq) =>
-  `(doElem| if $h : $cond then $body else pure default)
+  `(doElem| if $h : $cond then $body else by mydefaultM)

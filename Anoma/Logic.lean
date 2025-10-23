@@ -13,7 +13,11 @@ structure Logic.Args : Type 2 where
 
 def Logic.Args.isConsumed (d : Logic.Args) := d.status.isConsumed
 
-abbrev LogicFunction : Type 2 := Logic.Args → Bool
+abbrev LogicM : Type := Except String Unit
+
+abbrev LogicM.true : LogicM := pure .unit
+
+def LogicFunction : Type 2 := Logic.Args → LogicM
 
 structure Logic where
   reference : LogicRef

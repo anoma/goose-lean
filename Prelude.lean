@@ -1,4 +1,5 @@
 import Prelude.Check
+import Prelude.Debug
 import Prelude.FinEnum
 import Prelude.FinEnum.Derive
 import Prelude.Function

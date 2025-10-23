@@ -107,9 +107,9 @@ def runAction (a : SplitAction) : RunM PUnit := do
             Data := ⟨Unit⟩
             data := .unit }
         let logic <- fetchLogic self.logicRef
-        if logic args
-        then pure .unit
-        else throw' (.logicFailed self.logicRef)
+        match logic args with
+        | .ok _ => pure .unit
+        | .error err => throw' (.logicFailed self.logicRef err)
   for (r, consumed') in consumedPicks do
     checkLogic r .Consumed consumed' created
   for (r, created') in createdPicks do

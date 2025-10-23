@@ -1,3 +1,5 @@
+import Prelude.CustomDefault
+
 syntax withPosition("let" "try" term (":" term)? ":=" term) optSemicolon(term) : term
 syntax withPosition("let" "try" term (":" term)? ":=" term) optSemicolon(doSeq) : doElem
 syntax withPosition("let" "try" term (":" term)? "←" term)  optSemicolon(doSeq) : doElem
@@ -13,25 +15,25 @@ syntax withPosition("let" "try" term (":" term)? "←" term) withPosition("failw
   The type of `x` can be specified and `x` can be an arbitrary match pattern. -/
 macro_rules
 | `(let try $x:term := $e:term ; $body) =>
-  `(match ($e) with | none => default | some $x => $body)
+  `(match ($e) with | none => by mydefault | some $x => $body)
 | `(let try $x:term : $t:term := $e:term ; $body) =>
-  `(match ($e) with | none => default | some ($x : $t) => $body)
+  `(match ($e) with | none => by mydefault | some ($x : $t) => $body)
 | `(let try $x:term := $e:term failwith $r:term ; $body) =>
   `(match ($e) with | none => $r | some $x => $body)
 | `(let try $x:term : $t:term := $e:term failwith $r:term ; $body) =>
   `(match ($e) with | none => $r | some ($x : $t) => $body)
 | `(doElem| let try $x:term := $e:term ; $body) =>
-  `(doElem| match ($e) with | none => default | some $x => $body)
+  `(doElem| match ($e) with | none => by mydefaultM | some $x => $body)
 | `(doElem| let try $x:term : $t:term := $e:term ; $body) =>
-  `(doElem| match ($e) with | none => default | some ($x : $t) => $body)
+  `(doElem| match ($e) with | none => by mydefaultM | some ($x : $t) => $body)
 | `(doElem| let try $x:term := $e:term failwith $r:doSeq ; $body) =>
   `(doElem| match ($e) with | none => $r | some $x => $body)
 | `(doElem| let try $x:term : $t:term := $e:term failwith $r:doSeq ; $body) =>
   `(doElem| match ($e) with | none => $r | some ($x : $t) => $body)
 | `(doElem| let try $x:term ← $e:term ; $body) =>
-  `(doElem| match ← $e with | none => default | some $x => $body)
+  `(doElem| match ← $e with | none => by mydefaultM | some $x => $body)
 | `(doElem| let try $x:term : $t:term ← $e:term ; $body) =>
-  `(doElem| match ← $e with | none => default | some ($x : $t) => $body)
+  `(doElem| match ← $e with | none => by mydefaultM | some ($x : $t) => $body)
 | `(doElem| let try $x:term ← $e:term failwith $r:doSeq ; $body) =>
   `(doElem| match ← $e with | none => $r | some $x => $body)
 | `(doElem| let try $x:term : $t:term ← $e:term failwith $r:doSeq ; $body) =>

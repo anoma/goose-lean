@@ -3,6 +3,16 @@ import AVM.Message
 import AVM.Logic
 import AVM.Ecosystem
 
+namespace AVM.Logic
+
+def trivialLogicRef : Anoma.LogicRef := Anoma.LogicRef.mk "Anoma.TrivialLogic"
+
+def trivialLogic : Anoma.Logic :=
+  { reference := trivialLogicRef,
+    function := fun _ => .true }
+
+end AVM.Logic
+
 namespace AVM.Program
 
 structure MessageValue (lab : Ecosystem.Label) where
@@ -282,21 +292,22 @@ private def logicFun
   (eco : Ecosystem lab)
   (classId : lab.ClassId)
   (args : Logic.Args)
-  : Bool :=
+  : Anoma.LogicM :=
   let try self : Object classId := Object.fromResource args.self
   check eco.classes classId |>.invariant self args
   match args.status with
-  | Created => true
+  | Created => .true
   | Consumed =>
     if args.self.isPersistent && Logic.isObjectPreserved self.toObjectValue args.created then
-      true
+      .true
     else
       let! [consumedMessageResource] := Logic.selectMessageResources args.consumed
       -- Note: the success of the `try` below ensures that the message is "legal"
       -- for the consumed objects - it is from the same ecosystem
       let try msg : Message lab := Message.fromResource consumedMessageResource
-      self.uid ∈ msg.data.recipients
-      && Member.logicFun eco msg.data.id msg args
+      check self.uid ∈ msg.data.recipients
+        && Member.logicFun eco msg.data.id msg args
+      .true
 
 /-- The class logic that is the Resource Logic of each resource corresponding to
   an object of this class. -/

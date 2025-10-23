@@ -22,7 +22,8 @@ private def dummyResourceLogic : Anoma.Logic :=
     function :=
       fun (args : Anoma.Logic.Args) =>
         let res : Anoma.Resource := args.self
-        isDummyResource res }
+        check isDummyResource res
+        pure .unit }
 
 /-- A dummy resource used in generated actions. -/
 def dummyResource (nonce : Anoma.Nonce) : Anoma.Resource :=
