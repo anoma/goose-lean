@@ -187,28 +187,33 @@ def Object.fromResource
   {lab : Ecosystem.Label}
   {c : lab.ClassId}
   (res : Anoma.Resource)
-  : Option (Object c) :=
+  : Except String (Object c) :=
   let try resLab : AVM.Resource.Label := tryCast res.label
+    failwith throw s!"{repr here#}"
   let try objLab := Resource.Label.getObjectResourceLabel resLab
+    failwith throw s!"{repr here#}"
   check (objLab.label == lab)
+    failwith throw s!"{repr here#}"
   check (res.logicRef == c.label.logicRef)
+    failwith throw s!"{repr here#}"
   let try value : Object.Resource.Value c := tryCast res.value
-  some {  uid := value.uid
-          data := { quantity := res.quantity
-                    privateFields := value.privateFields }
-          nonce := res.nonce }
+    failwith throw s!"{repr here#}: Failed to cast value"
+  pure { uid := value.uid
+         data := { quantity := res.quantity
+                   privateFields := value.privateFields }
+         nonce := res.nonce }
 
 def SomeObject.fromResource
   (res : Anoma.Resource)
-  : Option SomeObject :=
+  : Except String SomeObject :=
   let try resLab : AVM.Resource.Label := tryCast res.label
   let try objLab := Resource.Label.getObjectResourceLabel resLab
   let label : Ecosystem.Label := objLab.label
   let classId := objLab.classId
-  let try object := @Object.fromResource label classId res
-  some { label
-         classId
-         object }
+  let catch object := @Object.fromResource label classId res
+  .ok { label
+        classId
+        object }
 
 def Resource.isSomeObject (res : Anoma.Resource) : Bool :=
-  Option.isSome (SomeObject.fromResource res)
+  Except.isOk (SomeObject.fromResource res)

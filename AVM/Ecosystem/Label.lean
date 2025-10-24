@@ -12,11 +12,12 @@ def ConsumedToSelves
   {lab : Ecosystem.Label}
   {multiId : lab.MultiMethodId}
   (consumed : List Anoma.Resource)
-  : Option multiId.Selves
+  : Except String multiId.Selves
   :=
   let try consumedVec : Vector Anoma.Resource multiId.numObjectArgs := consumed.toSizedVector
-  let mkConsumedObject (a : multiId.ObjectArgNames) : Option (Object a.classId) := Object.fromResource (consumedVec.get a.ix)
-  @FinEnum.decImageOption'
+  let mkConsumedObject (a : multiId.ObjectArgNames) : Except String (Object a.classId) := Object.fromResource (consumedVec.get a.ix)
+  @FinEnum.decImageExcept'
+    _
     multiId.ObjectArgNames
     multiId.ObjectArgNamesEnum
     (fun a => Object a.classId)
