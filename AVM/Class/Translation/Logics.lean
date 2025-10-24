@@ -155,6 +155,7 @@ private def Constructor.Message.logicFun
   let createdResObjs := Logic.selectObjectResources args.created
   let! (newObjRes :: _) := createdResObjs
   let! (consumedObjRes :: consumedFetchedResObjs) := consumedResObjs
+    failwith throw (.custom here# s!"consumedResObjs.length = {consumedResObjs.length}")
   let uid : ObjectId := newObjRes.nonce.value
   let messageValues := Program.messageValues body vals
   let createdResMsgs := Logic.selectMessageResources args.created

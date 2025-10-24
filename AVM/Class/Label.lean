@@ -52,6 +52,9 @@ structure Label : Type 1 where
   [methodsBEq : BEq MethodId]
   [methodsLawfulBEq : LawfulBEq MethodId]
 
+instance Label.instRepr : Repr Label where
+  reprPrec l _ := l.name
+
 instance Label.instHashable : Hashable Label where
   hash l := hash l.name
 

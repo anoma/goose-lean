@@ -124,6 +124,18 @@ structure Object.Resource.SomeValue where
   uid : Anoma.ObjectId
   privateFields : classId.label.PrivateFields.type
 
+def Object.Resource.SomeValue.toValue
+  {lab : Ecosystem.Label}
+  {classId : lab.ClassId}
+  (v : SomeValue)
+  : Except String (Object.Resource.Value classId) :=
+  check v.lab == lab
+    failwith (throw s!"{repr here#}: Labels do not match")
+  let try privateFields := tryCast v.privateFields
+  pure {
+    uid := v.uid
+    privateFields }
+
 instance : Repr Object.Resource.SomeValue where
   reprPrec v _ :=
     have := v.lab.classesRepr
@@ -196,8 +208,18 @@ def Object.fromResource
     failwith throw s!"{repr here#}"
   check (res.logicRef == c.label.logicRef)
     failwith throw s!"{repr here#}"
-  let try value : Object.Resource.Value c := tryCast res.value
-    failwith throw s!"{repr here#}: Failed to cast value"
+  let try svalue : Object.Resource.SomeValue := tryCast res.value
+    failwith
+      have := res.Val.typeRepr
+      have := lab.classesRepr
+      let x : TypeRep (Object.Resource.Value c) := inferInstance
+      throw s!"{repr here#}: Failed to cast value
+      classId: {repr c}
+      classLabel: {repr (lab.classLabel c)}
+      resource typeRep: {repr res.Val.typeTypeRep.rep}
+      expected typeRep: {repr x.rep}
+      value:\n {repr res.value}"
+  let catch value : Object.Resource.Value c := svalue.toValue
   pure { uid := value.uid
          data := { quantity := res.quantity
                    privateFields := value.privateFields }
