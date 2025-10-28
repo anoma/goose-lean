@@ -68,3 +68,10 @@ def splitsExact (lst : List A) (lengths : List Nat) : Option (SplitsType A lengt
   match splits lst lengths with
   | .some (l, []) => some l
   | _ => none
+
+-- Equivalent to zipWithM' in mathlib, but this one allows
+-- α and β to have different universe levels
+def zipWithM' {F : Type u → Type v} [Applicative F] (f : α → β → F γ) : List α → List β → F PUnit
+  | x :: xs, y :: ys => f x y *> zipWithM' f xs ys
+  | [], _ => pure PUnit.unit
+  | _, [] => pure PUnit.unit

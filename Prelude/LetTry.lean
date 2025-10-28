@@ -1,4 +1,5 @@
 import Prelude.CustomDefault
+import Prelude.Macro
 
 syntax withPosition("let" "try" term (":" term)? ":=" term) optSemicolon(term) : term
 syntax withPosition("let" "try" term (":" term)? ":=" term) optSemicolon(doSeq) : doElem
@@ -11,7 +12,7 @@ syntax withPosition("let" "catch" term (":" term)? ":=" term) optSemicolon(term)
 syntax withPosition("let" "catch" term (":" term)? ":=" term) optSemicolon(doSeq) : doElem
 syntax withPosition("let" "catch" term (":" term)? "←" term)  optSemicolon(doSeq) : doElem
 syntax withPosition("let" "catch" term (":" term)? ":=" term) withPosition("failwith" term) optSemicolon(term) : term
-syntax withPosition("let" "catch" term (":" term)? ":=" term) withPosition("failwith" doSeq) optSemicolon(doSeq) : doElem
+syntax withPosition("let" "catch" term (":" term)? ":=" term) withPosition("failwith" term) optSemicolon(doSeq) : doElem
 syntax withPosition("let" "catch" term (":" term)? "←" term) withPosition("failwith" doSeq) optSemicolon(doSeq) : doElem
 
 /-- The `let try x := ov; b` macro unwraps an `Option`, for `ov = some v` binds
@@ -55,6 +56,17 @@ macro_rules
 | `(let catch $x:term : $t:term := $e:term failwith $r:term ; $body) =>
   `(match ($e) with | .error err => $r err | .ok ($x : $t) => $body)
 
+| `(doElem| let catch $x:term := $e:term ; $body) =>
+  `(doElem| match ($e) with | Except.error err => .error err | .ok $x => $body)
+| `(doElem| let catch $x:term : $t:term := $e:term ; $body) =>
+  `(doElem| match ($e) with | Except.error err => Except.error err | .ok ($x : $t) => $body)
+| `(doElem| let catch $x:term := $e:term failwith $r:term ; $body) => do
+  let errSeq : TSyntax `Lean.Parser.Term.doSeq ← doSeq1 (← `(term| $r err))
+  `(doElem| match ($e) with | Except.error err => $errSeq | .ok $x => $body)
+| `(doElem| let catch $x:term : $t:term := $e:term failwith $r:term ; $body) => do
+  let errSeq : TSyntax `Lean.Parser.Term.doSeq ← doSeq1 (← `(term| $r err))
+  `(doElem| match ($e) with | Except.error err => $errSeq | .ok ($x : $t) => $body)
+
 /-
 #eval let try x := some 42; some (x + 1)
 #eval let try y := some 10
@@ -64,3 +76,8 @@ macro_rules
 #eval let try _ : Nat := none; true
 #eval let try (_, y) := some (1, 2); some (y + 1)
 -/
+
+example : Except String Unit := do
+  let catch _num : Nat := throw "test"
+    failwith fun (err : String) => throw err
+  pure .unit

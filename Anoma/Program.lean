@@ -29,7 +29,7 @@ structure Program.Error.BalanceCheck : Type 2 where
 inductive Program.Error : Type 2 where
   | identityError (msg : String)
   | storageError (msg : String)
-  | logicFailed (logRef : LogicRef) (reason : Logic.Error)
+  | logicFailed (logRef : LogicRef) (reason : LogicM.Error)
   | missingLogic (ref : LogicRef)
   | balanceCheck (err : Program.Error.BalanceCheck)
   | typeError (msg : String)

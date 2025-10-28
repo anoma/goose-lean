@@ -17,8 +17,6 @@ def isDummyResource (res : Anoma.Resource) : Bool :=
   res.ephemeral &&
   res.quantity == 0
 
-#check Anoma.Logic.Error.rawError
-
 /-- The resource logic of any dummy resource. -/
 private def dummyResourceLogic : Anoma.Logic :=
   { reference := dummyResourceLogicRef,
