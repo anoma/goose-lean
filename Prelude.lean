@@ -1,3 +1,4 @@
+import Lean.Data.Json
 import Prelude.Check
 import Prelude.Debug
 import Prelude.FinEnum
@@ -15,4 +16,3 @@ import Prelude.SomeType
 import Prelude.TypeRep
 import Prelude.ULift
 import Prelude.Vector
-import Lean.Data.Json

@@ -75,3 +75,6 @@ def zipWithM' {F : Type u → Type v} [Applicative F] (f : α → β → F γ) :
   | x :: xs, y :: ys => f x y *> zipWithM' f xs ys
   | [], _ => pure PUnit.unit
   | _, [] => pure PUnit.unit
+
+def unlines : List String → String :=
+  String.intercalate "\n"

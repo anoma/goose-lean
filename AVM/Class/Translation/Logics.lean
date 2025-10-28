@@ -146,7 +146,7 @@ private def Constructor.Message.logicFun
   (constr : Class.Constructor classId constrId)
   (msg : Message lab)
   (args : Logic.Args)
-  : Anoma.LogicM := do
+  : Anoma.LogicM := Anoma.LogicM.withTrace here# "Constructor.Message.logicFun" do
   docheck h : msg.data.id == .classMember (Label.MemberId.constructorId constrId)
   let argsData : constrId.Args.type := cast (by simp! [eq_of_beq h]) msg.data.args
   let body := constr.body argsData

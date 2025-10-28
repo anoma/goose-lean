@@ -11,14 +11,14 @@ namespace AVM.Logic
 def filterOutDummy (resources : List Anoma.Resource) : List Anoma.Resource :=
   resources.filter (not ∘ Action.isDummyResource)
 
-def resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Anoma.LogicM := do
+def resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Anoma.LogicM := Anoma.LogicM.withTrace here# "resourceValueEq" do
   docheck objValue.label === res.label
-    failwith
+    failwith do
     have := res.Label.typeRepr
-    throw (Anoma.LogicM.Error.custom here#
-    s!"label missmatch:
-    objValue: {repr objValue.label}
-    resource: {repr res.label}")
+    Anoma.LogicM.throw here#
+        s!"label mismatch:
+        objValue: {repr objValue.label}
+        resource: {repr res.label}"
   docheck objValue.classId.label.logicRef == res.logicRef
     failwith throw (.custom here# "logicRef")
   docheck objValue.data.quantity == res.quantity
@@ -37,10 +37,10 @@ def resourceIdEq (objValue : ObjectValue) (res : Anoma.Resource) : Bool :=
     This check is used in the constructor, destructor and method message logics.
     Dummy resources in the `resources` list are ignored. -/
 def checkResourceValues (objectValues : List ObjectValue) (resources : List Anoma.Resource) : Anoma.LogicM :=
+  Anoma.LogicM.withTrace here# "checkResourceValues" do
   let resources' := Logic.filterOutDummy resources
-  check objectValues.length == resources'.length
+  docheck objectValues.length == resources'.length
     failwith (throw (.custom here# "length"))
-  do -- TODO fix notation
   List.zipWithM' resourceValueEq objectValues resources'
 
 def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
