@@ -12,13 +12,13 @@ def filterOutDummy (resources : List Anoma.Resource) : List Anoma.Resource :=
   resources.filter (not ∘ Action.isDummyResource)
 
 def resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Anoma.LogicM := Anoma.LogicM.withTrace here# "resourceValueEq" do
-  docheck objValue.label === res.label
-    failwith do
-    have := res.Label.typeRepr
-    Anoma.LogicM.throw here#
-        s!"label mismatch:
-        objValue: {repr objValue.label}
-        resource: {repr res.label}"
+  let try resLabel : Resource.Label := tryCast res.label
+    failwith Anoma.LogicM.throw here# "cast label"
+  dolet! (Resource.Label.object (oresLabel : Object.Resource.Label)) := resLabel
+    failwith Anoma.LogicM.throw here# "cast label"
+  docheck oresLabel.label == objValue.label
+    failwith Anoma.LogicM.throw here# "ecosystem label"
+  -- FIXME check classId. Also, what to do with dynamic label
   docheck objValue.classId.label.logicRef == res.logicRef
     failwith throw (.custom here# "logicRef")
   docheck objValue.data.quantity == res.quantity
