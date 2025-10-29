@@ -135,6 +135,7 @@ def counterEcosystem : Ecosystem label where
 
 def example1 : Applib.Program label.toScope Unit := ⟪
   c1 := create Counter Counter.Constructors.Zero ()
+  -- call Counter.Methods.Incr c1 (3 : Nat)
   return .unit
 ⟫
 

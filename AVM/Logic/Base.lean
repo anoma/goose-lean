@@ -1,5 +1,6 @@
 import Anoma
 import AVM.Ecosystem.Label.Base
+import AVM.Action.DummyResource
 
 namespace AVM.Logic
 
@@ -12,4 +13,4 @@ def trivialLogic : Anoma.Logic :=
   { reference := trivialLogicRef,
     function := fun _ => .true }
 
-abbrev builtinLogics : List Anoma.Logic := [trivialLogic]
+abbrev builtinLogics : List Anoma.Logic := [trivialLogic, AVM.Action.dummyResourceLogic]

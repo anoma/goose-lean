@@ -18,7 +18,7 @@ def isDummyResource (res : Anoma.Resource) : Bool :=
   res.quantity == 0
 
 /-- The resource logic of any dummy resource. -/
-private def dummyResourceLogic : Anoma.Logic :=
+def dummyResourceLogic : Anoma.Logic :=
   { reference := dummyResourceLogicRef,
     function :=
       fun (args : Anoma.Logic.Args) =>

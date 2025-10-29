@@ -34,6 +34,9 @@ abbrev RmState.ini (logics : Std.HashMap LogicRef LogicFunction) (gen : StdGen :
 abbrev RunM (a : Type 2) : Type 2 :=
   EStateM (Program.Error) RmState a
 
+def logmsg (msg : String) : RunM PUnit :=
+  modify (fun s => {s with logs := s.logs.cons msg})
+
 def throw' {α : Type _} (e : Program.Error) : RunM α :=
   throw e
 
@@ -75,11 +78,9 @@ def storeLogic (ref : LogicRef) (f : LogicFunction) : RunM PUnit := do
 def storeCreated (created : List Resource) : RunM PUnit := do
   let created := created.filter (·.ephemeral.not)
   for r in created do
-    dbgTrace s!"created" (fun _ =>
     let try val : AVM.Object.Resource.SomeValue := tryCast r.value
-    dbgTrace s!"hi: {val.uid}" (fun _ =>
     modify (fun s => {s with objects := s.objects.insert val.uid r
-                             committed := s.committed.insert r.commitment})))
+                             committed := s.committed.insert r.commitment})
 
 
 def Action.split (a : Action) : SplitAction :=
@@ -117,9 +118,6 @@ def runAction (a : SplitAction) : RunM PUnit := do
   storeCreated created
   -- TODO nullify consumed
 
-def logmsg (msg : String) : RunM PUnit :=
-  modify (fun s => {s with logs := s.logs.cons msg})
-
 def runTransaction (t : Transaction) : RunM PUnit := do
   let actions : List SplitAction := t.actions |>.map Action.split
   checkDelta actions
@@ -152,7 +150,11 @@ def interpret : Program → RunM PUnit
     set {s with gen := gen1}
     next gen2 |>.interpret
 
-def eval {lab : AVM.Scope.Label} (scope : AVM.Scope lab) (p : Program) : EStateM.Result Program.Error RmState PUnit :=
+def eval
+  {lab : AVM.Scope.Label}
+  (scope : AVM.Scope lab)
+  (p : Program)
+  : EStateM.Result Program.Error RmState PUnit :=
   let logics := Std.HashMap.ofList (scope.logics.map fun l => ⟨l.reference, l.function⟩)
   interpret p |>.run (RmState.ini logics)
 

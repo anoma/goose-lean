@@ -185,7 +185,7 @@ private def Destructor.Message.logicFun
   (destructor : Class.Destructor classId destructorId)
   (msg : Message lab)
   (args : Logic.Args)
-  : Anoma.LogicM := do
+  : Anoma.LogicM := Anoma.LogicM.withTrace here# "Destructor.Message.logicFun" do
   docheck h : msg.data.id == .classMember (Label.MemberId.destructorId destructorId)
   let argsData := cast (by simp! [eq_of_beq h]) msg.data.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
@@ -217,17 +217,16 @@ private def Method.Message.logicFun
   (method : Class.Method classId methodId)
   (msg : Message lab)
   (args : Logic.Args)
-  : Anoma.LogicM := do
+  : Anoma.LogicM := Anoma.LogicM.withTrace here# "Method.Message.logicFun" do
   docheck h : msg.data.id == .classMember (Label.MemberId.methodId methodId)
   let argsData : methodId.Args.type := cast (by simp! [eq_of_beq h]) msg.data.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  let! (selfRes :: _) := consumedResObjs
+  dolet! (selfRes :: _) := consumedResObjs
   let catch selfObj : Object classId := Object.fromResource selfRes
     failwith fun err => throw (.custom here# err)
   let body := method.body selfObj argsData
   let try vals : body.params.Product := tryCast msg.data.vals
-  do -- TODO fix
   docheck method.invariant msg selfObj argsData
   let createdObject : Object classId := body |>.value vals
   let messageValues := Program.messageValues body vals
