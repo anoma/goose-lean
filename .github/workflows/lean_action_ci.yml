@@ -15,3 +15,6 @@ jobs:
       - uses: leanprover/lean-action@v1
         with:
           build-args: "--wfail"
+      - name: Run UniversalCounter example
+          run: |
+            lake exe counter

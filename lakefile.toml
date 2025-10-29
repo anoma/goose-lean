@@ -33,6 +33,6 @@ name = "Goose"
 name = "Tests"
 
 [[lean_exe]]
-name = "Runner"
+name = "counter"
 srcDir = "Apps"
 root = "UniversalCounter"
