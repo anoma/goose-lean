@@ -83,7 +83,6 @@ def MultiMethod.Message.logicFun
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
   let argsConsumedSelves := consumedResObjs.take multiId.numObjectArgs
-  do
   let catch argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves
     failwith fun err => throw (.custom here# err)
   docheck method.invariant msg argsConsumedObjects fargs

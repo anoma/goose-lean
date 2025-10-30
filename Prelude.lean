@@ -1,4 +1,3 @@
-import Lean.Data.Json
 import Prelude.Check
 import Prelude.Debug
 import Prelude.FinEnum

@@ -32,7 +32,7 @@ abbrev RmState.ini (logics : Std.HashMap LogicRef LogicFunction) (gen : StdGen :
 
 /-- The evaluation monad -/
 abbrev RunM (a : Type 2) : Type 2 :=
-  EStateM (Program.Error) RmState a
+  EStateM Program.Error RmState a
 
 def logmsg (msg : String) : RunM PUnit :=
   modify (fun s => {s with logs := s.logs.cons msg})
