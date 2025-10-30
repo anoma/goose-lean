@@ -1,12 +1,12 @@
 import Prelude.CustomDefault
 
 syntax withPosition("let!" term (":" term)? ":=" term) optSemicolon(term) : term
-syntax withPosition("dolet!" term ":=" term) optSemicolon(doSeq) : doElem
-syntax withPosition("dolet!" term ":" term ":=" term) optSemicolon(doSeq) : doElem
-syntax withPosition("dolet!" term (":" term)? "←" term)  optSemicolon(doSeq) : doElem
+syntax withPosition("let!" term ":=" term) optSemicolon(doSeq) : doElem
+syntax withPosition("let!" term ":" term ":=" term) optSemicolon(doSeq) : doElem
+syntax withPosition("let!" term (":" term)? "←" term)  optSemicolon(doSeq) : doElem
 syntax withPosition("let!" term (":" term)? ":=" term) withPosition("failwith" term) optSemicolon(term) : term
-syntax withPosition("dolet!" term (":" term)? ":=" term) withPosition("failwith" doSeq) optSemicolon(doSeq) : doElem
-syntax withPosition("dolet!" term (":" term)? "←" term) withPosition("failwith" doSeq) optSemicolon(doSeq) : doElem
+syntax withPosition("let!" term (":" term)? ":=" term) withPosition("failwith" doSeq) optSemicolon(doSeq) : doElem
+syntax withPosition("let!" term (":" term)? "←" term) withPosition("failwith" doSeq) optSemicolon(doSeq) : doElem
 
 /-- The `let! pat := v; b` syntax desugars to `match v with | pat => b | _ => default`.
   The value returned on failure (instead of `default`, when `v` does not match `pat`)
@@ -22,21 +22,21 @@ macro_rules
   `(match ($e) with | $x => $body | _ => $r)
 | `(let! $x:term : $t:term := $e:term failwith $r:term ; $body) =>
   `(match ($e) with | ($x : $t) => $body | _ => $r)
-| `(doElem| dolet! $x:term := $e:term ; $body:doSeq) =>
+| `(doElem| let! $x:term := $e:term ; $body:doSeq) =>
   `(doElem| match ($e) with | $x => $body | _ => by mydefaultM)
-| `(doElem| dolet! $x:term : $t:term := $e:term ; $body:doSeq) =>
+| `(doElem| let! $x:term : $t:term := $e:term ; $body:doSeq) =>
   `(doElem| match ($e) with | ($x : $t) => $body | _ => by mydefaultM)
-| `(doElem| dolet! $x:term := $e:term failwith $r:doSeq ; $body) =>
+| `(doElem| let! $x:term := $e:term failwith $r:doSeq ; $body) =>
   `(doElem| match ($e) with | $x => $body | _ => $r)
-| `(doElem| dolet! $x:term : $t:term := $e:term failwith $r:doSeq ; $body) =>
+| `(doElem| let! $x:term : $t:term := $e:term failwith $r:doSeq ; $body) =>
   `(doElem| match ($e) with | ($x : $t) => $body | _ => $r)
-| `(doElem| dolet! $x:term ← $e:term ; $body) =>
+| `(doElem| let! $x:term ← $e:term ; $body) =>
   `(doElem| match ← $e with | $x => $body | _ => by mydefaultM)
-| `(doElem| dolet! $x:term : $t:term ← $e:term ; $body) =>
+| `(doElem| let! $x:term : $t:term ← $e:term ; $body) =>
   `(doElem| match ← $e with | ($x : $t) => $body | _ => by mydefaultM)
-| `(doElem| dolet! $x:term ← $e:term failwith $r:doSeq ; $body) =>
+| `(doElem| let! $x:term ← $e:term failwith $r:doSeq ; $body) =>
   `(doElem| match ← $e with | $x => $body | _ => $r)
-| `(doElem| dolet! $x:term : $t:term ← $e:term failwith $r:doSeq ; $body) =>
+| `(doElem| let! $x:term : $t:term ← $e:term failwith $r:doSeq ; $body) =>
   `(doElem| match ← $e with | ($x : $t) => $body | _ => $r)
 
 /-

@@ -14,7 +14,7 @@ def filterOutDummy (resources : List Anoma.Resource) : List Anoma.Resource :=
 def resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Anoma.LogicM := Anoma.LogicM.withTrace here# "resourceValueEq" do
   let try resLabel : Resource.Label := tryCast res.label
     failwith Anoma.LogicM.throw here# "cast label"
-  dolet! (Resource.Label.object (oresLabel : Object.Resource.Label)) := resLabel
+  let! (Resource.Label.object (oresLabel : Object.Resource.Label)) := resLabel
     failwith Anoma.LogicM.throw here# "cast label"
   docheck oresLabel.label == objValue.label
     failwith Anoma.LogicM.throw here# "ecosystem label"

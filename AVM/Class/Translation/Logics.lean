@@ -153,8 +153,8 @@ private def Constructor.Message.logicFun
   let newObjData := body.value vals
   let consumedResObjs := Logic.selectObjectResources (args.consumed ++ if args.isConsumed then [args.self] else [])
   let createdResObjs := Logic.selectObjectResources (args.created ++ if args.isConsumed then [] else [args.self])
-  dolet! (newObjRes :: _) := createdResObjs
-  dolet! (consumedObjRes :: consumedFetchedResObjs) := consumedResObjs
+  let! (newObjRes :: _) := createdResObjs
+  let! (consumedObjRes :: consumedFetchedResObjs) := consumedResObjs
     failwith throw (.custom here#
     s!"consumedResObjs.length = {consumedResObjs.length}
     args.consumed:\n{repr args.consumed}
@@ -189,8 +189,8 @@ private def Destructor.Message.logicFun
   let argsData := cast (by simp! [eq_of_beq h]) msg.data.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  dolet! (selfRes :: _) := consumedResObjs
-  dolet! (createdResObj :: createdFetchedResObjs) := createdResObjs
+  let! (selfRes :: _) := consumedResObjs
+  let! (createdResObj :: createdFetchedResObjs) := createdResObjs
   let catch selfObj : Object classId := Object.fromResource selfRes
     failwith fun (err : String) => throw (.custom here# err)
   let body := destructor.body selfObj argsData
@@ -221,7 +221,7 @@ private def Method.Message.logicFun
   let argsData : methodId.Args.type := cast (by simp! [eq_of_beq h]) msg.data.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
-  dolet! (selfRes :: _) := consumedResObjs
+  let! (selfRes :: _) := consumedResObjs
   let catch selfObj : Object classId := Object.fromResource selfRes
     failwith fun err => throw (.custom here# err)
   let body := method.body selfObj argsData
