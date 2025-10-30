@@ -18,7 +18,11 @@ def resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Anoma.Logi
     failwith Anoma.LogicM.throw here# "cast label"
   docheck oresLabel.label == objValue.label
     failwith Anoma.LogicM.throw here# "ecosystem label"
-  -- FIXME check classId. Also, what to do with dynamic label
+  docheck oresLabel.classId.nat == objValue.classId.nat
+    failwith Anoma.LogicM.throw here# "classId"
+  let y := objValue.data.privateFields
+  docheck oresLabel.dynamicLabel === objValue.data.dynamicLabel
+    failwith Anoma.LogicM.throw here# "dynamic label"
   docheck objValue.classId.label.logicRef == res.logicRef
     failwith throw (.custom here# "logicRef")
   docheck objValue.data.quantity == res.quantity

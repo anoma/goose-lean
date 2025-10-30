@@ -40,7 +40,7 @@ def Product (params : Program.Parameters) : Type :=
     Σ (r : Nat), Program.Parameters.Product (rest r)
 
 instance Product.instRepr {params : Program.Parameters} : Repr (Product params) where
-  reprPrec _ _ := "Product TODO"
+  reprPrec _ _ := "Product {..}"
 
 def Product.hashHelper {params : Program.Parameters} (p : params.Product) : Hashable.Mix := do
   match params with

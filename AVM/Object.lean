@@ -19,7 +19,7 @@ instance ObjectData.instHashable
   : Hashable (ObjectData c) where
   hash v := Hashable.Mix.run do
     mix lab
-    mix (lab.classesEnum.equiv c)
+    mix c.nat
     mix v.quantity
     have := c.label.PrivateFields.typeHashable
     mix v.privateFields
@@ -30,6 +30,9 @@ instance ObjectData.inhabited {lab : Ecosystem.Label} (c : lab.ClassId) : Inhabi
 
 instance ObjectData.hasTypeRep {lab : Ecosystem.Label} (c : lab.ClassId) : TypeRep (ObjectData c) where
   rep := Rep.composite "AVM.ObjectData" [Rep.atomic lab.name, Rep.atomic c.label.name]
+
+abbrev ObjectData.dynamicLabel {lab : Ecosystem.Label} {c : lab.ClassId} (objData : ObjectData c) : c.label.DynamicLabel.Label.type :=
+  c.label.DynamicLabel.mkDynamicLabel objData.privateFields
 
 structure SomeObjectData : Type 1 where
   {label : Ecosystem.Label}
@@ -80,7 +83,7 @@ structure Object {lab : Ecosystem.Label} (c : lab.ClassId) : Type where
 instance Object.instHashable {lab : Ecosystem.Label} (c : lab.ClassId) : Hashable (Object c) where
   hash v := Hashable.Mix.run do
     mix lab
-    mix (lab.classesEnum.equiv c)
+    mix c.nat
     mix v.uid
     mix v.nonce
     mix v.data
@@ -149,7 +152,7 @@ instance : Repr Object.Resource.SomeValue where
 instance : Hashable Object.Resource.SomeValue where
   hash v := Hashable.Mix.run do
     mix v.lab
-    mix (v.lab.classesEnum.equiv v.classId)
+    mix v.classId.nat
     mix v.uid
     have := v.classId.label.PrivateFields.typeHashable
     mix v.privateFields
@@ -159,10 +162,8 @@ instance : TypeRep Object.Resource.SomeValue where
 
 instance : BEq Object.Resource.SomeValue where
   beq v1 v2 :=
-    let c1 := v1.lab.classesEnum.equiv.toFun
-    let c2 := v2.lab.classesEnum.equiv.toFun
     v1.lab.name == v2.lab.name
-    && (c1 v1.classId).val == (c2 v2.classId).val
+    && v1.classId.nat == v2.classId.nat
     && v1.uid == v2.uid
     && v1.privateFields === v2.privateFields
 
@@ -172,7 +173,6 @@ def SomeObject.toResource
   (ephemeral : Bool)
   : Anoma.Resource :=
   let classId := sobj.classId
-  let clab := classId.label
   let label := sobj.label
   let obj : Object classId := sobj.object
   { Label := ⟨AVM.Resource.Label⟩,
@@ -180,7 +180,7 @@ def SomeObject.toResource
       Resource.Label.object
             { label
               classId
-              dynamicLabel := clab.DynamicLabel.mkDynamicLabel obj.data.privateFields }
+              dynamicLabel := obj.data.dynamicLabel }
     logicRef := classId.label.logicRef,
     quantity := obj.data.quantity,
     Val := ⟨Object.Resource.SomeValue⟩,

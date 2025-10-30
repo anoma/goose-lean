@@ -23,7 +23,7 @@ instance : Repr Object.Resource.Label where
 instance : Hashable Object.Resource.Label where
   hash l := Hashable.Mix.run do
     mix l.label
-    mix (l.label.classesEnum.equiv l.classId)
+    mix l.classId.nat
     have := l.classId.label.DynamicLabel.Label.typeHashable
     mix l.dynamicLabel
 
@@ -52,7 +52,7 @@ instance : Hashable Resource.Label where
 instance : Repr Resource.Label where
   reprPrec lab _prec := match lab with
     | .object l => s!"object:{repr l}"
-    | .message _l => s!"message:TODO"
+    | .message l => s!"message:{repr l}"
 
 instance : TypeRep Resource.Label where
   rep := Rep.atomic "AVM.Resource.Label"

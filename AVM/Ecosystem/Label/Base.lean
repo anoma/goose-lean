@@ -78,6 +78,8 @@ def label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label :=
 
 abbrev MemberId {lab : Ecosystem.Label} (c : lab.ClassId) := c.label.MemberId
 
+abbrev nat {lab : Ecosystem.Label} (c : lab.ClassId) : Nat := lab.classesEnum.equiv c
+
 instance MemberId.hasTypeRep {lab : Ecosystem.Label} {c : lab.ClassId} : TypeRep c.MemberId := Class.Label.MemberId.hasTypeRep c.label
 
 instance MemberId.hasBEq {lab : Ecosystem.Label} {c : lab.ClassId} : BEq c.MemberId := Class.Label.MemberId.hasBEq
