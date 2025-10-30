@@ -16,5 +16,5 @@ jobs:
         with:
           build-args: "--wfail"
       - name: Run UniversalCounter example
-          run: |
-            lake exe counter
+        run: |
+          lake exe counter
