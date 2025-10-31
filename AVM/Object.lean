@@ -239,3 +239,6 @@ def SomeObject.fromResource
 
 def Resource.isSomeObject (res : Anoma.Resource) : Bool :=
   Except.isOk (SomeObject.fromResource res)
+
+def selectObjects (resources : List Anoma.Resource) : List SomeObject :=
+  resources.filterMap (fun r => SomeObject.fromResource r |>.toOption)
