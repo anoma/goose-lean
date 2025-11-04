@@ -26,8 +26,8 @@ private def resolveParameters (params : Program.Parameters) (cont : params.Produ
   | .empty => cont PUnit.unit
   | .fetch (classId := classId) p ps =>
     Anoma.Program.queryResource (Anoma.Program.ResourceQuery.mk p) (fun res =>
-      let try obj : Object classId := Object.fromResource res
-          failwith Anoma.Program.raise <| Anoma.Program.Error.typeError ("expected object of class " ++ classId.label.name)
+      let catch obj : Object classId := Object.fromResource res
+          failwith fun _err => Anoma.Program.raise <| Anoma.Program.Error.typeError ("expected object of class " ++ classId.label.name)
       resolveParameters (ps obj) (fun vals => cont ⟨obj, vals⟩))
   | .genId ps =>
     Anoma.Program.genObjectId (fun objId =>

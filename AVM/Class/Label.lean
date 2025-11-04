@@ -52,6 +52,9 @@ structure Label : Type 1 where
   [methodsBEq : BEq MethodId]
   [methodsLawfulBEq : LawfulBEq MethodId]
 
+instance Label.instRepr : Repr Label where
+  reprPrec l _ := l.name
+
 instance Label.instHashable : Hashable Label where
   hash l := hash l.name
 
@@ -76,6 +79,17 @@ inductive Label.MemberId (lab : Class.Label) : Type where
   | destructorId (destructorId : lab.DestructorId) : MemberId lab
   | methodId (methodId : lab.MethodId) : MemberId lab
   | upgradeId : MemberId lab
+
+instance (lab : Class.Label) : Repr (Label.MemberId lab) where
+  reprPrec m _ :=
+  have := lab.constructorsRepr
+  have := lab.destructorsRepr
+  have := lab.methodsRepr
+  match m with
+  | .constructorId constrId => s!"constructor {repr constrId}"
+  | .destructorId destructorId => s!"destructor {repr destructorId}"
+  | .methodId methodId => s!"destructor {repr methodId}"
+  | .upgradeId  => "upgradeId"
 
 instance Label.MemberId.instHashable {lab : Class.Label} : Hashable (Class.Label.MemberId lab) where
   hash l := Hashable.Mix.run do

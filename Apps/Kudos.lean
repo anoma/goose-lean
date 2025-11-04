@@ -16,7 +16,7 @@ open Applib
 structure KudosData where
   originator : AVM.PublicKey
   owner : AVM.PublicKey
-  deriving DecidableEq, Inhabited, Hashable
+  deriving DecidableEq, Inhabited, Hashable, Repr
 
 structure Kudos extends KudosData where
   quantity : Nat
@@ -85,14 +85,14 @@ instance hasTypeRep : TypeRep Kudos where
 structure MintArgs where
   originator : PublicKey
   quantity : Nat
-  deriving BEq, Hashable
+  deriving BEq, Hashable, Repr
 
 instance MintArgs.hasTypeRep : TypeRep MintArgs where
   rep := Rep.atomic "MintArgs"
 
 structure TransferArgs where
   newOwner : PublicKey
-  deriving DecidableEq, Hashable
+  deriving DecidableEq, Hashable, Repr
 
 instance TransferArgs.hasTypeRep : TypeRep TransferArgs where
   rep := Rep.atomic "TransferArgs"
@@ -130,7 +130,7 @@ inductive ArgNames where
 export ArgNames (Kudos1 Kudos2)
 
 structure Args where
-  deriving BEq, Hashable
+  deriving BEq, Hashable, Repr
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "Kudos.Merge.Args"
@@ -147,7 +147,7 @@ export ArgNames (Kudos)
 
 structure Args where
   quantities : List Nat
-  deriving BEq, Hashable
+  deriving BEq, Hashable, Repr
 
 instance Args.hasTypeRep : TypeRep Args where
   rep := Rep.atomic "Kudos.Split.Args"

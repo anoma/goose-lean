@@ -26,6 +26,9 @@ structure Label : Type 1 where
   [multiMethodsBEq : BEq MultiMethodId]
   [multiMethodsLawfulBEq : LawfulBEq MultiMethodId]
 
+instance Label.instRepr : Repr Label where
+  reprPrec l _ := s!"\{name := {l.name}; .. : Ecosystem.Label}"
+
 instance Label.instHashable : Hashable Label where
   hash l := hash l.name
 
@@ -74,6 +77,8 @@ def label {lab : Ecosystem.Label} (classId : lab.ClassId) : Class.Label :=
   lab.classLabel classId
 
 abbrev MemberId {lab : Ecosystem.Label} (c : lab.ClassId) := c.label.MemberId
+
+abbrev nat {lab : Ecosystem.Label} (c : lab.ClassId) : Nat := lab.classesEnum.equiv c
 
 instance MemberId.hasTypeRep {lab : Ecosystem.Label} {c : lab.ClassId} : TypeRep c.MemberId := Class.Label.MemberId.hasTypeRep c.label
 
@@ -128,6 +133,13 @@ inductive MemberId (lab : Ecosystem.Label) : Type where
   | classMember {classId : lab.ClassId} (memId : classId.MemberId)
 
 namespace MemberId
+
+instance instRepr {lab : Ecosystem.Label} : Repr (MemberId lab) where
+  reprPrec m _ :=
+    have := lab.multiMethodsRepr
+    match m with
+    | .multiMethodId f => s!"MultiMethod {repr f}"
+    | .classMember f => repr f
 
 instance instHashable {lab : Ecosystem.Label} : Hashable (MemberId lab) where
   hash m := Hashable.Mix.run do

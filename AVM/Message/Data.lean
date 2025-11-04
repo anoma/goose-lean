@@ -18,6 +18,17 @@ structure MessageData (lab : Ecosystem.Label) : Type 1 where
   /-- The recipients of the message. -/
   recipients : List ObjectId
 
+instance {lab : Ecosystem.Label} : Repr (MessageData lab) where
+  reprPrec r _ :=
+    have := r.Vals.typeRepr
+    have := r.id.Args.typeRepr
+    s!"Message@\{
+      id := {repr r.id}
+      vals := {repr r.vals}
+      args := {repr r.args}
+      recipients := {repr r.recipients}
+    }"
+
 instance MessageData.hasTypeRep (lab : Ecosystem.Label) : TypeRep (MessageData lab) where
   rep := Rep.composite "AVM.MessageData" [Rep.atomic lab.name]
 

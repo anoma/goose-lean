@@ -77,21 +77,22 @@ def MultiMethod.Message.logicFun
   (method : MultiMethod multiId)
   (msg : Message lab)
   (args : Logic.Args)
-  : Bool :=
-  check h : msg.data.id == .multiMethodId multiId
+  : Anoma.LogicM := do
+  docheck h : msg.data.id == .multiMethodId multiId
   let fargs : multiId.Args.type := cast (by simp! [eq_of_beq h]) msg.data.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
   let argsConsumedSelves := consumedResObjs.take multiId.numObjectArgs
-  let try argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves
-  check method.invariant msg argsConsumedObjects fargs
+  let catch argsConsumedObjects : multiId.Selves := Label.MultiMethodId.ConsumedToSelves argsConsumedSelves
+    failwith fun err => throw (.custom here# err)
+  docheck method.invariant msg argsConsumedObjects fargs
   let prog := method.body argsConsumedObjects fargs
   let try vals : prog.params.Product := tryCast msg.data.vals
   let res : MultiMethodResult multiId := prog.value vals
   let valsObjs := prog.objects vals
   let fetchedObjValues := valsObjs.map (·.toObjectValue)
   let data := res.data
-  check argsConsumedSelves.length == multiId.numObjectArgs
+  docheck argsConsumedSelves.length == multiId.numObjectArgs
   let try (argsConstructedEph, consumedFetchedResObjs, .unit) :=
     consumedResObjs.drop multiId.numObjectArgs
     |>.splitsExact [data.numConstructed, valsObjs.length]
@@ -116,20 +117,21 @@ def MultiMethod.Message.logicFun
     |>.splitsExact [reassembled.length, data.numConstructed, data.numSelvesDestroyed, valsObjs.length]
   let messageValues := Program.messageValues prog vals
   let createdResMsgs := Logic.selectMessageResources args.created
-  Logic.checkMessageResourceValues messageValues createdResMsgs
-    && Logic.checkResourceValues reassembled argsCreated.toList
-    && Logic.checkResourceValues constructedObjects argsConstructed.toList
-    && Logic.checkResourceValues constructedObjects argsConstructedEph.toList
-    && Logic.checkResourceValues consumedDestroyedObjects argsSelvesDestroyedEph.toList
-    && Logic.checkResourceValues fetchedObjValues consumedFetchedResObjs.toList
-    && Logic.checkResourceValues fetchedObjValues createdFetchedResObjs.toList
-    && Logic.checkResourcesPersistent argsConsumedSelves
+  docheck Logic.checkMessageResourceValues messageValues createdResMsgs
+  Logic.checkResourceValues reassembled argsCreated.toList
+  Logic.checkResourceValues constructedObjects argsConstructed.toList
+  Logic.checkResourceValues constructedObjects argsConstructedEph.toList
+  Logic.checkResourceValues consumedDestroyedObjects argsSelvesDestroyedEph.toList
+  Logic.checkResourceValues fetchedObjValues consumedFetchedResObjs.toList
+  Logic.checkResourceValues fetchedObjValues createdFetchedResObjs.toList
+  docheck Logic.checkResourcesPersistent argsConsumedSelves
     && Logic.checkResourcesPersistent argsCreated.toList
     && Logic.checkResourcesPersistent argsConstructed.toList
     && Logic.checkResourcesPersistent consumedFetchedResObjs.toList
     && Logic.checkResourcesPersistent createdFetchedResObjs.toList
     && Logic.checkResourcesEphemeral argsConstructedEph.toList
     && Logic.checkResourcesEphemeral argsSelvesDestroyedEph.toList
+  Anoma.LogicM.true
 
 end AVM.Ecosystem
 
@@ -143,29 +145,36 @@ private def Constructor.Message.logicFun
   (constr : Class.Constructor classId constrId)
   (msg : Message lab)
   (args : Logic.Args)
-  : Bool :=
-  check h : msg.data.id == .classMember (Label.MemberId.constructorId constrId)
+  : Anoma.LogicM := Anoma.LogicM.withTrace here# "Constructor.Message.logicFun" do
+  docheck h : msg.data.id == .classMember (Label.MemberId.constructorId constrId)
   let argsData : constrId.Args.type := cast (by simp! [eq_of_beq h]) msg.data.args
   let body := constr.body argsData
   let try vals : body.params.Product := tryCast msg.data.vals
   let newObjData := body.value vals
-  let consumedResObjs := Logic.selectObjectResources args.consumed
-  let createdResObjs := Logic.selectObjectResources args.created
+  let consumedResObjs := Logic.selectObjectResources (args.consumed ++ if args.isConsumed then [args.self] else [])
+  let createdResObjs := Logic.selectObjectResources (args.created ++ if args.isConsumed then [] else [args.self])
   let! (newObjRes :: _) := createdResObjs
   let! (consumedObjRes :: consumedFetchedResObjs) := consumedResObjs
+    failwith throw (.custom here#
+    s!"consumedResObjs.length = {consumedResObjs.length}
+    args.consumed:\n{repr args.consumed}
+    args.created:\n{repr args.created}
+    self:\n{repr args.self}
+    self.isConsumed: {repr args.isConsumed}")
   let uid : ObjectId := newObjRes.nonce.value
   let messageValues := Program.messageValues body vals
-  let createdResMsgs := Logic.selectMessageResources args.created
+  let createdResMsgs := Logic.selectMessageResources (args.created  ++ if args.isConsumed then [] else [args.self])
   let valsObjs := body.objects vals
   let fetchedObjValues := valsObjs.map (·.toObjectValue)
   let newObjValue := newObjData.toObjectValue uid
-  Logic.checkMessageResourceValues messageValues createdResMsgs
-    && Logic.checkResourceValues (newObjValue :: fetchedObjValues) consumedResObjs
-    && Logic.checkResourceValues (newObjValue :: fetchedObjValues) createdResObjs
-    && Logic.checkResourcesEphemeral [consumedObjRes]
-    && Logic.checkResourcesPersistent createdResObjs
-    && Logic.checkResourcesPersistent consumedFetchedResObjs
-    && constr.invariant msg argsData
+  docheck Logic.checkMessageResourceValues messageValues createdResMsgs
+  Logic.checkResourceValues (newObjValue :: fetchedObjValues) consumedResObjs
+  Logic.checkResourceValues (newObjValue :: fetchedObjValues) createdResObjs
+  docheck Logic.checkResourcesEphemeral [consumedObjRes]
+  docheck Logic.checkResourcesPersistent createdResObjs
+  docheck Logic.checkResourcesPersistent consumedFetchedResObjs
+  docheck constr.invariant msg argsData
+  Anoma.LogicM.true
 
 /-- Creates a message logic function for a given destructor. -/
 private def Destructor.Message.logicFun
@@ -175,14 +184,15 @@ private def Destructor.Message.logicFun
   (destructor : Class.Destructor classId destructorId)
   (msg : Message lab)
   (args : Logic.Args)
-  : Bool :=
-  check h : msg.data.id == .classMember (Label.MemberId.destructorId destructorId)
+  : Anoma.LogicM := Anoma.LogicM.withTrace here# "Destructor.Message.logicFun" do
+  docheck h : msg.data.id == .classMember (Label.MemberId.destructorId destructorId)
   let argsData := cast (by simp! [eq_of_beq h]) msg.data.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
   let! (selfRes :: _) := consumedResObjs
   let! (createdResObj :: createdFetchedResObjs) := createdResObjs
-  let try selfObj : Object classId := Object.fromResource selfRes
+  let catch selfObj : Object classId := Object.fromResource selfRes
+    failwith fun (err : String) => throw (.custom here# err)
   let body := destructor.body selfObj argsData
   let try vals : body.params.Product := tryCast msg.data.vals
   let messageValues := Program.messageValues body vals
@@ -190,13 +200,14 @@ private def Destructor.Message.logicFun
   let valsObjs := body.objects vals
   let fetchedObjValues := valsObjs.map (·.toObjectValue)
   let selfObjValue := selfObj.toObjectValue
-  Logic.checkMessageResourceValues messageValues createdResMsgs
-    && Logic.checkResourceValues (selfObjValue :: fetchedObjValues) createdResObjs
-    && Logic.checkResourceValues (selfObjValue :: fetchedObjValues) consumedResObjs
-    && Logic.checkResourcesPersistent consumedResObjs
+  docheck Logic.checkMessageResourceValues messageValues createdResMsgs
+  Logic.checkResourceValues (selfObjValue :: fetchedObjValues) createdResObjs
+  Logic.checkResourceValues (selfObjValue :: fetchedObjValues) consumedResObjs
+  docheck Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesEphemeral [createdResObj]
     && Logic.checkResourcesPersistent createdFetchedResObjs
     && destructor.invariant msg selfObj argsData
+  Anoma.LogicM.true
 
 private def Method.Message.logicFun
   {lab : Ecosystem.Label}
@@ -205,43 +216,48 @@ private def Method.Message.logicFun
   (method : Class.Method classId methodId)
   (msg : Message lab)
   (args : Logic.Args)
-  : Bool :=
-  check h : msg.data.id == .classMember (Label.MemberId.methodId methodId)
+  : Anoma.LogicM := Anoma.LogicM.withTrace here# "Method.Message.logicFun" do
+  docheck h : msg.data.id == .classMember (Label.MemberId.methodId methodId)
   let argsData : methodId.Args.type := cast (by simp! [eq_of_beq h]) msg.data.args
   let consumedResObjs := Logic.selectObjectResources args.consumed
   let createdResObjs := Logic.selectObjectResources args.created
   let! (selfRes :: _) := consumedResObjs
-  let try selfObj : Object classId := Object.fromResource selfRes
+  let catch selfObj : Object classId := Object.fromResource selfRes
+    failwith fun err => throw (.custom here# err)
   let body := method.body selfObj argsData
   let try vals : body.params.Product := tryCast msg.data.vals
-  check method.invariant msg selfObj argsData
+  docheck method.invariant msg selfObj argsData
   let createdObject : Object classId := body |>.value vals
   let messageValues := Program.messageValues body vals
   let createdResMsgs := Logic.selectMessageResources args.created
   let valsObjs := body.objects vals
   let fetchedObjValues := valsObjs.map (·.toObjectValue)
-  Logic.checkMessageResourceValues messageValues createdResMsgs
-    && Logic.checkResourceValues (createdObject.toObjectValue :: fetchedObjValues) createdResObjs
-    && Logic.checkResourceValues (selfObj.toObjectValue :: fetchedObjValues) consumedResObjs
-    && Logic.checkResourcesPersistent consumedResObjs
+  docheck Logic.checkMessageResourceValues messageValues createdResMsgs
+  Logic.checkResourceValues (createdObject.toObjectValue :: fetchedObjValues) createdResObjs
+  Logic.checkResourceValues (selfObj.toObjectValue :: fetchedObjValues) consumedResObjs
+  docheck Logic.checkResourcesPersistent consumedResObjs
     && Logic.checkResourcesPersistent createdResObjs
+  Anoma.LogicM.true
 
 private def Upgrade.Message.logicFun
   {lab : Ecosystem.Label}
   (classId : lab.ClassId)
   (args : Logic.Args)
-  : Bool :=
+  : Anoma.LogicM :=
   let! [selfRes] := Logic.selectObjectResources args.consumed
   let! [upgradedRes] := Logic.selectObjectResources args.created
-  let try selfObj : Object classId := Object.fromResource selfRes
-  let try upgradedObj : SomeObject := SomeObject.fromResource upgradedRes
-  selfObj.uid == upgradedObj.object.uid
+  let catch selfObj : Object classId := Object.fromResource selfRes
+    failwith fun err => throw (.custom here# err)
+  let catch upgradedObj : SomeObject := SomeObject.fromResource upgradedRes
+    failwith fun err => throw (.custom here# err)
+  check selfObj.uid == upgradedObj.object.uid
     && classId.label.isUpgradeable
     && upgradedObj.label == lab
     && upgradedObj.classId.label.name == classId.label.name
     && upgradedObj.classId.label.version > classId.label.version
     && selfRes.isPersistent
     && upgradedRes.isPersistent
+  .true
 
 private def Member.logicFun
   {lab : Ecosystem.Label}
@@ -249,7 +265,7 @@ private def Member.logicFun
   (member : lab.MemberId)
   (msg : Message lab)
   (args : Logic.Args)
-  : Bool :=
+  : Anoma.LogicM :=
   match member with
   | .multiMethodId multiId =>
     let method : Ecosystem.MultiMethod multiId := eco.multiMethods multiId
@@ -282,21 +298,26 @@ private def logicFun
   (eco : Ecosystem lab)
   (classId : lab.ClassId)
   (args : Logic.Args)
-  : Bool :=
-  let try self : Object classId := Object.fromResource args.self
+  : Anoma.LogicM :=
+  let catch self : Object classId := Object.fromResource args.self
+    failwith fun err => throw (.custom here# s!"Failed to decode self to an Object:
+    error: {err}
+    ------
+    Resource:
+    {repr args.self}")
   check eco.classes classId |>.invariant self args
   match args.status with
-  | Created => true
+  | Created => .true
   | Consumed =>
     if args.self.isPersistent && Logic.isObjectPreserved self.toObjectValue args.created then
-      true
+      .true
     else
       let! [consumedMessageResource] := Logic.selectMessageResources args.consumed
       -- Note: the success of the `try` below ensures that the message is "legal"
       -- for the consumed objects - it is from the same ecosystem
       let try msg : Message lab := Message.fromResource consumedMessageResource
-      self.uid ∈ msg.data.recipients
-      && Member.logicFun eco msg.data.id msg args
+      check self.uid ∈ msg.data.recipients
+      Member.logicFun eco msg.data.id msg args
 
 /-- The class logic that is the Resource Logic of each resource corresponding to
   an object of this class. -/

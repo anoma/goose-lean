@@ -11,13 +11,26 @@ namespace AVM.Logic
 def filterOutDummy (resources : List Anoma.Resource) : List Anoma.Resource :=
   resources.filter (not ∘ Action.isDummyResource)
 
-def resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Bool :=
-  objValue.label === res.label &&
-  objValue.classId.label.logicRef == res.logicRef &&
-  objValue.data.quantity == res.quantity &&
-    let try resVal : Object.Resource.Value objValue.classId := tryCast res.value
-    resVal.privateFields == objValue.data.privateFields &&
-    resVal.uid == objValue.uid
+def resourceValueEq (objValue : ObjectValue) (res : Anoma.Resource) : Anoma.LogicM := Anoma.LogicM.withTrace here# "resourceValueEq" do
+  let try resLabel : Resource.Label := tryCast res.label
+    failwith Anoma.LogicM.throw here# "cast label"
+  let! (Resource.Label.object (oresLabel : Object.Resource.Label)) := resLabel
+    failwith Anoma.LogicM.throw here# "cast label"
+  docheck oresLabel.label == objValue.label
+    failwith Anoma.LogicM.throw here# "ecosystem label"
+  docheck oresLabel.classId.nat == objValue.classId.nat
+    failwith Anoma.LogicM.throw here# "classId"
+  let y := objValue.data.privateFields
+  docheck oresLabel.dynamicLabel === objValue.data.dynamicLabel
+    failwith Anoma.LogicM.throw here# "dynamic label"
+  docheck objValue.classId.label.logicRef == res.logicRef
+    failwith throw (.custom here# "logicRef")
+  docheck objValue.data.quantity == res.quantity
+    failwith throw (.custom here# "quantity")
+  let try resVal : Object.Resource.Value objValue.classId := tryCast res.value
+  docheck resVal.privateFields == objValue.data.privateFields
+  docheck resVal.uid == objValue.uid
+  Anoma.LogicM.true
 
 def resourceIdEq (objValue : ObjectValue) (res : Anoma.Resource) : Bool :=
   let try resVal : Object.Resource.Value objValue.classId := tryCast res.value
@@ -27,10 +40,12 @@ def resourceIdEq (objValue : ObjectValue) (res : Anoma.Resource) : Bool :=
     quantity, value and labels of each resource match the corresponding object.
     This check is used in the constructor, destructor and method message logics.
     Dummy resources in the `resources` list are ignored. -/
-def checkResourceValues (objectValues : List ObjectValue) (resources : List Anoma.Resource) : Bool :=
+def checkResourceValues (objectValues : List ObjectValue) (resources : List Anoma.Resource) : Anoma.LogicM :=
+  Anoma.LogicM.withTrace here# "checkResourceValues" do
   let resources' := Logic.filterOutDummy resources
-  objectValues.length == resources'.length
-    && List.and (List.zipWith resourceValueEq objectValues resources')
+  docheck objectValues.length == resources'.length
+    failwith (throw (.custom here# "length"))
+  List.zipWithM' resourceValueEq objectValues resources'
 
 def checkResourcesEphemeral (resources : List Anoma.Resource) : Bool :=
   Logic.filterOutDummy resources |>.all Anoma.Resource.isEphemeral
@@ -46,4 +61,4 @@ def selectMessageResources (resources : List Anoma.Resource) : List Anoma.Resour
 
 def isObjectPreserved (obj : ObjectValue) (resources : List Anoma.Resource) : Bool :=
   let! [res] := resources.filter (resourceIdEq obj)
-  resourceValueEq obj res && res.isPersistent
+  (resourceValueEq obj res).isOk && res.isPersistent

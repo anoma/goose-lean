@@ -6,7 +6,7 @@ namespace Anoma
 
 structure Nonce where
  value : Nat
- deriving BEq, Hashable
+ deriving BEq, Hashable, Repr
 
 instance Nonce.hasTypeRep : TypeRep Nonce where
   rep := Rep.atomic "Nonce"

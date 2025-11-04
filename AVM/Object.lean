@@ -19,7 +19,7 @@ instance ObjectData.instHashable
   : Hashable (ObjectData c) where
   hash v := Hashable.Mix.run do
     mix lab
-    mix (lab.classesEnum.equiv c)
+    mix c.nat
     mix v.quantity
     have := c.label.PrivateFields.typeHashable
     mix v.privateFields
@@ -30,6 +30,9 @@ instance ObjectData.inhabited {lab : Ecosystem.Label} (c : lab.ClassId) : Inhabi
 
 instance ObjectData.hasTypeRep {lab : Ecosystem.Label} (c : lab.ClassId) : TypeRep (ObjectData c) where
   rep := Rep.composite "AVM.ObjectData" [Rep.atomic lab.name, Rep.atomic c.label.name]
+
+abbrev ObjectData.dynamicLabel {lab : Ecosystem.Label} {c : lab.ClassId} (objData : ObjectData c) : c.label.DynamicLabel.Label.type :=
+  c.label.DynamicLabel.mkDynamicLabel objData.privateFields
 
 structure SomeObjectData : Type 1 where
   {label : Ecosystem.Label}
@@ -80,7 +83,7 @@ structure Object {lab : Ecosystem.Label} (c : lab.ClassId) : Type where
 instance Object.instHashable {lab : Ecosystem.Label} (c : lab.ClassId) : Hashable (Object c) where
   hash v := Hashable.Mix.run do
     mix lab
-    mix (lab.classesEnum.equiv c)
+    mix c.nat
     mix v.uid
     mix v.nonce
     mix v.data
@@ -124,10 +127,32 @@ structure Object.Resource.SomeValue where
   uid : Anoma.ObjectId
   privateFields : classId.label.PrivateFields.type
 
+def Object.Resource.SomeValue.toValue
+  {lab : Ecosystem.Label}
+  {classId : lab.ClassId}
+  (v : SomeValue)
+  : Except String (Object.Resource.Value classId) :=
+  check v.lab == lab
+    failwith (throw s!"{repr here#}: Labels do not match")
+  let try privateFields := tryCast v.privateFields
+  pure {
+    uid := v.uid
+    privateFields }
+
+instance : Repr Object.Resource.SomeValue where
+  reprPrec v _ :=
+    have := v.lab.classesRepr
+    have := v.classId.label.PrivateFields.typeRepr
+    s!"SomeValue@\{
+      classId := {repr v.classId}
+      uid := {repr v.uid}
+      privateFields := {repr v.privateFields}
+    }"
+
 instance : Hashable Object.Resource.SomeValue where
   hash v := Hashable.Mix.run do
     mix v.lab
-    mix (v.lab.classesEnum.equiv v.classId)
+    mix v.classId.nat
     mix v.uid
     have := v.classId.label.PrivateFields.typeHashable
     mix v.privateFields
@@ -137,10 +162,8 @@ instance : TypeRep Object.Resource.SomeValue where
 
 instance : BEq Object.Resource.SomeValue where
   beq v1 v2 :=
-    let c1 := v1.lab.classesEnum.equiv.toFun
-    let c2 := v2.lab.classesEnum.equiv.toFun
     v1.lab.name == v2.lab.name
-    && (c1 v1.classId).val == (c2 v2.classId).val
+    && v1.classId.nat == v2.classId.nat
     && v1.uid == v2.uid
     && v1.privateFields === v2.privateFields
 
@@ -150,7 +173,6 @@ def SomeObject.toResource
   (ephemeral : Bool)
   : Anoma.Resource :=
   let classId := sobj.classId
-  let clab := classId.label
   let label := sobj.label
   let obj : Object classId := sobj.object
   { Label := ⟨AVM.Resource.Label⟩,
@@ -158,7 +180,7 @@ def SomeObject.toResource
       Resource.Label.object
             { label
               classId
-              dynamicLabel := clab.DynamicLabel.mkDynamicLabel obj.data.privateFields }
+              dynamicLabel := obj.data.dynamicLabel }
     logicRef := classId.label.logicRef,
     quantity := obj.data.quantity,
     Val := ⟨Object.Resource.SomeValue⟩,
@@ -177,28 +199,43 @@ def Object.fromResource
   {lab : Ecosystem.Label}
   {c : lab.ClassId}
   (res : Anoma.Resource)
-  : Option (Object c) :=
+  : Except String (Object c) :=
   let try resLab : AVM.Resource.Label := tryCast res.label
+    failwith throw s!"{repr here#}"
   let try objLab := Resource.Label.getObjectResourceLabel resLab
+    failwith throw s!"{repr here#}"
   check (objLab.label == lab)
+    failwith throw s!"{repr here#}"
   check (res.logicRef == c.label.logicRef)
-  let try value : Object.Resource.Value c := tryCast res.value
-  some {  uid := value.uid
-          data := { quantity := res.quantity
-                    privateFields := value.privateFields }
-          nonce := res.nonce }
+    failwith throw s!"{repr here#}"
+  let try svalue : Object.Resource.SomeValue := tryCast res.value
+    failwith
+      have := res.Val.typeRepr
+      have := lab.classesRepr
+      let x : TypeRep (Object.Resource.Value c) := inferInstance
+      throw s!"{repr here#}: Failed to cast value
+      classId: {repr c}
+      classLabel: {repr (lab.classLabel c)}
+      resource typeRep: {repr res.Val.typeTypeRep.rep}
+      expected typeRep: {repr x.rep}
+      value:\n {repr res.value}"
+  let catch value : Object.Resource.Value c := svalue.toValue
+  pure { uid := value.uid
+         data := { quantity := res.quantity
+                   privateFields := value.privateFields }
+         nonce := res.nonce }
 
 def SomeObject.fromResource
   (res : Anoma.Resource)
-  : Option SomeObject :=
+  : Except String SomeObject :=
   let try resLab : AVM.Resource.Label := tryCast res.label
   let try objLab := Resource.Label.getObjectResourceLabel resLab
   let label : Ecosystem.Label := objLab.label
   let classId := objLab.classId
-  let try object := @Object.fromResource label classId res
-  some { label
-         classId
-         object }
+  let catch object := @Object.fromResource label classId res
+  .ok { label
+        classId
+        object }
 
 def Resource.isSomeObject (res : Anoma.Resource) : Bool :=
-  Option.isSome (SomeObject.fromResource res)
+  Except.isOk (SomeObject.fromResource res)

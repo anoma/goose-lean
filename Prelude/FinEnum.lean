@@ -49,6 +49,11 @@ def IsSomeDec {A} {a : A} {B : (a : A) → Type u} (m : Option (B a)) : Decidabl
   | none => isFalse (fun _ => by contradiction)
   | some _ => isTrue rfl
 
+def IsOkDec {A} {ε} {a : A} {B : (a : A) → Type u} (m : Except ε (B a)) : Decidable m.isOk :=
+  match m with
+  | .error _ => isFalse (fun _ => by contradiction)
+  | .ok _ => isTrue rfl
+
 def decImageOption {A : Type u} [FinEnum A] {B : (a : A) → Type v}
   (f : (a : A) -> Option (B a))
   : (∀ a : A, PLift ((f a).isSome)) ⊕ (Σ a : A, PLift (¬ (f a).isSome)) :=
@@ -63,6 +68,30 @@ def decImageOption' {A : Type u} [enum : FinEnum A] {B : (a : A) → Type v}
     match p1 : f a with
     | some b => b
     | none => by
+        have c := (p a).down
+        rw [p1] at c
+        contradiction
+
+def decImageExcept {A : Type u} [FinEnum A] {B : (a : A) → Type v}
+  (f : (a : A) -> Option (B a))
+  : (∀ a : A, PLift ((f a).isSome)) ⊕ (Σ a : A, PLift (¬ (f a).isSome)) :=
+  decImage f IsSomeDec
+
+def decImageExcept' {ε : Type w} {A : Type u} [enum : FinEnum A] {B : (a : A) → Type v}
+  (f : (a : A) -> Except ε (B a))
+  : Except ε (∀ a : A, B a) :=
+  match decImage f IsOkDec with
+  | .inr ⟨e, p⟩ => .error <|
+    match p1 : f e with
+    | .error e => e
+    | .ok _ => by
+      have c := p.down
+      rw [p1] at c
+      contradiction
+  | .inl p => .ok <| fun a =>
+    match p1 : f a with
+    | .ok b => b
+    | .error e => by
         have c := (p a).down
         rw [p1] at c
         contradiction
