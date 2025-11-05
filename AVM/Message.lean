@@ -36,7 +36,7 @@ def SomeMessage.toResource (msg : SomeMessage) (nonce : Anoma.Nonce) : Anoma.Res
   { Val := ⟨PUnit⟩,
     Label := ⟨SomeMessage⟩,
     label := msg,
-    logicRef := Logic.trivialLogicRef,
+    logicRef := messageResourceLogicRef,
     value := PUnit.unit,
     quantity := 1,
     nullifierKeyCommitment := default,
