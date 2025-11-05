@@ -19,7 +19,7 @@ def Message.logicfun (args : Anoma.Logic.Args) : Anoma.LogicM :=
   | Consumed => do
     let try self : SomeMessage := SomeMessage.fromResource args.self
     let allObjectUids : Std.HashSet ObjectId :=
-        (args.consumed ++ args.created)
+        args.consumed
           |> selectObjects
           |>.map (·.object.uid)
           |> Std.HashSet.ofList
