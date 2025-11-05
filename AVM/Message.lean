@@ -25,7 +25,7 @@ def Message.logicfun (args : Anoma.Logic.Args) : Anoma.LogicM :=
           |> Std.HashSet.ofList
     forM self.message.data.recipients fun recipient => do
       docheck recipient ∈ allObjectUids
-        failwith (Anoma.LogicM.throw here# s!"receiver {repr recipient} not in Action")
+        failwith (Anoma.LogicM.throw here# s!"recipient {repr recipient} not in Action")
       Anoma.LogicM.true
 
 def messageResourceLogic : Anoma.Logic :=
