@@ -507,7 +507,7 @@ Destructor message logic has access to RL arguments which contain the following.
 Destructor message logic for a destructor `destr` performs the following checks.
 
 - `consumed` contains:
-    - one ephemeral message resource `msgRes` for the received destructor message `res`,
+    - one ephemeral message resource `msgRes` for the received destructor message,
 	- one persistent object resource `selfRes` corresponding to the `self` object,
 	- persistent object resources corresponding to the objects fetched in the destructor body.
 - `created` contains:
