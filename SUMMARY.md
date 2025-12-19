@@ -543,7 +543,7 @@ Method message logic has access to RL arguments which contain the following.
 Method message logic for a method `method` performs the following checks.
 
 - `consumed` contains:
-    - one ephemeral message resource `msgRes` for the received method message `res`,
+    - one ephemeral message resource `msgRes` for the received method message,
 	- one persistent object resource `selfRes` corresponding to the `self` object,
 	- persistent object resources corresponding to the objects fetched in the method body.
 - `created` contains:
