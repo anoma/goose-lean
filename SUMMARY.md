@@ -55,11 +55,13 @@ A high-level summary description of GOOSE v0.3.1. The description intentionally 
 
 ## Overview
 
-The Anoma Virtual Machine (AVM) data structures provide an object-oriented abstraction over the Anoma Resource Machine (RM). Ecosystems encapsulate collections of related classes and functions. Each class within an ecosystem uniquely defines its structure through private fields and member operations — constructors, destructors, and methods. Multi-methods in an ecosystem operate over sets of objects from these classes. Every class belongs to a single ecosystem, and the relationships between classes, their operations, and multi-methods must be fully specified ahead of time — there is no dynamic addition of members or runtime reflection.
+The Anoma Virtual Machine (AVM) data structures provide an object-oriented abstraction over the Anoma Resource Machine (RM). Ecosystems encapsulate collections of related classes and functions. Each class within an ecosystem uniquely defines its structure through private fields and member operations — constructors, destructors, and methods. Multi-methods in an ecosystem operate over sets of objects from these classes.
 
-The translation from AVM to the Resource Machine (RM) relies on the static nature of AVM programs. Each object is compiled to a single resource, tagged with its class and ecosystem metadata. Constructor, destructor, method and multi-method calls are translated into message sends. Each message is implemented with a single message resource. The transactions generated for each call consist of a number of actions, one per object. The messages received by the object are consumed in the action, the messages sent by it are created. The Resource Logics (RLs) of the message resources implement the checks corresponding to the code of the class member operations and multi-methods.
+The translation from AVM to the Resource Machine (RM) converts an AVM program into a concrete Anoma Resource Machine (ARM) transaction together with the associated resource logics that check transaction validity. At a high level, the translation replaces familiar object-oriented operations with resource-based state transitions: each object is represented by a single ARM resource, and each constructor, method, destructor, upgrade, or multi-method call is represented by a message that induces an action within a transaction. The translation is compositional: every interface call is compiled independently into a small fragment that consumes and creates the appropriate object and message resources, and these fragments are then combined into one balanced transaction. As a result, a complete AVM program is realized as a single ARM transaction that faithfully implements the object-level behavior specified by the program.
 
-Because all class member operations and multi-methods are known statically, appropriate RLs for the message resources can be automatically generated from the code. In addition to RLs for messages, a Resource Logic is generated for each class (the class logic) and associated with each object of the class - it checks if the messages sent to the object correspond to statically known member operations or multi-methods.
+A distinctive feature of the translation is the dual role played by AVM program code. The same object-oriented method bodies are used both to construct the transaction that specifies the ARM state update and to generate the resource logics that validate that update. On the transaction side, the code determines which object resources are consumed and what updated object resources are created. On the resource logic side, the same code is converted into constraints that must hold for any transaction involving the object, ensuring that the update corresponds exactly to one of the object’s defined operations. This duality means that application logic is written once, but compiled to two different targets: executable transaction descriptions and declarative resource logics, potentially implemented in different underlying languages or execution environments.
+
+The translation guarantees strong interface security. For each object, the generated resource logic enforces that any modification of the corresponding resource must correspond to a valid invocation of one of the object’s interface operations, as defined by its class and ecosystem. If an object is changed, there must be a matching message in the transaction, and the message logic verifies that the state transition matches the object’s method body. Transactions that attempt to bypass the interface — by directly manipulating resources without an appropriate message, or by performing an unrecognized state change — are rejected by the ARM. Crucially, this protection holds even for transactions constructed manually at the ARM level. Hence, the GOOSE framework is not only a programming convenience but a security mechanism.
 
 ## Anoma Programs
 
@@ -120,7 +122,9 @@ would result in an action with:
 4. The fetches and id generation at the beginning of the program are translated to `queryResource` and `genRand` Anoma program commands.
 5. The actions are grouped into a single transaction, together with an action that sends the messages corresponding to the calls in the program. The `submitTransaction` command submits this transaction in the resulting Anoma program.
 
-The message RLs check that the created object resources correspond to modifications of consumed object resources specified by the bodies of corresponding class members or multi-methods, e.g., for methods the consumed object resource `self` is correctly updated into the created object resource.
+The message logics check that the created object resources correspond to modifications of consumed object resources specified by the bodies of corresponding class members or multi-methods, e.g., for methods the consumed object resource `self` is correctly updated into the created object resource.
+
+The RLs of object resources check that the message sent to the object is recognized by the object (corresponds to an operation defined for the object in the object's class or ecosystem) and its message logic holds.
 
 For example, the AVM program `mutualIncrement` from the previous section is translated to the Anoma program performing the following.
 1. `c1 := queryResource rc1.id`
@@ -202,7 +206,7 @@ Action sending the call messages:
 - A message is a communication sent from one object to another in the AVM. Messages are created for constructor, destructor, method and multi-method calls. The end-user never directly manipulates messages - only through calls to class members and multi-methods.
 - Consists of:
   - `label : Ecosystem.Label`. The label of the ecosystem of the message.
-  - `vals : Vals`. Message parameter values. The message parameters are object resources and generated random values that are used in the body of the call associated with the message. These need to be provided in the message, because the associated Resource Logic cannot fetch object resources from the Anoma system or generate new object identifiers.
+  - `vals : Vals`. Message parameter values. The message parameters are object resources and generated random values that are used in the body of the call associated with the message. These need to be provided in the message, because resource logics cannot fetch object resources from the Anoma system or generate new object identifiers.
   - `id : MessageId`. The message ID.
   - `args : id.Args`. The arguments of the message, where `id.Args` is the type of arguments based on the message id. The message arguments are the non-self arguments of the corresponding member or multi-method call.
   - `recipients : List ObjectId`. The recipients of the message.
@@ -289,7 +293,7 @@ Objects are translated to Resources. Every object is translated to a single reso
 - `label` (the class label) is stored in the `label` field.
 - `quantity` is stored in the `quantity` field.
 - Private fields are stored in the `value` field.
-- The Resource Logic (RL) of the resource corresponding to the object is determined by the object's class. This way the resource kind (label + logic) determines the object class. The RL check if the messages sent to the object are correspond to class member or known multi-methods.
+- The Resource Logic (RL) of the resource corresponding to the object is determined by the object's class. This way the resource kind (label + logic) determines the object class. The RL checks if the messages sent to the object  correspond to class member or known multi-methods, and their message logics hold.
 - The ephemerality of the resource is _not_ determined by the object. An object can map to either an ephemeral or a persistent resource depending on how it is used in the action.
 - The `nullifierKeyCommitment` field is computed using the universal nullifier key.
 
@@ -342,6 +346,8 @@ A message logic is a logic for a specific message (corresponding to a member cal
 - upgrade.
 
 The message logics check the constraints for the corresponding member call, i.e., that the object resource in the action was modified correctly according to the member's code.
+
+The message logics are checked in the RLs of the object resources, not in the RLs of message resources. The RLs of message resources only check on consumption if all recipients of the message are present in the action.
 
 #### Example
 
@@ -455,17 +461,17 @@ Constructor calls are translated to Tasks. The task for a call to a constructor 
 The IDs of created objects are ensured to be unique by making them equal to the nonce of the consumed ephemeral object resource.
 
 #### Constructor message logic
-Constructor message logic is the logic associated with the constructor message. Constructor message logic is implemented in `Class.Constructor.logic` in `AVM/Class/Translation/Logics.lean`.
+Constructor message logic is the logic associated with the constructor message. The constructor message logic is checked in the RL of the created object resource. Constructor message logic is implemented in `Class.Constructor.logic` in `AVM/Class/Translation/Logics.lean`.
 
 Constructor message logic has access to RL arguments which contain the following.
 
-- `msgRes : Resource`. The resource of the constructor message. Let `msg := Message.fromResource msgRes`.
 - `consumed : List Resource`. List of resources consumed in the action.
 - `created : List Resource`. List of resources created in the action.
 
 Constructor message logic for a constructor `constr` performs the following checks.
 
 - `consumed` contains:
+    - one ephemeral message resource `msgRes` for the received constructor message `res`,
 	- one ephemeral object resource `res` such that `checkDataEq(res, (constr.body msg.args).result)` holds,
 	- persistent object resources corresponding to the objects fetched in the constructor body.
 - `created` contains:
@@ -491,17 +497,17 @@ Destructor calls are translated to Tasks. The task for a call to a destructor `d
 	- persistent object resources corresponding to the objects fetched in the destructor body.
 
 #### Destructor message logic
-Destructor message logic is the logic associated with the destructor message. Destructor message logic is implemented in `Class.Destructor.logic` in `AVM/Class/Translation/Logics.lean`.
+Destructor message logic is the logic associated with the destructor message. The destructor message logic is checked in the RL of the destroyed object. Destructor message logic is implemented in `Class.Destructor.logic` in `AVM/Class/Translation/Logics.lean`.
 
 Destructor message logic has access to RL arguments which contain the following.
 
-- `msgRes : Resource`. The resource of the destructor message. Let `msg := Message.fromResource msgRes`.
 - `consumed : List Resource`. List of resources consumed in the action.
 - `created : List Resource`. List of resources created in the action.
 
 Destructor message logic for a destructor `destr` performs the following checks.
 
 - `consumed` contains:
+    - one ephemeral message resource `msgRes` for the received destructor message `res`,
 	- one persistent object resource `selfRes` corresponding to the `self` object,
 	- persistent object resources corresponding to the objects fetched in the destructor body.
 - `created` contains:
@@ -527,17 +533,17 @@ Method calls are translated to Tasks. The task for a call to a method `method` o
 	- persistent object resources corresponding to the objects fetched in the method body.
 
 #### Method message logic
-Method message logic is the logic associated with the method message. Method message logic is implemented in `Class.Method.logic` in `AVM/Class/Translation/Logics.lean`.
+Method message logic is the logic associated with the method message. The method message logic is checked in the RL of the `self` object resource. Method message logic is implemented in `Class.Method.logic` in `AVM/Class/Translation/Logics.lean`.
 
 Method message logic has access to RL arguments which contain the following.
 
-- `msgRes : Resource`. The resource of the method message. Let `msg := Message.fromResource msgRes`.
 - `consumed : List Resource`. List of resources consumed in the action.
 - `created : List Resource`. List of resources created in the action.
 
 Method message logic for a method `method` performs the following checks.
 
 - `consumed` contains:
+    - one ephemeral message resource `msgRes` for the received method message `res`,
 	- one persistent object resource `selfRes` corresponding to the `self` object,
 	- persistent object resources corresponding to the objects fetched in the method body.
 - `created` contains:
@@ -560,7 +566,7 @@ Upgrade calls are translated to Tasks. The task for an upgrade of `self : Object
 	- one persistent object resource corresponding to `obj`.
 
 #### Upgrade message logic
-Upgrade message logic is the logic associated with the upgrade message. Upgrade message logic is implemented in `Class.Upgrade.logic` in `AVM/Class/Translation/Logics.lean`.
+Upgrade message logic is the logic associated with the upgrade message. The upgrade message logic is checked in the RL of the upgraded object resource. Upgrade message logic is implemented in `Class.Upgrade.logic` in `AVM/Class/Translation/Logics.lean`.
 
 Upgrade message logic has access to RL arguments which contain the following.
 
@@ -593,7 +599,7 @@ Multi-method calls are translated to Tasks. The task for a call to a multi-metho
 	- persistent object resources corresponding to the objects fetched in the multi-method body.
 
 #### Multi-method message logic
-Multi-method message logic is the logic associated with the multi-method message. Multi-method message logic is implemented in `Ecosystem.MultiMethod.logic` in `AVM/Class/Translation/Logics.lean`.
+Multi-method message logic is the logic associated with the multi-method message. The multi-method message logic is checked in the RL of each `self` object resource to which the message is sent. Multi-method message logic is implemented in `Ecosystem.MultiMethod.logic` in `AVM/Class/Translation/Logics.lean`.
 
 Multi-method message logic has access to RL arguments which contain the following.
 
@@ -667,8 +673,9 @@ The `self` object is re-created from `selfRes`.
 Class logic for a class `cls` performs the following checks.
 
 - `consumed` contains exactly one message resource corresponding to a message `msg` in the ecosystem of the class.
-- `self.id` is in `msg.recipients`.
-- `msg.recipients.length` is equal to the number of object resources in `consumed`.
+- Either:
+  - `self` object is preserved (not modified), i.e., `created` contains exactly one object resource `res` such that `checkDataEq(res, self)` holds, or
+  - `self.id` is in `msg.recipients` and the message logic for `msg` holds,
 - `cls.invariant self logicArgs` holds.
 
 ## Translation issues and limitations

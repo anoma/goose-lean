@@ -163,7 +163,7 @@ private def Constructor.Message.logicFun
     self.isConsumed: {repr args.isConsumed}")
   let uid : ObjectId := newObjRes.nonce.value
   let messageValues := Program.messageValues body vals
-  let createdResMsgs := Logic.selectMessageResources (args.created  ++ if args.isConsumed then [] else [args.self])
+  let createdResMsgs := Logic.selectMessageResources (args.created ++ if args.isConsumed then [] else [args.self])
   let valsObjs := body.objects vals
   let fetchedObjValues := valsObjs.map (·.toObjectValue)
   let newObjValue := newObjData.toObjectValue uid
