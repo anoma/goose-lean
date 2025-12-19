@@ -471,7 +471,7 @@ Constructor message logic has access to RL arguments which contain the following
 Constructor message logic for a constructor `constr` performs the following checks.
 
 - `consumed` contains:
-    - one ephemeral message resource `msgRes` for the received constructor message `res`,
+    - one ephemeral message resource `msgRes` for the received constructor message `msg`,
 	- one ephemeral object resource `res` such that `checkDataEq(res, (constr.body msg.args).result)` holds,
 	- persistent object resources corresponding to the objects fetched in the constructor body.
 - `created` contains:
