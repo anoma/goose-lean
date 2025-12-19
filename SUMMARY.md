@@ -293,7 +293,7 @@ Objects are translated to Resources. Every object is translated to a single reso
 - `label` (the class label) is stored in the `label` field.
 - `quantity` is stored in the `quantity` field.
 - Private fields are stored in the `value` field.
-- The Resource Logic (RL) of the resource corresponding to the object is determined by the object's class. This way the resource kind (label + logic) determines the object class. The RL checks if the messages sent to the object  correspond to class member or known multi-methods, and their message logics hold.
+- The Resource Logic (RL) of the resource corresponding to the object is determined by the object's class. This way the resource kind (label + logic) determines the object class. The RL checks if the messages sent to the object correspond to class member or known multi-methods, and their message logics hold.
 - The ephemerality of the resource is _not_ determined by the object. An object can map to either an ephemeral or a persistent resource depending on how it is used in the action.
 - The `nullifierKeyCommitment` field is computed using the universal nullifier key.
 
@@ -507,15 +507,15 @@ Destructor message logic has access to RL arguments which contain the following.
 Destructor message logic for a destructor `destr` performs the following checks.
 
 - `consumed` contains:
-    - one ephemeral message resource `msgRes` for the received destructor message,
+    - one ephemeral message resource `msgRes` for the received destructor message `msg`,
 	- one persistent object resource `selfRes` corresponding to the `self` object,
 	- persistent object resources corresponding to the objects fetched in the destructor body.
 - `created` contains:
-	- one emphemeral object resource `selfRes'` and `checkDataEq(selfRes', self.data)` holds,
+	- one emphemeral object resource `selfRes'` and `checkDataEq(selfRes', self)` holds,
 	- ephemeral message resources for all messages sent in the destructor body, with arguments matching the arguments to the nested calls,
 	- persistent object resources corresponding to the objects fetched in the destructor body.
 - `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
-- `destr.invariant self args` holds.
+- `destr.invariant self msg.args` holds.
 
 ### Method
 
@@ -543,15 +543,15 @@ Method message logic has access to RL arguments which contain the following.
 Method message logic for a method `method` performs the following checks.
 
 - `consumed` contains:
-    - one ephemeral message resource `msgRes` for the received method message,
+    - one ephemeral message resource `msgRes` for the received method message `msg`,
 	- one persistent object resource `selfRes` corresponding to the `self` object,
 	- persistent object resources corresponding to the objects fetched in the method body.
 - `created` contains:
-	- one persistent object resource `selfRes'` and `checkDataEq(selfRes', (method.body self args).result.data)` holds,
+	- one persistent object resource `selfRes'` and `checkDataEq(selfRes', (method.body self msg.args).result)` holds,
 	- ephemeral message resources for all messages sent in the method body, with arguments matching the arguments to the nested calls,
 	- persistent object resources corresponding to the objects fetched in the method body.
 - `consumed` and `created` may contain more message resources, but not any object resources other than the ones specified above.
-- `method.invariant self args` holds.
+- `method.invariant self msg.args` holds.
 
 ### Upgrade
 
