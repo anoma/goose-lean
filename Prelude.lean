@@ -11,6 +11,7 @@ import Prelude.Hashable.Mix
 import Prelude.LetBang
 import Prelude.LetTry
 import Prelude.List
+import Prelude.See
 import Prelude.SomeType
 import Prelude.TypeRep
 import Prelude.ULift
